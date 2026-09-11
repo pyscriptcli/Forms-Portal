@@ -188,7 +188,7 @@ function ApprovalsContent() {
               </h1>
             </div>
             <p className="text-xs text-slate-500">
-              Zero-friction review & 1-click approvals for Team Leaders. No ClickUp accounts required.
+              Zero-friction review & 1-click approvals for Team Leaders.
             </p>
           </div>
 
