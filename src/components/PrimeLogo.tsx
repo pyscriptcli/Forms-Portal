@@ -1,19 +1,20 @@
-"use client";
-
-import React from "react";
+import Image from "next/image";
 
 interface PrimeLogoProps {
   className?: string;
+  variant?: "blue" | "white";
 }
 
-export function PrimeLogo({ className = "h-11" }: PrimeLogoProps) {
+export function PrimeLogo({ className = "h-11", variant = "blue" }: PrimeLogoProps) {
   return (
-    <div className={`flex items-center justify-end select-none ${className}`}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/prime-philippines-logo.png"
-        alt="Forms Portal"
-        className="h-full w-auto object-contain"
+    <div className={`flex items-center select-none ${className}`}>
+      <Image
+        src={variant === "white" ? "/prime-white-logo.png" : "/prime-blue-logo.png"}
+        alt="PRIME Philippines"
+        width={2400}
+        height={780}
+        unoptimized
+        className="h-full w-auto max-w-full object-contain"
       />
     </div>
   );

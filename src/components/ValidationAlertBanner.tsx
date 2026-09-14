@@ -19,21 +19,21 @@ export function ValidationAlertBanner({ items, onDismiss }: ValidationAlertBanne
   };
 
   return (
-    <div className="w-full max-w-[850px] mx-auto mb-5 bg-rose-50 border-2 border-rose-500 p-4 shadow-md relative animate-shake">
+    <div className="w-full max-w-[850px] mx-auto mb-5 bg-prime-white border-2 border-prime-blue p-4 shadow-none relative animate-shake">
       {/* Top red accent line */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <div className="p-2 bg-rose-600 text-white shrink-0 mt-0.5">
+          <div className="p-2 bg-prime-blue text-prime-white shrink-0 mt-0.5">
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="font-bold text-sm text-rose-950 uppercase tracking-wider flex items-center gap-2">
+            <h4 className="font-medium text-sm text-prime-blue uppercase tracking-wider flex items-center gap-2">
               <span>Required Information Missing</span>
-              <span className="bg-rose-200 text-rose-800 text-[11px] px-2 py-0.5 font-bold font-mono">
+              <span className="bg-prime-white text-prime-blue text-[11px] px-2 py-0.5 font-medium font-sans tabular-nums">
                 {items.length} {items.length === 1 ? "field" : "fields"} missed
               </span>
             </h4>
-            <p className="text-xs text-rose-800 mt-1">
+            <p className="text-xs text-prime-blue mt-1">
               All official RFP fields must be completed. Click any highlighted item below to jump directly to it:
             </p>
           </div>
@@ -43,7 +43,7 @@ export function ValidationAlertBanner({ items, onDismiss }: ValidationAlertBanne
           <button
             type="button"
             onClick={handleJumpToFirst}
-            className="hidden sm:flex items-center gap-1 bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+            className="hidden sm:flex items-center gap-1 bg-prime-blue hover:bg-prime-blue text-prime-white px-3 py-1.5 text-xs font-medium uppercase tracking-wider transition-colors cursor-pointer"
           >
             <span>Fix First Field</span>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -51,7 +51,7 @@ export function ValidationAlertBanner({ items, onDismiss }: ValidationAlertBanne
           <button
             type="button"
             onClick={onDismiss}
-            className="p-1 text-rose-600 hover:text-rose-900 transition-colors cursor-pointer"
+            className="p-1 text-prime-blue hover:text-prime-blue transition-colors cursor-pointer"
             title="Dismiss warning"
           >
             <X className="w-5 h-5" />
@@ -60,17 +60,17 @@ export function ValidationAlertBanner({ items, onDismiss }: ValidationAlertBanne
       </div>
 
       {/* Clickable missing field pill tags */}
-      <div className="mt-3 pt-3 border-t border-rose-200 flex flex-wrap gap-2">
+      <div className="mt-3 pt-3 border-t border-prime-rule flex flex-wrap gap-2">
         {items.map((err, idx) => (
           <button
             key={`${err.id}-${idx}`}
             type="button"
             onClick={() => scrollToFormField(err.id)}
-            className="inline-flex items-center gap-1.5 bg-white hover:bg-rose-100 border border-rose-300 hover:border-rose-500 text-rose-900 px-2.5 py-1 text-xs font-semibold shadow-2xs transition-all cursor-pointer group"
+            className="inline-flex items-center gap-1.5 bg-prime-white hover:bg-prime-white border border-prime-rule hover:border-prime-blue text-prime-blue px-2.5 py-1 text-xs font-medium shadow-none transition-all cursor-pointer group"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-600 group-hover:scale-125 transition-transform" />
+            <span className="w-1.5 h-1.5 rounded-none bg-prime-blue group-hover:scale-125 transition-transform" />
             <span>{err.label}</span>
-            <ArrowUpRight className="w-3 h-3 text-rose-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            <ArrowUpRight className="w-3 h-3 text-prime-blue group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </button>
         ))}
       </div>

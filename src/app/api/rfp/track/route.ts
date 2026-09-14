@@ -48,10 +48,10 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
   let department = "";
   let totalAmount = 0;
   let dateNeeded = "";
-  let urgency: "urgent" | "normal" = task.priority?.priority === "urgent" ? "urgent" : "normal";
+  const urgency: "urgent" | "normal" = task.priority?.priority === "urgent" ? "urgent" : "normal";
   let purpose = "";
   let requestedBy = "";
-  let requestedByEmail = "";
+  const requestedByEmail = "";
 
   // Read from custom fields if available
   if (Array.isArray(task.custom_fields)) {

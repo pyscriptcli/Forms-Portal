@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { UploadCloud, FileText, CheckCircle2, Loader2, Paperclip, Check } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
+import { PrimeDialog } from "./PrimeDialog";
 
 export type SubmissionStage =
   | "rendering_pdf"
@@ -25,23 +26,23 @@ const STAGES: Array<{
 }> = [
   {
     key: "rendering_pdf",
-    label: "Rendering Official Document",
-    desc: "Generating high-resolution signed PDF & preview image...",
+    label: "Preparing document",
+    desc: "Generating your signed PDF and preview.",
   },
   {
     key: "packaging_attachments",
-    label: "Packaging Supporting Documents",
-    desc: "Processing vendor quotation & invoice attachments...",
+    label: "Preparing attachments",
+    desc: "Preparing quotations and supporting documents.",
   },
   {
     key: "uploading_clickup",
-    label: "Transmitting to ClickUp",
-    desc: "Creating task, setting custom fields, and 5-stage checklist...",
+    label: "Uploading request",
+    desc: "Sending the request for review.",
   },
   {
     key: "finalizing",
-    label: "Finalizing & Notifying",
-    desc: "Uploading files to task attachments & recording audit trail...",
+    label: "Finishing submission",
+    desc: "Saving attachments and submission details.",
   },
 ];
 
@@ -69,115 +70,22 @@ export function SubmissionLoadingModal({
   );
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-    >
-      <div className="w-full max-w-md bg-white border-2 border-[#181A1D] shadow-2xl relative overflow-hidden flex flex-col">
-        {/* Top Gold Accent Line */}
-        <div className="h-1 bg-[#C9AB4C] w-full" />
-
-        {/* Deep Charcoal Header */}
-        <div className="bg-[#181A1D] p-6 text-white text-center relative overflow-hidden">
-          {/* Subtle animated background glow */}
-          <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#C9AB4C]/10 rounded-full blur-2xl pointer-events-none" />
-
-          <div className="relative z-10">
-            {/* Animated Icon Ring */}
-            <div className="w-14 h-14 mx-auto mb-3 bg-[#181A1D] border-2 border-[#C9AB4C] flex items-center justify-center relative shadow-lg">
-              <UploadCloud className="w-7 h-7 text-[#C9AB4C] animate-bounce" />
-              <div className="absolute -inset-1 border border-[#C9AB4C]/30 animate-ping pointer-events-none" />
-            </div>
-
-            <h3 className="font-serif italic text-xl font-bold tracking-tight text-white">
-              {isRevision ? "Updating ClickUp Task..." : "Submitting to ClickUp..."}
-            </h3>
-            <p className="text-xs text-slate-300 mt-1">
-              Please keep this tab open while documents & attachments are uploading.
-            </p>
-
-            {/* Entity Summary Pill */}
-            <div className="mt-3 inline-flex items-center gap-2 bg-black/40 border border-white/10 px-3 py-1 text-[11px] text-slate-200">
-              <span className="font-bold truncate max-w-[140px] text-[#C9AB4C]">
-                {entityName || "Document"}
-              </span>
-              <span>•</span>
-              <span className="font-mono">₱{formattedAmount}</span>
-              <span>•</span>
-              <span className="flex items-center gap-1 font-semibold text-emerald-400">
-                <Paperclip className="w-3 h-3" />
-                {attachmentsCount} {attachmentsCount === 1 ? "attachment" : "attachments"}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="w-full bg-slate-100 h-1.5 overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-[#003366] via-[#C9AB4C] to-emerald-500 transition-all duration-500 ease-out"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-
-        {/* Stages Checklist */}
-        <div className="p-6 space-y-3.5 bg-slate-50">
-          {STAGES.map((s, idx) => {
-            const isDone = currentStageIndex > idx;
-            const isCurrent = currentStageIndex === idx;
-
-            let icon = (
-              <div className="w-5 h-5 rounded-full border border-slate-300 bg-white flex items-center justify-center text-[10px] text-slate-400 font-bold">
-                {idx + 1}
-              </div>
-            );
-
-            let labelColor = "text-slate-400";
-            let descColor = "text-slate-400";
-            let rowBg = "bg-transparent";
-
-            if (isDone) {
-              icon = (
-                <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
-                  <Check className="w-3 h-3 stroke-[3]" />
-                </div>
-              );
-              labelColor = "text-emerald-900 font-bold line-through opacity-80";
-              descColor = "text-slate-400";
-            } else if (isCurrent) {
-              icon = (
-                <div className="w-5 h-5 rounded-full bg-[#181A1D] text-white flex items-center justify-center">
-                  <Loader2 className="w-3 h-3 animate-spin text-[#C9AB4C]" />
-                </div>
-              );
-              labelColor = "text-[#181A1D] font-bold";
-              descColor = "text-slate-600 font-medium";
-              rowBg = "bg-white border border-slate-200 shadow-xs";
-            }
-
-            return (
-              <div
-                key={s.key}
-                className={`p-2.5 flex items-start gap-3 transition-all ${rowBg}`}
-              >
-                <div className="shrink-0 mt-0.5">{icon}</div>
-                <div className="flex-1 min-w-0">
-                  <div className={`text-xs ${labelColor}`}>{s.label}</div>
-                  <div className={`text-[11px] mt-0.5 ${descColor}`}>{s.desc}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Bottom Reassurance Footer */}
-        <div className="px-6 py-3 bg-white border-t border-slate-200 text-center">
-          <span className="text-[11px] text-slate-400 italic">
-            🔒 Secure 256-bit SSL upload directly to ClickUp Workspace
-          </span>
-        </div>
+    <PrimeDialog open={isOpen} title={isRevision ? "Updating request" : "Submitting request"}>
+      <p className="text-sm mb-6">Keep this page open until the upload is complete.</p>
+      <div className="border-y border-prime-rule py-5 mb-6">
+        <p className="prime-label text-xs">{entityName || "Document"}</p>
+        <p className="font-bebas text-4xl text-prime-blue mt-2">₱{formattedAmount}</p>
+        <p className="text-xs mt-1">{attachmentsCount} {attachmentsCount === 1 ? "attachment" : "attachments"}</p>
       </div>
-    </div>
+      <div role="progressbar" aria-label="Submission progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent} className="h-1 border border-prime-blue mb-6">
+        <div className="h-full bg-prime-blue transition-all" style={{ width: `${progressPercent}%` }} />
+      </div>
+      <ol className="space-y-5" aria-live="polite">{STAGES.map((item, index) => <li key={item.key} className="flex gap-4" aria-current={index === currentStageIndex ? "step" : undefined}>
+        <span className="w-7 h-7 shrink-0 border border-prime-blue flex items-center justify-center text-prime-blue">
+          {index < currentStageIndex ? <Check size={16} aria-label="Complete" /> : index === currentStageIndex ? <Loader2 size={16} className="animate-spin" aria-label="In progress" /> : index + 1}
+        </span>
+        <div><p className="text-sm font-medium text-prime-blue">{item.label}</p><p className="text-xs mt-1">{item.desc}</p></div>
+      </li>)}</ol>
+    </PrimeDialog>
   );
 }

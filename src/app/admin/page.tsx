@@ -1,4 +1,6 @@
 "use client";
+import { PageHeader } from "@/components/PageHeader";
+import { PrimeLogo } from "@/components/PrimeLogo";
 
 import React, { useState, useEffect } from "react";
 import { ToggleLeft, ToggleRight, LogOut, Shield } from "lucide-react";
@@ -79,69 +81,25 @@ export default function AdminPage() {
     }
   }
 
-  /* ── Login Gate ── */
   if (!authed) {
     return (
-      <div className="min-h-screen bg-[#003366] flex items-center justify-center p-4">
-        <div className="w-full max-w-sm bg-white border border-slate-200 shadow-2xl">
-          {/* Gold rule */}
-          <div className="h-1 bg-[#C9A84C] w-full" />
-          <div className="p-8">
-            <div className="flex items-center gap-2.5 mb-6">
-              <div className="w-8 h-8 bg-[#C9A84C] flex items-center justify-center font-serif font-black text-[#003366] text-base">
-                P
-              </div>
-              <span
-                className="font-serif italic font-bold text-2xl text-[#003366] tracking-tight leading-none"
-                style={{ fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif" }}
-              >
-                Admin
-              </span>
+      <div className="prime-page">
+        <PageHeader title="Settings" description="Sign in with your administrator account to manage the portal." />
+        <section className="prime-panel max-w-lg">
+          <PrimeLogo className="h-10 mb-8" />
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div>
+              <label htmlFor="admin-email" className="prime-label block mb-2">Email</label>
+              <input id="admin-email" type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="username" className="prime-field" required />
             </div>
-
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="username"
-                  placeholder="admin@..."
-                  className="w-full h-9 px-3 bg-slate-50 border border-slate-300 text-xs focus:outline-none focus:border-[#003366] transition-colors"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  className="w-full h-9 px-3 bg-slate-50 border border-slate-300 text-xs focus:outline-none focus:border-[#003366] transition-colors"
-                />
-              </div>
-
-              {loginError && (
-                <p role="alert" className="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-2">
-                  {loginError}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                className="w-full h-10 bg-[#003366] hover:bg-[#002244] text-white text-xs font-bold tracking-wide transition-colors"
-              >
-                Sign In
-              </button>
-            </form>
-          </div>
-        </div>
+            <div>
+              <label htmlFor="admin-password" className="prime-label block mb-2">Password</label>
+              <input id="admin-password" type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" className="prime-field" required />
+            </div>
+            {loginError && <p role="alert" className="prime-notice">{loginError}</p>}
+            <button type="submit" className="prime-button w-full">Sign In</button>
+          </form>
+        </section>
       </div>
     );
   }
@@ -152,92 +110,35 @@ export default function AdminPage() {
       key: "portalGuideEnabled",
       label: "Portal Guide",
       description:
-        "When off, the welcome banner, floating guide button, tour spotlight, and Tour nav link are completely removed from the UI — no trace left.",
+        "Show the portal guide and the step-by-step form walkthrough.",
     },
     {
       key: "rfpAutofillEnabled",
       label: "RFP AI Autofill",
       description:
-        "When off, the quotation dropzone and extraction banner are hidden, and the /api/rfp/extract endpoint returns 403. Existing extracted data is preserved.",
+        "Allow requestors to fill payment forms from a vendor quotation.",
     },
   ];
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
-      {/* Admin topbar */}
-      <header className="bg-[#003366] text-white px-6 h-14 flex items-center justify-between border-b border-[#002244]">
-        <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#C9A84C]" />
-        <div className="flex items-center gap-2.5">
-          <Shield className="w-4 h-4 text-[#C9A84C]" />
-          <span
-            className="font-serif italic font-bold text-xl text-white tracking-tight"
-            style={{ fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif" }}
-          >
-            Admin Settings
-          </span>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-1.5 text-xs font-semibold text-white/60 hover:text-white transition-colors"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          Sign Out
-        </button>
-      </header>
-
-      <main className="max-w-2xl mx-auto px-4 py-10">
-        <h1
-          className="font-serif italic font-bold text-2xl text-[#003366] tracking-tight mb-1"
-          style={{ fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif" }}
-        >
-          Feature Controls
-        </h1>
-        <p className="text-xs text-slate-500 mb-8">
-          Toggle portal features on or off. Changes take effect immediately for all users.
-        </p>
-
-        <div className="space-y-4">
+    <div className="prime-page">
+      <PageHeader title="Settings" description="Manage the tools available to your team." actions={
+        <button className="prime-button secondary" onClick={handleLogout}>Sign out of admin</button>
+      } />
+      <div className="max-w-3xl">
+        <h2 className="prime-heading text-4xl mb-6">Feature controls</h2>
+        <div className="border-t border-prime-rule">
           {toggles.map(({ key, label, description }) => (
-            <div
-              key={key}
-              className="bg-white border border-slate-200 p-5 flex items-start justify-between gap-4 shadow-sm"
-            >
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-bold text-slate-900">{label}</span>
-                  <span
-                    className={`text-[10px] font-bold uppercase px-1.5 py-0.5 ${
-                      settings[key]
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : "bg-slate-100 text-slate-500 border border-slate-200"
-                    }`}
-                  >
-                    {settings[key] ? "ON" : "OFF"}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 leading-relaxed">{description}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleToggle(key)}
-                disabled={isSaving}
-                aria-label={`Toggle ${label}`}
-                className="shrink-0 mt-0.5 disabled:opacity-50 transition-opacity"
-              >
-                {settings[key] ? (
-                  <ToggleRight className="w-8 h-8 text-[#003366]" />
-                ) : (
-                  <ToggleLeft className="w-8 h-8 text-slate-400" />
-                )}
+            <div key={key} className="flex justify-between items-center gap-6 border-b border-prime-rule py-7">
+              <div><h3 className="prime-label text-prime-blue">{label}</h3><p className="text-sm mt-2">{description}</p></div>
+              <button type="button" role="switch" aria-checked={settings[key]} aria-label={`Toggle ${label}`} disabled={isSaving} onClick={() => handleToggle(key)} className={`prime-button ${settings[key] ? "" : "secondary"}`}>
+                {settings[key] ? "ON" : "OFF"}
               </button>
             </div>
           ))}
         </div>
-
-        {saveMsg && (
-          <p className="mt-4 text-xs font-semibold text-slate-600 text-center">{saveMsg}</p>
-        )}
-      </main>
+        {saveMsg && <p role="status" className="prime-notice mt-6">{saveMsg}</p>}
+      </div>
     </div>
   );
 }

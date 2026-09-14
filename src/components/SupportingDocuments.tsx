@@ -68,46 +68,46 @@ export function SupportingDocuments({
   return (
     <div
       id="supporting-documents-section"
-      className={`bg-white rounded-none border ${
+      className={`bg-prime-white rounded-none border ${
         hasError
-          ? "border-rose-500 ring-2 ring-rose-400/40 bg-rose-50/10"
-          : "border-slate-300"
-      } shadow-sm p-6 relative overflow-hidden transition-all`}
+          ? "border-prime-blue ring-2 ring-prime-rule bg-prime-white"
+          : "border-prime-rule"
+      } shadow-none p-6 relative overflow-hidden transition-all`}
     >
       {/* Gold top accent */}
-      <div className={`absolute top-0 left-0 right-0 h-1 ${hasError ? "bg-rose-500" : "bg-[#C9AB4C]"}`} />
+      <div className={`absolute top-0 left-0 right-0 h-px ${hasError ? "bg-prime-blue" : "bg-prime-gold"}`} />
 
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-[#003366] text-[#C9AB4C] rounded-none">
+          <div className="p-2 bg-prime-blue text-prime-white rounded-none">
             <Paperclip className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-serif italic font-bold text-base text-[#003366]">
+              <h3 className="font-serif text-4xl text-prime-blue">
                 Supporting Documents
               </h3>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-rose-100 text-rose-700 border border-rose-200">
+              <span className="text-[11px] uppercase font-medium tracking-wider px-2 py-0.5 bg-prime-white text-prime-blue border border-prime-rule">
                 Required
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-prime-ink mt-0.5">
               Attach vendor quotations, invoices, receipts, or official SOA before submitting
             </p>
           </div>
         </div>
-        <span className={`text-xs font-semibold px-2.5 py-1 ${
+        <span className={`text-xs font-medium px-2.5 py-1 ${
           hasError
-            ? "bg-rose-50 text-rose-700 border border-rose-300 font-bold"
-            : "bg-slate-100 text-slate-700 border border-slate-200"
+            ? "bg-prime-white text-prime-blue border border-prime-rule font-medium"
+            : "bg-prime-white text-prime-ink border border-prime-rule"
         }`}>
           {files.length} {files.length === 1 ? "file" : "files"} attached
         </span>
       </div>
 
       {hasError && (
-        <div className="mb-3 p-2.5 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2 animate-pulse">
-          <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0" />
+        <div className="mb-3 p-2.5 bg-prime-white border border-prime-rule text-prime-blue text-xs font-medium flex items-center gap-2 animate-pulse">
+          <span className="w-2 h-2 rounded-none bg-prime-blue shrink-0" />
           <span>Attachment required: Please upload at least one vendor quotation, invoice, or receipt before submitting to ClickUp.</span>
         </div>
       )}
@@ -126,15 +126,15 @@ export function SupportingDocuments({
         }}
         className={`border-2 border-dashed ${
           hasError
-            ? "border-rose-400 bg-rose-50/30 hover:border-rose-500"
-            : "border-slate-300 hover:border-[#C9AB4C] hover:bg-[#003366]/5"
+            ? "border-prime-rule bg-prime-white hover:border-prime-blue"
+            : "border-prime-rule hover:border-prime-gold hover:bg-prime-white"
         } rounded-none p-6 text-center cursor-pointer transition-all`}
       >
-        <UploadCloud className="w-8 h-8 text-[#003366]/50 mx-auto mb-2" />
-        <p className="text-sm font-semibold text-slate-700">
+        <UploadCloud className="w-8 h-8 text-prime-blue mx-auto mb-2" />
+        <p className="text-sm font-medium text-prime-ink">
           Click to upload or drag & drop supporting files here
         </p>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-prime-ink mt-1">
           Supports PDF, PNG, JPG, and DOCX (up to 25MB each)
         </p>
         <input
@@ -153,10 +153,10 @@ export function SupportingDocuments({
           {files.map((file, idx) => (
             <div
               key={file.id || idx}
-              className="flex items-center justify-between p-3 rounded-none border border-slate-300 bg-slate-50 hover:bg-slate-100/80 transition-colors"
+              className="flex items-center justify-between p-3 rounded-none border border-prime-rule bg-prime-white hover:bg-prime-white transition-colors"
             >
               <div className="flex items-center gap-3 overflow-hidden">
-                <div className="p-2 bg-white border border-slate-200 text-[#003366] shrink-0">
+                <div className="p-2 bg-prime-white border border-prime-rule text-prime-blue shrink-0">
                   {file.type.includes("image") ? (
                     <ImageIcon className="w-4 h-4" />
                   ) : (
@@ -164,10 +164,10 @@ export function SupportingDocuments({
                   )}
                 </div>
                 <div className="truncate">
-                  <p className="text-xs font-semibold text-slate-800 truncate" title={file.name}>
+                  <p className="text-xs font-medium text-prime-ink truncate" title={file.name}>
                     {file.name}
                   </p>
-                  <p className="text-[10px] text-slate-500 font-mono">
+                  <p className="text-[11px] text-prime-ink font-sans tabular-nums">
                     {formatFileSize(file.size)}
                   </p>
                 </div>
@@ -179,7 +179,7 @@ export function SupportingDocuments({
                     href={file.dataUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-white transition-colors"
+                    className="p-1.5 text-prime-ink hover:text-prime-ink hover:bg-prime-white transition-colors"
                     title="Preview file"
                   >
                     <Eye className="w-4 h-4" />
@@ -188,7 +188,7 @@ export function SupportingDocuments({
                 <button
                   type="button"
                   onClick={() => removeFile(idx)}
-                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                  className="p-1.5 text-prime-ink hover:text-prime-blue hover:bg-prime-white transition-colors cursor-pointer"
                   title="Remove file"
                 >
                   <Trash2 className="w-4 h-4" />

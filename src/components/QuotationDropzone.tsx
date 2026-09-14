@@ -60,20 +60,20 @@ export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
           e.stopPropagation();
         }}
         onDrop={handleFileDrop}
-        className="bg-white border border-slate-300 hover:border-[#003366] transition-all px-4 py-2.5 shadow-xs relative flex flex-col sm:flex-row items-center justify-between gap-3"
+        className="bg-prime-white border border-prime-rule hover:border-prime-blue transition-all px-4 py-2.5 shadow-none relative flex flex-col sm:flex-row items-center justify-between gap-3"
       >
         {/* Left: AI Badge + Description */}
         <div className="flex items-center gap-3 text-center sm:text-left">
-          <div className="w-8 h-8 bg-blue-50 border border-blue-200 text-[#003366] flex items-center justify-center shrink-0">
-            <Sparkles className="w-4 h-4 text-[#C9AB4C]" />
+          <div className="w-8 h-8 bg-prime-white border border-prime-rule text-prime-blue flex items-center justify-center shrink-0">
+            <Sparkles className="w-4 h-4 text-prime-blue" />
           </div>
           <div>
             <div className="flex items-center gap-2 justify-center sm:justify-start">
-              <span className="font-bold text-xs text-[#003366] uppercase tracking-wide">
+              <span className="font-medium text-xs text-prime-blue uppercase tracking-wide">
                 RFP Auto-Fill
               </span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-0.5">
+            <p className="text-[11px] text-prime-ink mt-0.5">
               Drop vendor quotation or invoice (PDF, JPG, PNG) to automatically populate line items & payee
             </p>
           </div>
@@ -85,16 +85,16 @@ export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isScanning}
-            className="h-8 px-4 text-xs font-bold text-[#003366] bg-slate-50 hover:bg-[#003366] hover:text-white border border-[#003366] flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            className="h-8 px-4 text-xs font-medium text-prime-blue bg-prime-white hover:bg-prime-blue hover:text-prime-white border border-prime-blue flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
           >
             {isScanning ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#C9AB4C]" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-prime-blue" />
                 <span>Analyzing Quote...</span>
               </>
             ) : (
               <>
-                <UploadCloud className="w-3.5 h-3.5 text-[#C9AB4C]" />
+                <UploadCloud className="w-3.5 h-3.5 text-prime-blue" />
                 <span>Upload Quote</span>
               </>
             )}
@@ -115,8 +115,8 @@ export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
 
       {/* Live Scan Status Banner */}
       {isScanning && (
-        <div className="mt-2 p-2 bg-blue-50 border border-blue-200 flex items-center justify-center gap-2 text-xs font-semibold text-[#003366] animate-pulse">
-          <Loader2 className="w-3.5 h-3.5 animate-spin text-[#003366]" />
+        <div className="mt-2 p-2 bg-prime-white border border-prime-rule flex items-center justify-center gap-2 text-xs font-medium text-prime-blue animate-pulse">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-prime-blue" />
           <span>{scanStatus}</span>
         </div>
       )}

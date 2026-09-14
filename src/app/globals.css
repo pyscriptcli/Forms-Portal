@@ -1,101 +1,140 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Bebas+Neue&family=Montserrat:wght@400;500&display=swap');
 @import "tailwindcss";
+@import "../styles/prime-brand.css" layer(base);
 
-:root {
-  --background: #fffcfb;
-  --foreground: #132033;
-  --prime-blue: #003366;
-  --prime-gold: #c9a84c;
-  --prime-dark: #003366;
-  --prime-warm-white: #fffcfb;
-  --prime-yellow: #ffbf00;
-  --prime-gray: #181d1e;
-  --prime-deep-ink: #0c0c0e;
-  --prime-radius: 0;
-}
-
+/* All product surfaces derive from the supplied PRIME skill. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-serif: "Cormorant Garamond", Georgia, serif;
-  --font-bebas: 'Bebas Neue', 'Arial Narrow', Impact, sans-serif;
-  --font-sans: 'Montserrat', Arial, Helvetica, sans-serif;
+  --color-background: var(--prime-warm-white);
+  --color-foreground: var(--prime-gray);
+  --color-prime-blue: var(--prime-blue);
+  --color-prime-white: var(--prime-warm-white);
+  --color-prime-gold: var(--prime-gold);
+  --color-prime-ink: var(--prime-gray);
+  --color-prime-rule: color-mix(in srgb, var(--prime-blue) 24%, var(--prime-warm-white));
+  --font-sans: var(--font-ui);
+  --font-serif: var(--font-display);
+  --font-bebas: var(--font-impact);
 }
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
+:root { --background: var(--prime-warm-white); --foreground: var(--prime-gray); }
+* { box-sizing: border-box; }
+body { margin: 0; font-size: 14px; line-height: 1.6; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button, a, input, select, textarea, [tabindex]:focus-visible { outline-offset: 4px; }
+:focus-visible { outline: 2px solid var(--prime-blue); }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+input, select, textarea { accent-color: var(--prime-blue); }
+input::placeholder, textarea::placeholder { color: var(--prime-gray); opacity: 0.65; }
+::selection { background: var(--prime-blue); color: var(--prime-warm-white); }
+.font-serif { font-family: var(--font-display); font-weight: 300; font-style: italic; }
+.font-bebas { font-family: var(--font-impact); font-weight: 400; letter-spacing: .08em; }
+.prime-display { font-style: italic; }
+.prime-button, .edgy-btn-primary, .edgy-btn-outline {
+  min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  gap: 12px; padding: 12px 20px; border: 1px solid var(--prime-blue);
+  background: var(--prime-blue); color: var(--prime-warm-white);
+  font-family: var(--font-ui); font-size: 11px; font-weight: 500;
+  line-height: 2; letter-spacing: .18em; text-transform: uppercase;
+  border-radius: var(--prime-radius); transition: border-color .15s, box-shadow .15s;
 }
-
-button, input, select, textarea, img, table, th, td, [role="dialog"], [role="menu"] {
-  border-radius: 0 !important;
+.prime-button:hover, .edgy-btn-primary:hover { border-color: var(--prime-gold); box-shadow: inset 0 -2px var(--prime-gold); }
+.prime-button.secondary, .edgy-btn-outline { color: var(--prime-blue); background: var(--prime-warm-white); }
+.prime-button.secondary:hover, .edgy-btn-outline:hover { border-color: var(--prime-gold); }
+.prime-button:disabled { opacity: .55; }
+.prime-icon-button { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; border: 1px solid var(--prime-rule, #003366); }
+.prime-field { width: 100%; min-height: 44px; padding: 10px 12px; background: var(--prime-warm-white); border: 1px solid var(--prime-blue); color: var(--prime-gray); font-family: var(--font-ui); font-size: 13px; }
+.prime-notice { padding: 16px; border: 1px solid var(--prime-blue); border-left-width: 3px; color: var(--prime-gray); background: var(--prime-warm-white); }
+.prime-notice[role="alert"] { border-left-color: var(--prime-gray); }
+.prime-page { width: 100%; max-width: 1280px; margin-inline: auto; }
+.prime-page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding-bottom: 28px; margin-bottom: 28px; border-bottom: 1px solid var(--prime-gold); }
+.prime-page-header h1 { margin: 0; font-family: var(--font-display); font-size: clamp(48px,5vw,64px); line-height: 1.1; font-weight: 300; font-style: italic; letter-spacing: -.01em; }
+.prime-page-header p { margin: 10px 0 0; font-size: 13px; max-width: 600px; }
+.prime-page-header .prime-label { margin: 0 0 10px; font-size: 10px; color: var(--prime-blue); }
+.prime-page-header-actions { flex-shrink: 0; display: flex; gap: 12px; flex-wrap: wrap; }
+.prime-panel { background: var(--prime-warm-white); border: 1px solid var(--color-prime-rule); padding: 24px; }
+.prime-form-layout { width: 100%; max-width: 1080px; margin-inline: auto; }
+.prime-form-scroll { max-width: 100%; overflow-x: auto; }
+.prime-document { width: 100%; background: var(--prime-warm-white); color: var(--prime-gray); border: 1px solid var(--prime-blue); }
+.prime-document .font-serif { font-size: 32px; }
+.prime-document input, .prime-document textarea { min-width: 0; font-family: var(--font-ui); }
+.prime-document th, .prime-document label { font-weight: 500; text-transform: uppercase; letter-spacing: .08em; }
+.prime-toolbar { position: sticky; top: 80px; z-index: 20; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding: 16px 0; margin-bottom: 24px; background: var(--prime-warm-white); border-block: 1px solid var(--color-prime-rule); }
+.prime-toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.prime-toolbar .prime-button { padding: 10px 12px; letter-spacing: .08em; }
+.prime-toolbar select { width: min(100%,300px); }
+.prime-skip-link { position: fixed; top: -100px; left: 16px; z-index: 100; }
+.prime-skip-link:focus { top: 16px; }
+.prime-sidebar { position: fixed; inset: 0 auto 0 0; width: 248px; z-index: 50; background: var(--prime-blue); color: var(--prime-warm-white); display: flex; flex-direction: column; }
+.prime-sidebar :focus-visible { outline-color: var(--prime-warm-white); }
+.prime-sidebar-brand { padding: 36px 28px 28px; border-bottom: 1px solid var(--prime-gold); }
+.prime-sidebar-brand .prime-label { font-size: 10px; letter-spacing: .35em; margin-top: 22px; }
+.prime-sidebar nav { padding: 24px 16px; display: grid; gap: 4px; }
+.prime-nav-link { min-height: 48px; display: flex; align-items: center; gap: 12px; padding: 12px; border-left: 2px solid transparent; color: var(--prime-warm-white); font-weight: 500; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; }
+.prime-nav-link:hover, .prime-nav-link[aria-current="page"] { border-color: var(--prime-gold); background: var(--prime-warm-white); color: var(--prime-blue); }
+.prime-sidebar-footer { margin-top: auto; padding: 16px; }
+.prime-profile { border-top: 1px solid var(--prime-gold); padding: 20px 12px 0; margin-top: 12px; }
+.prime-profile p { overflow-wrap: anywhere; font-size: 11px; margin: 3px 0; }
+.prime-app-content { margin-left: 248px; min-width: 0; }
+.prime-topbar { min-height: 80px; position: sticky; top: 0; z-index: 30; background: var(--prime-warm-white); border-bottom: 1px solid var(--color-prime-rule); display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px 36px; }
+.prime-topbar-title { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--prime-blue); font-weight: 500; }
+.prime-workspace { padding: 36px; min-height: calc(100svh - 80px); }
+.prime-mobile-toggle, .prime-mobile-close { display: none; }
+.prime-dialog-backdrop { position: fixed; inset: 0; z-index: 60; background: var(--prime-blue); opacity: .6; }
+.prime-signin { min-height: 100svh; background: var(--prime-warm-white); display: grid; grid-template-rows: auto 1fr; border-top: 4px solid var(--prime-blue); }
+.prime-signin-header { padding: 40px clamp(24px,7vw,112px); }
+.prime-signin-main { display: grid; grid-template-columns: 1.25fr 1fr; align-items: center; gap: clamp(48px,8vw,140px); padding: 40px clamp(24px,7vw,112px) 100px; }
+.prime-signin-title { margin: 24px 0; max-width: 680px; }
+.prime-signin-form { border-left: 1px solid var(--prime-gold); padding: 24px 0 24px clamp(32px,4vw,72px); }
+.prime-signin-form h2 { font-size: clamp(48px,4.5vw,64px); }
+.prime-signin-form .prime-button { width: 100%; margin-top: 32px; min-height: 56px; letter-spacing: .22em; }
+.prime-signin-form .prime-notice { margin-top: 24px; font-size: 13px; }
+.prime-workflow-grid { display: grid; grid-template-columns: repeat(5,minmax(180px,1fr)); gap: 16px; min-width: 1040px; }
+.prime-workflow-lane { border: 1px solid var(--color-prime-rule); }
+.prime-workflow-lane > header { padding: 20px; background: var(--prime-blue); color: var(--prime-warm-white); border-bottom: 2px solid var(--prime-gold); }
+.prime-workflow-lane h2 { color: inherit; font-size: 14px; font-weight: 500; }
+.prime-workflow-lane ol { padding: 20px; list-style: none; }
+.prime-workflow-lane li { border-bottom: 1px solid var(--color-prime-rule); padding: 0 0 20px; margin-bottom: 20px; font-size: 13px; }
+.prime-workflow-lane li:last-child { margin-bottom: 0; border-bottom: 0; }
+.prime-workflow-lane .prime-label { font-size: 9px; letter-spacing: .2em; margin-bottom: 8px; }
+@media (max-width: 1100px) {
+  .prime-signin-main { gap: 40px; }
+  .prime-topbar { padding-inline: 24px; }
+  .prime-workspace { padding: 28px 24px; }
 }
-
-.font-serif {
-  font-family: "Cormorant Garamond", Georgia, serif;
+@media (max-width: 767px) {
+  .prime-sidebar { display: none; width: min(300px,85vw); }
+  .prime-sidebar[data-open="true"] { display: flex; z-index: 70; }
+  .prime-mobile-toggle, .prime-mobile-close { display: inline-flex; }
+  .prime-mobile-close { position: absolute; right: 12px; top: 8px; }
+  .prime-app-content { margin-left: 0; }
+  .prime-workspace { padding: 24px 16px; }
+  .prime-topbar { padding: 12px 16px; gap: 12px; }
+  .prime-topbar-title { display: none; }
+  .prime-page-header { align-items: flex-start; flex-direction: column; gap: 20px; }
+  .prime-page-header h1 { font-size: 48px; }
+  .prime-signin-header { padding: 32px 24px; }
+  .prime-signin-main { display: flex; flex-direction: column; justify-content: center; align-items: stretch; padding: 24px 24px 64px; gap: 36px; }
+  .prime-signin-title { font-size: clamp(64px,15vw,96px); }
+  .prime-signin-form { border-left: 0; border-top: 1px solid var(--prime-gold); padding: 28px 0 0; }
+  .prime-signin-form h2 { font-size: 48px; }
+  .prime-toolbar { position: static; }
+  .prime-document { min-width: 760px; }
+  .prime-workflow-grid { grid-template-columns: 1fr; min-width: 0; }
 }
-
-.font-bebas {
-  font-family: var(--font-bebas);
-  letter-spacing: 0.04em;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
-
-.prime-display {
-  font-family: var(--font-serif);
-  font-weight: 300;
-  font-size: clamp(3.5rem, 8vw, 7.5rem);
-  line-height: 1;
-  letter-spacing: -0.02em;
+@media print {
+  .prime-sidebar, .prime-topbar, .prime-toolbar, .prime-skip-link, .no-print { display: none !important; }
+  .prime-app-content { margin: 0; }
+  .prime-workspace { padding: 0; }
+  .prime-document { min-width: 0; border: 0; }
+  .prime-form-scroll { overflow: visible; }
+  .prime-workflow-grid { min-width: 0; }
 }
-
-.prime-heading {
-  font-family: var(--font-serif);
-  font-weight: 300;
-  font-style: italic;
-  font-size: clamp(2.25rem, 5vw, 4.5rem);
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-}
-
-.prime-label {
-  font-family: var(--font-sans);
-  font-weight: 500;
-  text-transform: uppercase;
-  font-size: 0.75rem;
-  line-height: 2;
-  letter-spacing: 0.35em;
-}
-
-/* Edgy architectural styles */
-.edgy-btn-primary {
-  background-color: #003366;
-  color: #ffffff;
-  border-radius: 0px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  transition: all 0.2s ease;
-  border: 1px solid #003366;
-}
-
-.edgy-btn-primary:hover {
-  background-color: #002244;
-  border-color: #c9ab4c;
-}
-
-.edgy-btn-outline {
-  background-color: transparent;
-  color: #003366;
-  border-radius: 0px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  transition: all 0.2s ease;
-  border: 1px solid #cbd5e1;
-}
-
-.edgy-btn-outline:hover {
-  border-color: #c9ab4c;
-  color: #c9ab4c;
-}
+.prime-dialog { width: min(640px,calc(100vw - 32px)); max-height: calc(100svh - 32px); margin: auto; padding: 0; border: 1px solid var(--prime-blue); border-top: 2px solid var(--prime-gold); background: var(--prime-warm-white); color: var(--prime-gray); overflow-y: auto; }
+.prime-dialog::backdrop { background: rgb(0 51 102 / .65); }
+.prime-dialog-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 28px 28px 20px; }
+.prime-dialog-header h2 { font-family: var(--font-display); font-weight: 300; font-style: italic; font-size: 48px; line-height: 1.1; }
+.prime-dialog-content { padding: 0 28px 28px; }
+.prime-dialog-actions { display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--color-prime-rule); padding: 20px 28px; }
+@media(max-width: 767px) { .prime-dialog-header { padding: 24px 20px 20px; } .prime-dialog-header h2 { font-size: 40px; } .prime-dialog-content { padding: 0 20px 24px; } .prime-dialog-actions { padding: 20px; } }

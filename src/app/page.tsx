@@ -14,6 +14,7 @@ import {
 import { RfpSheet } from "@/components/RfpSheet";
 import { PoSheet } from "@/components/PoSheet";
 import { PcvSheet } from "@/components/PcvSheet";
+import { PageHeader } from "@/components/PageHeader";
 import { Toolbar } from "@/components/Toolbar";
 import { QuotationDropzone } from "@/components/QuotationDropzone";
 import { ExtractionBanner } from "@/components/ExtractionBanner";
@@ -204,6 +205,102 @@ function RfpAppContent() {
       .catch(() => {});
   }, []);
 
+  const fetchTaskData = async (id: string) => {
+    try {
+      const res = await fetch(`/api/rfp/${id}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.task) {
+          console.log("Loaded existing ClickUp task for revision:", json.task);
+          if (json.task.name?.includes("[PO]")) {
+            setSelectedForm("po");
+          } else if (json.task.name?.includes("[PCV]")) {
+            setSelectedForm("pcv");
+          } else {
+            setSelectedForm("rfp");
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Could not load task details for revision:", e);
+    }
+  };
+
+  const handlePreFillDemo = () => {
+    setSelectedForm("rfp");
+    const today = new Date().toISOString().split("T")[0];
+
+    setFormData({
+      date: today,
+      payee: "Silicon Valley Computer Group Inc.",
+      department: "ISD",
+      items: [
+        {
+          id: "demo-item-1",
+          description: "Dell Latitude 5440 14\" i7 16GB 512GB SSD",
+          qty: 3,
+          unit: "pcs",
+          unitPrice: 48500,
+          amount: 145500,
+        },
+        {
+          id: "demo-item-2",
+          description: "Dell UltraSharp 27\" QHD IPS Monitors (U2724D)",
+          qty: 6,
+          unit: "pcs",
+          unitPrice: 14200,
+          amount: 85200,
+        },
+        {
+          id: "demo-item-3",
+          description: "USB-C Dual 4K Universal Docking Stations",
+          qty: 3,
+          unit: "pcs",
+          unitPrice: 6800,
+          amount: 20400,
+        },
+        { id: "demo-item-4", description: "", qty: "", unit: "", unitPrice: "", amount: 0 },
+        { id: "demo-item-5", description: "", qty: "", unit: "", unitPrice: "", amount: 0 },
+      ],
+      totalAmount: 251100,
+      purpose: "Procurement of workstation hardware and dual-monitor setup for incoming ISD software engineers (Q3 Expansion).",
+      paymentMethod: "check",
+      paymentMethods: ["check"],
+      bank: "BDO Unibank",
+      accountName: "Silicon Valley Computer Group Inc.",
+      accountNumber: "0012-3456-7890",
+      urgency: "urgent",
+      urgencyOptions: ["urgent"],
+      dateNeeded: today,
+      requestedByName: "DAVE POLICARPIO",
+      requestedByEmail: "dave.policarpio@primephilippines.com",
+      signatureType: "draw",
+      signatureDataUrl:
+        "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='60'><path d='M20,40 Q50,10 90,35 T170,25' fill='none' stroke='%23003366' stroke-width='2.5'/></svg>",
+      requestedByRemarks: "Approved under Q3 ISD Capital Expenditure budget.",
+    });
+
+    const dummyFile = new File(
+      ["Sample vendor quotation for procurement request"],
+      "Quotation_SVCG_2026_Q3_ISD_Laptops.pdf",
+      { type: "application/pdf" }
+    );
+    setRawSupportingFiles([dummyFile]);
+    setSupportingFilesList([
+      {
+        id: "demo-doc-1",
+        name: "Quotation_SVCG_2026_Q3_ISD_Laptops.pdf",
+        size: 245800,
+        type: "application/pdf",
+        dataUrl: "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXrp/Og0MTGCjQgMC...",
+      },
+    ]);
+
+    setValidationErrors({});
+    setMissingFieldsList([]);
+    setErrorMessage(null);
+  };
+
   // Load existing task if in revision mode
   useEffect(() => {
     if (taskIdParam) {
@@ -320,102 +417,6 @@ function RfpAppContent() {
       setMissingFieldsList(res.items);
     }
   }, [formData, poData, pcvData, selectedForm, rawSupportingFiles, supportingFilesList]);
-
-  const fetchTaskData = async (id: string) => {
-    try {
-      const res = await fetch(`/api/rfp/${id}`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.task) {
-          console.log("Loaded existing ClickUp task for revision:", json.task);
-          if (json.task.name?.includes("[PO]")) {
-            setSelectedForm("po");
-          } else if (json.task.name?.includes("[PCV]")) {
-            setSelectedForm("pcv");
-          } else {
-            setSelectedForm("rfp");
-          }
-        }
-      }
-    } catch (e) {
-      console.warn("Could not load task details for revision:", e);
-    }
-  };
-
-  const handlePreFillDemo = () => {
-    setSelectedForm("rfp");
-    const today = new Date().toISOString().split("T")[0];
-
-    setFormData({
-      date: today,
-      payee: "Silicon Valley Computer Group Inc.",
-      department: "ISD",
-      items: [
-        {
-          id: "demo-item-1",
-          description: "Dell Latitude 5440 14\" i7 16GB 512GB SSD",
-          qty: 3,
-          unit: "pcs",
-          unitPrice: 48500,
-          amount: 145500,
-        },
-        {
-          id: "demo-item-2",
-          description: "Dell UltraSharp 27\" QHD IPS Monitors (U2724D)",
-          qty: 6,
-          unit: "pcs",
-          unitPrice: 14200,
-          amount: 85200,
-        },
-        {
-          id: "demo-item-3",
-          description: "USB-C Dual 4K Universal Docking Stations",
-          qty: 3,
-          unit: "pcs",
-          unitPrice: 6800,
-          amount: 20400,
-        },
-        { id: "demo-item-4", description: "", qty: "", unit: "", unitPrice: "", amount: 0 },
-        { id: "demo-item-5", description: "", qty: "", unit: "", unitPrice: "", amount: 0 },
-      ],
-      totalAmount: 251100,
-      purpose: "Procurement of workstation hardware and dual-monitor setup for incoming ISD software engineers (Q3 Expansion).",
-      paymentMethod: "check",
-      paymentMethods: ["check"],
-      bank: "BDO Unibank",
-      accountName: "Silicon Valley Computer Group Inc.",
-      accountNumber: "0012-3456-7890",
-      urgency: "urgent",
-      urgencyOptions: ["urgent"],
-      dateNeeded: today,
-      requestedByName: "DAVE POLICARPIO",
-      requestedByEmail: "dave.policarpio@primephilippines.com",
-      signatureType: "draw",
-      signatureDataUrl:
-        "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='60'><path d='M20,40 Q50,10 90,35 T170,25' fill='none' stroke='%23003366' stroke-width='2.5'/></svg>",
-      requestedByRemarks: "Approved under Q3 ISD Capital Expenditure budget.",
-    });
-
-    const dummyFile = new File(
-      ["Sample vendor quotation for procurement request"],
-      "Quotation_SVCG_2026_Q3_ISD_Laptops.pdf",
-      { type: "application/pdf" }
-    );
-    setRawSupportingFiles([dummyFile]);
-    setSupportingFilesList([
-      {
-        id: "demo-doc-1",
-        name: "Quotation_SVCG_2026_Q3_ISD_Laptops.pdf",
-        size: 245800,
-        type: "application/pdf",
-        dataUrl: "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXrp/Og0MTGCjQgMC...",
-      },
-    ]);
-
-    setValidationErrors({});
-    setMissingFieldsList([]);
-    setErrorMessage(null);
-  };
 
   const handleReset = () => {
     const docName =
@@ -654,6 +655,7 @@ function RfpAppContent() {
       confetti({
         particleCount: 80,
         spread: 70,
+        colors: ["#003366", "#C9A84C"],
         origin: { y: 0.6 },
       });
 
@@ -691,10 +693,14 @@ function RfpAppContent() {
       : formData.payee;
 
   return (
-    <div className="min-h-screen bg-[#FFFCFB] text-[#181D1E] py-6 px-3 sm:px-6 flex flex-col items-center">
+    <div className="prime-form-layout">
       {/* Container - Aligned to exact 850px document width */}
-      <div className="w-full max-w-[850px]">
-        {/* Single Compressed Topbar */}
+      <div className="w-full">
+        <PageHeader
+          title={selectedForm === "po" ? "Purchase order" : selectedForm === "pcv" ? "Petty cash voucher" : "Request for payment"}
+          description="Complete your form, attach supporting documents, and submit for review."
+        />
+        {/* Form controls */}
         <Toolbar
           onPreviewPdf={handlePreviewPdf}
           onReset={handleReset}
@@ -716,8 +722,8 @@ function RfpAppContent() {
 
         {/* Error banner */}
         {errorMessage && (
-          <div className="mb-4 p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2.5 animate-shake">
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+          <div className="mb-4 p-4 bg-prime-white border border-prime-rule text-prime-blue text-xs font-medium flex items-center gap-2.5 animate-shake">
+            <AlertCircle className="w-4 h-4 text-prime-blue shrink-0" />
             <span>{errorMessage}</span>
           </div>
         )}
@@ -747,7 +753,7 @@ function RfpAppContent() {
         />
 
         {/* Document First Paper Sheet */}
-        <main id="rfp-sheet-container" className="mb-8">
+        <section id="rfp-sheet-container" className="prime-form-scroll mb-8" aria-label="Form document">
           {selectedForm === "rfp" && (
             <RfpSheet
               data={formData}
@@ -769,10 +775,10 @@ function RfpAppContent() {
               validationErrors={validationErrors}
             />
           )}
-        </main>
+        </section>
 
         {/* Supporting Documents Section */}
-        <section className="mb-12 max-w-[850px] mx-auto">
+        <section className="mb-12">
           <SupportingDocuments
             files={supportingFilesList}
             onFilesChange={setSupportingFilesList}
@@ -809,7 +815,7 @@ export default function Page() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[#FFFCFB] text-[#888780] text-sm">
+        <div className="min-h-screen flex items-center justify-center bg-prime-white text-prime-ink text-sm">
           Loading Forms Portal...
         </div>
       }

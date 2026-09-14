@@ -108,22 +108,22 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
     <div className="w-full flex justify-center py-2">
       <div
         id="po-printable-sheet"
-        className="w-full max-w-[850px] bg-white text-black p-8 md:p-10 border-2 border-black shadow-2xl relative font-sans leading-tight text-xs"
+        className="prime-document p-8 md:p-10 relative font-sans leading-tight text-xs"
         style={{ minHeight: "1100px" }}
       >
         {/* Top Header */}
-        <div className="flex flex-col md:flex-row items-start justify-between gap-4 pb-4 border-b-2 border-black">
+        <div className="flex flex-col md:flex-row items-start justify-between gap-4 pb-4 border-b-2 border-prime-blue">
           {/* Company Branding */}
-          <div className="flex items-start gap-3">
+          <div className="flex flex-col items-start gap-3">
             <PrimeLogo className="h-12 w-auto shrink-0" />
             <div>
-              <h1 className="text-[13px] font-bold tracking-tight text-slate-900 uppercase leading-snug">
+              <p className="text-[13px] font-medium tracking-tight text-prime-ink uppercase leading-snug">
                 PROPERTY INTERACTIVE MARKETING ENTERPRISE REALTY CORP.
-              </h1>
-              <p className="text-[10px] text-slate-600 mt-0.5 leading-tight">
+              </p>
+              <p className="text-[11px] text-prime-ink mt-0.5 leading-tight">
                 Unit 215 Pacific Century Tower, #1472 -1476 Quezon Ave., Bgry. South Triangle Quezon City
               </p>
-              <p className="text-[10px] font-semibold text-slate-700 mt-0.5">
+              <p className="text-[11px] font-medium text-prime-ink mt-0.5">
                 Vat Reg TIN: 008-565-126-000
               </p>
             </div>
@@ -131,39 +131,39 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
 
           {/* PO Title & Meta */}
           <div className="text-left md:text-right shrink-0 w-full md:w-auto">
-            <h2 className="font-sans font-black text-2xl text-[#003366] tracking-tight uppercase">
-              PURCHASE ORDER
+            <h2 className="font-serif text-prime-blue">
+              Purchase order
             </h2>
             <div className="mt-2 space-y-1.5 text-xs">
               <div className="flex items-center justify-between md:justify-end gap-2">
-                <span className="font-bold text-[11px] uppercase">DATE:</span>
+                <span className="font-medium text-[11px] uppercase">DATE:</span>
                 <input
                   id="po-field-date"
                   type="date"
                   value={data.date}
                   onChange={(e) => updateField("date", e.target.value)}
-                  className={`bg-transparent border ${hasError("date") ? "border-rose-500 bg-rose-50" : "border-slate-300"} focus:border-[#003366] px-2 py-0.5 text-xs text-right font-medium`}
+                  className={`bg-transparent border ${hasError("date") ? "border-prime-blue bg-prime-white" : "border-prime-rule"} focus:border-prime-blue px-2 py-0.5 text-xs text-right font-medium`}
                 />
               </div>
               <div className="flex items-center justify-between md:justify-end gap-2">
-                <span className="font-bold text-[11px] uppercase">PURCHASE ORDER NO.:</span>
+                <span className="font-medium text-[11px] uppercase">PURCHASE ORDER NO.:</span>
                 <input
                   type="text"
                   placeholder="PO-2026-001"
                   value={data.poNumber}
                   onChange={(e) => updateField("poNumber", e.target.value)}
-                  className="bg-transparent border border-slate-300 focus:border-[#003366] px-2 py-0.5 text-xs text-right font-mono font-bold w-36"
+                  className="bg-transparent border border-prime-rule focus:border-prime-blue px-2 py-0.5 text-xs text-right font-sans tabular-nums font-medium w-36"
                 />
               </div>
               <div className="flex items-center justify-between md:justify-end gap-2 relative">
-                <span className="font-bold text-[11px] uppercase">DEPARTMENT:</span>
+                <span className="font-medium text-[11px] uppercase">DEPARTMENT:</span>
                 <div className="w-36 text-right">
                   <DepartmentCombobox
                     id="po-field-department"
                     value={data.department}
                     onChange={(val) => updateField("department", val)}
                     placeholder="ex. Brokerage"
-                    className="bg-transparent border border-slate-300 focus:border-[#003366] px-2 py-0.5 text-xs text-right font-medium w-full"
+                    className="bg-transparent border border-prime-rule focus:border-prime-blue px-2 py-0.5 text-xs text-right font-medium w-full"
                     hasError={hasError("department")}
                   />
                 </div>
@@ -173,14 +173,14 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
         </div>
 
         {/* Vendor Information Section */}
-        <div className="mt-4 border border-black">
-          <div className="bg-[#003366] text-white px-3 py-1 font-bold text-xs uppercase tracking-wider">
+        <div className="mt-4 border border-prime-blue">
+          <div className="bg-prime-blue text-prime-white px-3 py-1 font-medium text-xs uppercase tracking-wider">
             VENDOR INFORMATION
           </div>
           <div className="p-2.5 grid grid-cols-12 gap-2 text-xs">
             {/* Vendor Name */}
-            <div className="col-span-8 flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
-              <span className="font-bold text-[10px] uppercase tracking-wide text-slate-500 shrink-0">
+            <div className="col-span-8 flex items-center gap-1.5 border-b border-prime-rule pb-1.5">
+              <span className="font-medium text-[11px] uppercase tracking-wide text-prime-ink shrink-0">
                 VENDOR NAME:
               </span>
               <input
@@ -189,13 +189,13 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
                 placeholder="Company / Vendor Name"
                 value={data.vendorName}
                 onChange={(e) => updateField("vendorName", e.target.value)}
-                className={`w-full bg-transparent font-bold text-xs focus:outline-none focus:bg-blue-50/40 px-1 ${hasError("vendorName") ? "border-b-2 border-rose-500 bg-rose-50/50" : ""}`}
+                className={`w-full bg-transparent font-medium text-xs focus:outline-none focus:bg-prime-white px-1 ${hasError("vendorName") ? "border-b-2 border-prime-blue bg-prime-white" : ""}`}
               />
             </div>
 
             {/* Account Manager */}
-            <div className="col-span-4 flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
-              <span className="font-bold text-[10px] uppercase tracking-wide text-slate-500 shrink-0">
+            <div className="col-span-4 flex items-center gap-1.5 border-b border-prime-rule pb-1.5">
+              <span className="font-medium text-[11px] uppercase tracking-wide text-prime-ink shrink-0">
                 ACCOUNT MANAGER:
               </span>
               <input
@@ -203,13 +203,13 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
                 placeholder="Sales Rep / Contact Person"
                 value={data.accountManager}
                 onChange={(e) => updateField("accountManager", e.target.value)}
-                className="w-full bg-transparent text-xs focus:outline-none focus:bg-blue-50/40 px-1"
+                className="w-full bg-transparent text-xs focus:outline-none focus:bg-prime-white px-1"
               />
             </div>
 
             {/* Address */}
-            <div className="col-span-12 flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
-              <span className="font-bold text-[10px] uppercase tracking-wide text-slate-500 shrink-0">
+            <div className="col-span-12 flex items-center gap-1.5 border-b border-prime-rule pb-1.5">
+              <span className="font-medium text-[11px] uppercase tracking-wide text-prime-ink shrink-0">
                 ADDRESS:
               </span>
               <input
@@ -217,13 +217,13 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
                 placeholder="Vendor office address"
                 value={data.address}
                 onChange={(e) => updateField("address", e.target.value)}
-                className="w-full bg-transparent text-xs focus:outline-none focus:bg-blue-50/40 px-1"
+                className="w-full bg-transparent text-xs focus:outline-none focus:bg-prime-white px-1"
               />
             </div>
 
             {/* TIN */}
-            <div className="col-span-12 flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
-              <span className="font-bold text-[10px] uppercase tracking-wide text-slate-500 shrink-0">
+            <div className="col-span-12 flex items-center gap-1.5 border-b border-prime-rule pb-1.5">
+              <span className="font-medium text-[11px] uppercase tracking-wide text-prime-ink shrink-0">
                 TIN:
               </span>
               <input
@@ -231,13 +231,13 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
                 placeholder="000-000-000-000"
                 value={data.tin}
                 onChange={(e) => updateField("tin", e.target.value)}
-                className="w-full bg-transparent font-mono text-xs focus:outline-none focus:bg-blue-50/40 px-1"
+                className="w-full bg-transparent font-sans tabular-nums text-xs focus:outline-none focus:bg-prime-white px-1"
               />
             </div>
 
             {/* Contact No & Email */}
             <div className="col-span-6 flex items-center gap-1.5">
-              <span className="font-bold text-[10px] uppercase tracking-wide text-slate-500 shrink-0">
+              <span className="font-medium text-[11px] uppercase tracking-wide text-prime-ink shrink-0">
                 CONTACT NO:
               </span>
               <input
@@ -245,12 +245,12 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
                 placeholder="e.g. 0917-123-4567"
                 value={data.contactNo}
                 onChange={(e) => updateField("contactNo", e.target.value)}
-                className="w-full bg-transparent text-xs focus:outline-none focus:bg-blue-50/40 px-1"
+                className="w-full bg-transparent text-xs focus:outline-none focus:bg-prime-white px-1"
               />
             </div>
 
             <div className="col-span-6 flex items-center gap-1.5">
-              <span className="font-bold text-[10px] uppercase tracking-wide text-slate-500 shrink-0">
+              <span className="font-medium text-[11px] uppercase tracking-wide text-prime-ink shrink-0">
                 EMAIL ADDRESS:
               </span>
               <input
@@ -258,33 +258,33 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
                 placeholder="vendor@company.com"
                 value={data.emailAddress}
                 onChange={(e) => updateField("emailAddress", e.target.value)}
-                className="w-full bg-transparent text-xs focus:outline-none focus:bg-blue-50/40 px-1"
+                className="w-full bg-transparent text-xs focus:outline-none focus:bg-prime-white px-1"
               />
             </div>
           </div>
         </div>
 
         {/* Items Table */}
-        <div className="mt-4 border border-black overflow-hidden">
+        <div className="mt-4 border border-prime-blue overflow-hidden">
           <table className="w-full border-collapse text-xs">
             <thead>
-              <tr className="bg-[#003366] text-white">
-                <th className="p-1.5 text-center font-bold uppercase tracking-wider w-14 border-r border-blue-900">
+              <tr className="bg-prime-blue text-prime-white">
+                <th className="p-1.5 text-center font-medium uppercase tracking-wider w-14 border-r border-prime-blue">
                   Item No.
                 </th>
-                <th className="p-1.5 text-center font-bold uppercase tracking-wider border-r border-blue-900">
+                <th className="p-1.5 text-center font-medium uppercase tracking-wider border-r border-prime-blue">
                   Details
                 </th>
-                <th className="p-1.5 text-center font-bold uppercase tracking-wider w-16 border-r border-blue-900">
+                <th className="p-1.5 text-center font-medium uppercase tracking-wider w-16 border-r border-prime-blue">
                   Unit
                 </th>
-                <th className="p-1.5 text-center font-bold uppercase tracking-wider w-20 border-r border-blue-900">
+                <th className="p-1.5 text-center font-medium uppercase tracking-wider w-20 border-r border-prime-blue">
                   Quantity
                 </th>
-                <th className="p-1.5 text-center font-bold uppercase tracking-wider w-28 border-r border-blue-900">
+                <th className="p-1.5 text-center font-medium uppercase tracking-wider w-28 border-r border-prime-blue">
                   Unit Price
                 </th>
-                <th className="p-1.5 text-center font-bold uppercase tracking-wider w-28">
+                <th className="p-1.5 text-center font-medium uppercase tracking-wider w-28">
                   Total
                 </th>
                 <th
@@ -295,14 +295,14 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
             </thead>
             <tbody>
               {data.items.map((item, idx) => (
-                <tr key={item.id || idx} className="border-b border-black hover:bg-blue-50/30">
+                <tr key={item.id || idx} className="border-b border-prime-blue hover:bg-prime-white">
                   {/* Item No */}
-                  <td className="align-top p-1.5 text-center font-mono text-xs border-r border-black font-semibold">
+                  <td className="align-top p-1.5 text-center font-sans tabular-nums text-xs border-r border-prime-blue font-medium">
                     {idx + 1}
                   </td>
 
                   {/* Details */}
-                  <td className="align-top p-1 border-r border-black">
+                  <td className="align-top p-1 border-r border-prime-blue">
                     <AutoResizeTextarea
                       id={`po-field-details-${idx}`}
                       value={item.details}
@@ -310,23 +310,23 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
                       minHeight={26}
                       rows={1}
                       onChange={(e) => handleItemChange(idx, "details", e.target.value)}
-                      className={`px-2 py-1 text-xs focus:bg-white ${hasError(`item_${idx}_details`) ? "border border-rose-500 bg-rose-50" : ""}`}
+                      className={`px-2 py-1 text-xs focus:bg-prime-white ${hasError(`item_${idx}_details`) ? "border border-prime-blue bg-prime-white" : ""}`}
                     />
                   </td>
 
                   {/* Unit */}
-                  <td className="align-top p-1 border-r border-black">
+                  <td className="align-top p-1 border-r border-prime-blue">
                     <input
                       type="text"
                       value={item.unit}
                       placeholder="pcs"
                       onChange={(e) => handleItemChange(idx, "unit", e.target.value)}
-                      className="w-full text-center bg-transparent py-1 text-xs focus:bg-white"
+                      className="w-full text-center bg-transparent py-1 text-xs focus:bg-prime-white"
                     />
                   </td>
 
                   {/* Quantity */}
-                  <td className="align-top p-1 border-r border-black">
+                  <td className="align-top p-1 border-r border-prime-blue">
                     <input
                       id={`po-field-qty-${idx}`}
                       type="number"
@@ -341,14 +341,14 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
                           e.target.value === "" ? "" : parseFloat(e.target.value)
                         )
                       }
-                      className={`w-full text-center bg-transparent py-1 text-xs focus:bg-white font-mono ${hasError(`item_${idx}_qty`) ? "border border-rose-500 bg-rose-50" : ""}`}
+                      className={`w-full text-center bg-transparent py-1 text-xs focus:bg-prime-white font-sans tabular-nums ${hasError(`item_${idx}_qty`) ? "border border-prime-blue bg-prime-white" : ""}`}
                     />
                   </td>
 
                   {/* Unit Price */}
-                  <td className="align-top p-1 border-r border-black">
+                  <td className="align-top p-1 border-r border-prime-blue">
                     <div className="flex items-center px-1">
-                      <span className="text-slate-400 mr-1 text-[11px] pt-1">₱</span>
+                      <span className="text-prime-ink mr-1 text-[11px] pt-1">₱</span>
                       <input
                         id={`po-field-price-${idx}`}
                         type="number"
@@ -363,13 +363,13 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
                             e.target.value === "" ? "" : parseFloat(e.target.value)
                           )
                         }
-                        className={`w-full text-right bg-transparent py-1 text-xs focus:bg-white font-mono ${hasError(`item_${idx}_price`) ? "border border-rose-500 bg-rose-50" : ""}`}
+                        className={`w-full text-right bg-transparent py-1 text-xs focus:bg-prime-white font-sans tabular-nums ${hasError(`item_${idx}_price`) ? "border border-prime-blue bg-prime-white" : ""}`}
                       />
                     </div>
                   </td>
 
                   {/* Total */}
-                  <td className="align-top p-1 text-right font-mono font-bold text-xs pr-3 pt-2">
+                  <td className="align-top p-1 text-right font-sans tabular-nums font-medium text-xs pr-3 pt-2">
                     ₱{Number(item.total || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
 
@@ -382,7 +382,7 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
                       <button
                         type="button"
                         onClick={() => removeItemRow(idx)}
-                        className="text-slate-300 hover:text-rose-600 transition-colors"
+                        className="text-prime-ink hover:text-prime-blue transition-colors"
                         title="Remove row"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -400,9 +400,9 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
           <button
             type="button"
             onClick={addItemRow}
-            className="edgy-btn-outline px-3 py-1 text-xs flex items-center gap-1.5 cursor-pointer font-semibold"
+            className="edgy-btn-outline px-3 py-1 text-xs flex items-center gap-1.5 cursor-pointer font-medium"
           >
-            <Plus className="w-3.5 h-3.5 text-[#C9AB4C]" />
+            <Plus className="w-3.5 h-3.5 text-prime-blue" />
             <span>Add Item</span>
           </button>
         </div>
@@ -410,8 +410,8 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
         {/* Notes & Financial Calculation Section */}
         <div className="mt-3 grid grid-cols-12 gap-4 items-start">
           {/* Additional Notes (Left Side) */}
-          <div className="col-span-7 border border-black">
-            <div className="bg-[#003366] text-white px-3 py-1 font-bold text-xs uppercase tracking-wider">
+          <div className="col-span-7 border border-prime-blue">
+            <div className="bg-prime-blue text-prime-white px-3 py-1 font-medium text-xs uppercase tracking-wider">
               Additional Notes:
             </div>
             <div className="p-2">
@@ -421,79 +421,79 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
                 minHeight={80}
                 placeholder="Payment terms, delivery schedules, warranty conditions, etc."
                 onChange={(e) => updateField("additionalNotes", e.target.value)}
-                className="text-xs p-1 focus:bg-blue-50/30"
+                className="text-xs p-1 focus:bg-prime-white"
               />
             </div>
           </div>
 
           {/* Tax Calculation Box (Right Side) */}
-          <div className="col-span-5 border border-black">
+          <div className="col-span-5 border border-prime-blue">
             <table className="w-full text-xs border-collapse">
               <tbody>
-                <tr className="border-b border-black">
-                  <td className="p-1.5 font-bold uppercase text-[11px] text-slate-700">
+                <tr className="border-b border-prime-blue">
+                  <td className="p-1.5 font-medium uppercase text-[11px] text-prime-ink">
                     Total
                   </td>
-                  <td className="p-1.5 text-right font-mono font-bold">
+                  <td className="p-1.5 text-right font-sans tabular-nums font-medium">
                     ₱{Number(data.subtotal || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                 </tr>
-                <tr className="border-b border-black">
-                  <td className="p-1.5 font-medium text-[11px] text-slate-600">
+                <tr className="border-b border-prime-blue">
+                  <td className="p-1.5 font-medium text-[11px] text-prime-ink">
                     VAT (12%)
                   </td>
                   <td className="p-1 text-right">
                     <div className="flex items-center justify-end">
-                      <span className="text-slate-400 mr-1 text-[10px]">₱</span>
+                      <span className="text-prime-ink mr-1 text-[11px]">₱</span>
                       <input
                         type="number"
                         step="any"
                         value={data.vatAmount}
                         onChange={(e) => handleTaxOverride("vatAmount", parseFloat(e.target.value) || 0)}
-                        className="w-24 text-right bg-transparent font-mono text-xs focus:bg-blue-50/40 py-0.5"
+                        className="w-24 text-right bg-transparent font-sans tabular-nums text-xs focus:bg-prime-white py-0.5"
                       />
                     </div>
                   </td>
                 </tr>
-                <tr className="border-b border-black">
-                  <td className="p-1.5 font-medium text-[11px] text-slate-600">
+                <tr className="border-b border-prime-blue">
+                  <td className="p-1.5 font-medium text-[11px] text-prime-ink">
                     Net of Vat
                   </td>
                   <td className="p-1 text-right">
                     <div className="flex items-center justify-end">
-                      <span className="text-slate-400 mr-1 text-[10px]">₱</span>
+                      <span className="text-prime-ink mr-1 text-[11px]">₱</span>
                       <input
                         type="number"
                         step="any"
                         value={data.netOfVat}
                         onChange={(e) => handleTaxOverride("netOfVat", parseFloat(e.target.value) || 0)}
-                        className="w-24 text-right bg-transparent font-mono text-xs focus:bg-blue-50/40 py-0.5"
+                        className="w-24 text-right bg-transparent font-sans tabular-nums text-xs focus:bg-prime-white py-0.5"
                       />
                     </div>
                   </td>
                 </tr>
-                <tr className="border-b border-black">
-                  <td className="p-1.5 font-medium text-[11px] text-slate-600">
+                <tr className="border-b border-prime-blue">
+                  <td className="p-1.5 font-medium text-[11px] text-prime-ink">
                     Withholding Tax (2%)
                   </td>
                   <td className="p-1 text-right">
                     <div className="flex items-center justify-end">
-                      <span className="text-slate-400 mr-1 text-[10px]">₱</span>
+                      <span className="text-prime-ink mr-1 text-[11px]">₱</span>
                       <input
                         type="number"
                         step="any"
                         value={data.withholdingTaxAmount}
                         onChange={(e) => handleTaxOverride("withholdingTaxAmount", parseFloat(e.target.value) || 0)}
-                        className="w-24 text-right bg-transparent font-mono text-xs focus:bg-blue-50/40 py-0.5"
+                        className="w-24 text-right bg-transparent font-sans tabular-nums text-xs focus:bg-prime-white py-0.5"
                       />
                     </div>
                   </td>
                 </tr>
-                <tr className="bg-slate-50 font-black">
-                  <td className="p-2 font-bold uppercase text-xs text-[#003366]">
+                <tr className="bg-prime-white font-medium">
+                  <td className="p-2 font-medium uppercase text-xs text-prime-blue">
                     TOTAL AMOUNT DUE
                   </td>
-                  <td className="p-2 text-right font-bebas text-xl text-[#003366] tracking-wider pr-2">
+                  <td className="p-2 text-right font-bebas text-xl text-prime-blue tracking-wider pr-2">
                     ₱{Number(data.totalAmountDue || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                 </tr>
@@ -503,80 +503,80 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
         </div>
 
         {/* 4 Signature Blocks */}
-        <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t-2 border-black">
+        <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t-2 border-prime-blue">
           {/* Prepared By */}
           <div className="text-center">
-            <span className="font-bold text-[11px] block uppercase text-slate-800">
+            <span className="font-medium text-[11px] block uppercase text-prime-ink">
               Prepared By:
             </span>
-            <div className="mt-6 border-b border-black pb-1">
+            <div className="mt-6 border-b border-prime-blue pb-1">
               <input
                 id="po-field-prepared-by"
                 type="text"
                 placeholder="Employee Name"
                 value={data.preparedByName}
                 onChange={(e) => updateField("preparedByName", e.target.value)}
-                className={`w-full text-center bg-transparent text-xs font-semibold focus:outline-none ${hasError("preparedByName") ? "border-b-2 border-rose-500 bg-rose-50" : ""}`}
+                className={`w-full text-center bg-transparent text-xs font-medium focus:outline-none ${hasError("preparedByName") ? "border-b-2 border-prime-blue bg-prime-white" : ""}`}
               />
             </div>
-            <span className="text-[9px] text-slate-400 uppercase tracking-tight block mt-1">
+            <span className="text-[11px] text-prime-ink uppercase tracking-tight block mt-1">
               Signature Over Printed Name/Date
             </span>
           </div>
 
           {/* Noted By */}
           <div className="text-center">
-            <span className="font-bold text-[11px] block uppercase text-slate-800">
+            <span className="font-medium text-[11px] block uppercase text-prime-ink">
               Noted By:
             </span>
-            <div className="mt-6 border-b border-black pb-1">
+            <div className="mt-6 border-b border-prime-blue pb-1">
               <input
                 type="text"
                 placeholder="Dept Head / TL"
                 value={data.notedByName}
                 onChange={(e) => updateField("notedByName", e.target.value)}
-                className="w-full text-center bg-transparent text-xs font-semibold focus:outline-none"
+                className="w-full text-center bg-transparent text-xs font-medium focus:outline-none"
               />
             </div>
-            <span className="text-[9px] text-slate-400 uppercase tracking-tight block mt-1">
+            <span className="text-[11px] text-prime-ink uppercase tracking-tight block mt-1">
               Signature Over Printed Name/Date
             </span>
           </div>
 
           {/* Approved By */}
           <div className="text-center">
-            <span className="font-bold text-[11px] block uppercase text-slate-800">
+            <span className="font-medium text-[11px] block uppercase text-prime-ink">
               Approved By:
             </span>
-            <div className="mt-6 border-b border-black pb-1">
+            <div className="mt-6 border-b border-prime-blue pb-1">
               <input
                 type="text"
                 placeholder="Finance / Management"
                 value={data.approvedByName}
                 onChange={(e) => updateField("approvedByName", e.target.value)}
-                className="w-full text-center bg-transparent text-xs font-semibold focus:outline-none"
+                className="w-full text-center bg-transparent text-xs font-medium focus:outline-none"
               />
             </div>
-            <span className="text-[9px] text-slate-400 uppercase tracking-tight block mt-1">
+            <span className="text-[11px] text-prime-ink uppercase tracking-tight block mt-1">
               Signature Over Printed Name/Date
             </span>
           </div>
 
           {/* Conforme */}
           <div className="text-center">
-            <span className="font-bold text-[11px] block uppercase text-slate-800">
+            <span className="font-medium text-[11px] block uppercase text-prime-ink">
               Conforme:
             </span>
-            <div className="mt-6 border-b border-black pb-1">
+            <div className="mt-6 border-b border-prime-blue pb-1">
               <input
                 type="text"
                 placeholder="Supplier Representative"
                 value={data.conformeName}
                 onChange={(e) => updateField("conformeName", e.target.value)}
-                className="w-full text-center bg-transparent text-xs font-semibold focus:outline-none"
+                className="w-full text-center bg-transparent text-xs font-medium focus:outline-none"
               />
             </div>
-            <span className="text-[9px] text-slate-400 uppercase tracking-tight block mt-1">
+            <span className="text-[11px] text-prime-ink uppercase tracking-tight block mt-1">
               Signature Over Printed Name/Date
             </span>
           </div>

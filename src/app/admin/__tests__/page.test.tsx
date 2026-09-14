@@ -34,30 +34,30 @@ describe("Admin page — auth gate", () => {
 
   it("shows login form when not authenticated", () => {
     render(<AdminPage />);
-    expect(screen.getByPlaceholderText(/admin@/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Email$/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
   });
 
   it("shows error message on wrong credentials", async () => {
     render(<AdminPage />);
-    await userEvent.type(screen.getByPlaceholderText(/admin@/i), "wrong@example.com");
-    await userEvent.type(screen.getByPlaceholderText(/••••/), "badpass");
+    await userEvent.type(screen.getByLabelText(/^Email$/i), "wrong@example.com");
+    await userEvent.type(screen.getByLabelText(/^Password$/i), "badpass");
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
     expect(await screen.findByRole("alert")).toHaveTextContent(/invalid credentials/i);
   });
 
   it("does NOT advance to dashboard on wrong credentials", async () => {
     render(<AdminPage />);
-    await userEvent.type(screen.getByPlaceholderText(/admin@/i), "wrong@example.com");
-    await userEvent.type(screen.getByPlaceholderText(/••••/), "badpass");
+    await userEvent.type(screen.getByLabelText(/^Email$/i), "wrong@example.com");
+    await userEvent.type(screen.getByLabelText(/^Password$/i), "badpass");
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
     expect(screen.queryByText(/Feature Controls/i)).not.toBeInTheDocument();
   });
 
   it("calls setAdminSession and shows dashboard on correct credentials", async () => {
     render(<AdminPage />);
-    await userEvent.type(screen.getByPlaceholderText(/admin@/i), "admin@primephilippines.com");
-    await userEvent.type(screen.getByPlaceholderText(/••••/), "admin");
+    await userEvent.type(screen.getByLabelText(/^Email$/i), "admin@primephilippines.com");
+    await userEvent.type(screen.getByLabelText(/^Password$/i), "admin");
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
     expect(adminSettings.setAdminSession).toHaveBeenCalled();
@@ -78,10 +78,10 @@ describe("Admin page — toggles (authenticated)", () => {
     } as Response);
 
     render(<AdminPage />);
-    await waitFor(() => screen.getByText(/Portal Guide/i));
+    await waitFor(() => screen.getByRole("heading", { name: "Portal Guide" }));
 
-    expect(screen.getByText(/Portal Guide/i)).toBeInTheDocument();
-    expect(screen.getByText(/RFP AI Autofill/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Portal Guide" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "RFP AI Autofill" })).toBeInTheDocument();
   });
 
   it("fires POST to /api/admin/settings when Portal Guide is toggled off", async () => {

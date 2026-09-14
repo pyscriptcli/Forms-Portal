@@ -24,16 +24,16 @@ export function ExtractionBanner({
   });
 
   return (
-    <div className="w-full max-w-[850px] mx-auto mb-4 bg-gradient-to-r from-[#003366] to-[#0C0C0E] text-white p-3.5 border-l-4 border-[#C9AB4C] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in duration-300">
+    <div className="w-full max-w-[850px] mx-auto mb-4 bg-prime-blue   text-prime-white p-3.5 border-l-4 border-prime-gold shadow-none flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in duration-300">
       <div className="flex items-center gap-3">
-        <CheckCircle2 className="w-5 h-5 text-[#C9AB4C] shrink-0" />
+        <CheckCircle2 className="w-5 h-5 text-prime-blue shrink-0" />
         <div className="text-xs">
-          <span className="font-semibold">Quotation Auto-Fill Applied:</span>{" "}
+          <span className="font-medium">Quotation Auto-Fill Applied:</span>{" "}
           <span>
-            Loaded <strong className="text-[#C9AB4C]">{itemsCount} line items</strong> from{" "}
-            <strong className="text-white">{vendorName || "Vendor"}</strong>
+            Loaded <strong className="text-prime-blue">{itemsCount} line items</strong> from{" "}
+            <strong className="text-prime-white">{vendorName || "Vendor"}</strong>
           </span>
-          <span className="ml-2 font-bebas text-sm text-[#C9AB4C] tracking-wide">
+          <span className="ml-2 font-bebas text-sm text-prime-blue tracking-wide">
             (₱{formattedTotal})
           </span>
         </div>
@@ -43,7 +43,7 @@ export function ExtractionBanner({
         <button
           type="button"
           onClick={onUndo}
-          className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-[#C9AB4C] hover:text-white border border-[#C9AB4C]/50 hover:border-white transition-colors flex items-center gap-1 cursor-pointer"
+          className="px-3 py-1 text-xs font-medium uppercase tracking-wider text-prime-blue hover:text-prime-white border border-prime-gold hover:border-prime-rule transition-colors flex items-center gap-1 cursor-pointer"
         >
           <RotateCcw className="w-3 h-3" />
           <span>Undo</span>
@@ -51,7 +51,7 @@ export function ExtractionBanner({
         <button
           type="button"
           onClick={onDismiss}
-          className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
+          className="p-1 text-prime-ink hover:text-prime-white transition-colors cursor-pointer"
           title="Dismiss banner"
         >
           <X className="w-4 h-4" />

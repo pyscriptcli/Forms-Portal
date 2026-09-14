@@ -16,11 +16,13 @@ export async function generateRfpPdf(elementId: string = "rfp-printable-sheet"):
     throw new Error(`Element with id "${elementId}" not found for PDF generation.`);
   }
 
+  await document.fonts.ready;
+
   // Capture high-DPI image via browser's native SVG/foreignObject rendering
   const imgData = await toPng(element, {
     quality: 0.98,
     pixelRatio: 2,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFCFB",
     filter: (node) => {
       if (node instanceof HTMLElement) {
         if (
@@ -108,10 +110,11 @@ export async function generateRfpImageBlob(elementId: string = "rfp-printable-sh
     throw new Error(`Element with id "${elementId}" not found for image generation.`);
   }
 
+  await document.fonts.ready;
   const dataUrl = await toPng(element, {
     quality: 0.95,
     pixelRatio: 2,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFCFB",
     filter: (node) => {
       if (node instanceof HTMLElement) {
         if (

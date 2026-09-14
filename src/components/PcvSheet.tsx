@@ -75,26 +75,26 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
     <div className="w-full flex justify-center py-2">
       <div
         id="pcv-printable-sheet"
-        className="w-full max-w-[850px] bg-white text-black p-8 md:p-10 border-2 border-black shadow-2xl relative font-sans leading-tight text-xs"
+        className="prime-document p-8 md:p-10 relative font-sans leading-tight text-xs"
         style={{ minHeight: "1050px" }}
       >
         {/* Header Branding */}
         <div className="flex items-start justify-between pb-3">
           <PrimeLogo className="h-12 w-auto" />
           <div className="flex-1 text-center pr-12">
-            <h1 className="font-sans font-black text-2xl md:text-3xl text-slate-900 tracking-wider uppercase">
-              PETTY CASH VOUCHER
-            </h1>
+            <h2 className="font-serif text-prime-blue">
+              Petty cash voucher
+            </h2>
           </div>
         </div>
 
         {/* Voucher Meta Fields */}
-        <div className="mt-4 grid grid-cols-12 gap-y-3 gap-x-6 text-xs pb-3 border-b border-black">
+        <div className="mt-4 grid grid-cols-12 gap-y-3 gap-x-6 text-xs pb-3 border-b border-prime-blue">
           {/* Left Fields */}
           <div className="col-span-8 space-y-2">
             {/* Payee */}
             <div className="flex items-center gap-2">
-              <span className="font-bold text-xs uppercase tracking-tight text-slate-900 shrink-0">
+              <span className="font-medium text-xs uppercase tracking-tight text-prime-ink shrink-0">
                 PAYEE (employee):
               </span>
               <input
@@ -103,13 +103,13 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
                 placeholder="Employee Full Name"
                 value={data.payee}
                 onChange={(e) => updateField("payee", e.target.value)}
-                className={`w-full border-b border-black bg-transparent px-1 py-0.5 font-bold text-xs focus:outline-none focus:bg-blue-50/40 ${hasError("payee") ? "border-b-2 border-rose-500 bg-rose-50/50" : ""}`}
+                className={`w-full border-b border-prime-blue bg-transparent px-1 py-0.5 font-medium text-xs focus:outline-none focus:bg-prime-white ${hasError("payee") ? "border-b-2 border-prime-blue bg-prime-white" : ""}`}
               />
             </div>
 
             {/* Department */}
             <div className="flex items-center gap-2 relative">
-              <span className="font-bold text-xs uppercase tracking-tight text-slate-900 shrink-0">
+              <span className="font-medium text-xs uppercase tracking-tight text-prime-ink shrink-0">
                 DEPARTMENT:
               </span>
               <DepartmentCombobox
@@ -117,8 +117,8 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
                 value={data.department}
                 onChange={(val) => updateField("department", val)}
                 placeholder="ex. Brokerage"
-                className={`w-full border-b border-black bg-transparent px-1 py-0.5 text-xs font-semibold focus:outline-none focus:bg-blue-50/40 ${
-                  hasError("department") ? "border-b-2 border-rose-500 bg-rose-50/50" : ""
+                className={`w-full border-b border-prime-blue bg-transparent px-1 py-0.5 text-xs font-medium focus:outline-none focus:bg-prime-white ${
+                  hasError("department") ? "border-b-2 border-prime-blue bg-prime-white" : ""
                 }`}
                 hasError={hasError("department")}
               />
@@ -126,15 +126,15 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
 
             {/* Amount */}
             <div className="flex items-center gap-2">
-              <span className="font-bold text-xs uppercase tracking-tight text-slate-900 shrink-0">
+              <span className="font-medium text-xs uppercase tracking-tight text-prime-ink shrink-0">
                 AMOUNT:
               </span>
-              <div className="border-b border-black px-2 py-0.5 flex items-baseline gap-1 min-w-[180px]">
-                <span className="text-slate-500 font-bold">₱</span>
-                <span className="font-bebas text-xl text-[#003366] tracking-wider leading-none">
+              <div className="border-b border-prime-blue px-2 py-0.5 flex items-baseline gap-1 min-w-[180px]">
+                <span className="text-prime-ink font-medium">₱</span>
+                <span className="font-bebas text-xl text-prime-blue tracking-wider leading-none">
                   {formattedAmount}
                 </span>
-                <span className="text-[10px] text-slate-400 italic ml-2">
+                <span className="text-[11px] text-prime-ink italic ml-2">
                   (Auto-calculated from particulars)
                 </span>
               </div>
@@ -144,7 +144,7 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
           {/* Right Fields */}
           <div className="col-span-4 space-y-2">
             <div className="flex items-center justify-end gap-2">
-              <span className="font-bold text-xs uppercase tracking-tight text-slate-900 shrink-0">
+              <span className="font-medium text-xs uppercase tracking-tight text-prime-ink shrink-0">
                 NO:
               </span>
               <input
@@ -152,12 +152,12 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
                 placeholder="PCV-2026-001"
                 value={data.voucherNo}
                 onChange={(e) => updateField("voucherNo", e.target.value)}
-                className="w-36 border-b border-black bg-transparent px-2 py-0.5 text-right font-mono font-bold text-xs focus:outline-none focus:bg-blue-50/40"
+                className="w-36 border-b border-prime-blue bg-transparent px-2 py-0.5 text-right font-sans tabular-nums font-medium text-xs focus:outline-none focus:bg-prime-white"
               />
             </div>
 
             <div className="flex items-center justify-end gap-2">
-              <span className="font-bold text-xs uppercase tracking-tight text-slate-900 shrink-0">
+              <span className="font-medium text-xs uppercase tracking-tight text-prime-ink shrink-0">
                 DATE:
               </span>
               <input
@@ -165,7 +165,7 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
                 type="date"
                 value={data.date}
                 onChange={(e) => updateField("date", e.target.value)}
-                className={`w-36 border-b border-black bg-transparent px-1 py-0.5 text-right font-medium text-xs focus:outline-none focus:bg-blue-50/40 ${hasError("date") ? "border-b-2 border-rose-500 bg-rose-50/50" : ""}`}
+                className={`w-36 border-b border-prime-blue bg-transparent px-1 py-0.5 text-right font-medium text-xs focus:outline-none focus:bg-prime-white ${hasError("date") ? "border-b-2 border-prime-blue bg-prime-white" : ""}`}
               />
             </div>
           </div>
@@ -173,26 +173,26 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
 
         {/* PARTICULARS Header */}
         <div className="mt-4 text-center">
-          <h2 className="font-black text-sm uppercase tracking-widest text-slate-900">
+          <h2 className="font-medium text-sm uppercase tracking-widest text-prime-ink">
             PARTICULARS
           </h2>
         </div>
 
         {/* PARTICULARS Box & Itemized Lines */}
-        <div className="mt-2 border-2 border-black min-h-[380px] p-3 flex flex-col justify-between">
+        <div className="mt-2 border-2 border-prime-blue min-h-[380px] p-3 flex flex-col justify-between">
           <table className="w-full border-collapse text-xs">
             <thead>
-              <tr className="border-b border-slate-300 text-slate-500 text-[11px] uppercase">
-                <th className="p-1 text-left font-bold w-12">#</th>
-                <th className="p-1 text-left font-bold">Expense Description / Purpose</th>
-                <th className="p-1 text-right font-bold w-32">Amount</th>
+              <tr className="border-b border-prime-rule text-prime-ink text-[11px] uppercase">
+                <th className="p-1 text-left font-medium w-12">#</th>
+                <th className="p-1 text-left font-medium">Expense Description / Purpose</th>
+                <th className="p-1 text-right font-medium w-32">Amount</th>
                 <th data-html2canvas-ignore="true" className="w-8 p-1 no-print"></th>
               </tr>
             </thead>
             <tbody>
               {data.particulars.map((item, idx) => (
-                <tr key={item.id || idx} className="border-b border-slate-100 group hover:bg-blue-50/20">
-                  <td className="align-top p-1 text-slate-400 font-mono text-xs">{idx + 1}.</td>
+                <tr key={item.id || idx} className="border-b border-prime-rule group hover:bg-prime-white">
+                  <td className="align-top p-1 text-prime-ink font-sans tabular-nums text-xs">{idx + 1}.</td>
                   <td className="align-top p-1">
                     <AutoResizeTextarea
                       id={`pcv-field-desc-${idx}`}
@@ -201,12 +201,12 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
                       minHeight={26}
                       rows={1}
                       onChange={(e) => handleParticularChange(idx, "description", e.target.value)}
-                      className={`px-1 py-0.5 text-xs focus:bg-white ${hasError(`particular_${idx}_desc`) ? "border border-rose-500 bg-rose-50" : ""}`}
+                      className={`px-1 py-0.5 text-xs focus:bg-prime-white ${hasError(`particular_${idx}_desc`) ? "border border-prime-blue bg-prime-white" : ""}`}
                     />
                   </td>
                   <td className="align-top p-1 text-right">
                     <div className="flex items-center justify-end px-1">
-                      <span className="text-slate-400 mr-1 text-[11px] pt-1">₱</span>
+                      <span className="text-prime-ink mr-1 text-[11px] pt-1">₱</span>
                       <input
                         id={`pcv-field-amount-${idx}`}
                         type="number"
@@ -220,7 +220,7 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
                             e.target.value === "" ? "" : parseFloat(e.target.value)
                           )
                         }
-                        className={`w-24 text-right bg-transparent py-1 text-xs focus:bg-white font-mono font-semibold ${hasError(`particular_${idx}_amount`) ? "border border-rose-500 bg-rose-50" : ""}`}
+                        className={`w-24 text-right bg-transparent py-1 text-xs focus:bg-prime-white font-sans tabular-nums font-medium ${hasError(`particular_${idx}_amount`) ? "border border-prime-blue bg-prime-white" : ""}`}
                       />
                     </div>
                   </td>
@@ -229,7 +229,7 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
                       <button
                         type="button"
                         onClick={() => removeParticularRow(idx)}
-                        className="text-slate-300 hover:text-rose-600 transition-colors"
+                        className="text-prime-ink hover:text-prime-blue transition-colors"
                         title="Remove row"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -242,13 +242,13 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
           </table>
 
           {/* Add Line button */}
-          <div data-html2canvas-ignore="true" className="flex justify-end pt-3 border-t border-slate-200 no-print">
+          <div data-html2canvas-ignore="true" className="flex justify-end pt-3 border-t border-prime-rule no-print">
             <button
               type="button"
               onClick={addParticularRow}
-              className="edgy-btn-outline px-3 py-1 text-xs flex items-center gap-1.5 cursor-pointer font-semibold"
+              className="edgy-btn-outline px-3 py-1 text-xs flex items-center gap-1.5 cursor-pointer font-medium"
             >
-              <Plus className="w-3.5 h-3.5 text-[#C9AB4C]" />
+              <Plus className="w-3.5 h-3.5 text-prime-blue" />
               <span>Add Line</span>
             </button>
           </div>
@@ -258,77 +258,77 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
         <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
           {/* Requested by: */}
           <div className="flex flex-col items-center">
-            <span className="font-bold text-xs uppercase tracking-tight block mb-1">
+            <span className="font-medium text-xs uppercase tracking-tight block mb-1">
               Requested by:
             </span>
-            <div className={`w-full h-16 border-2 border-black flex flex-col justify-end p-1.5 bg-white ${hasError("requestedByName") ? "border-rose-500 bg-rose-50" : ""}`}>
+            <div className={`w-full h-16 border-2 border-prime-blue flex flex-col justify-end p-1.5 bg-prime-white ${hasError("requestedByName") ? "border-prime-blue bg-prime-white" : ""}`}>
               <input
                 id="pcv-field-requested-by"
                 type="text"
                 placeholder="Employee Name"
                 value={data.requestedByName}
                 onChange={(e) => updateField("requestedByName", e.target.value)}
-                className="w-full text-center bg-transparent text-xs font-semibold focus:outline-none"
+                className="w-full text-center bg-transparent text-xs font-medium focus:outline-none"
               />
             </div>
-            <span className="text-[9px] text-rose-600 italic block mt-1 tracking-tight">
+            <span className="text-[11px] text-prime-blue italic block mt-1 tracking-tight">
               to be signed by employee
             </span>
           </div>
 
           {/* Noted By: */}
           <div className="flex flex-col items-center">
-            <span className="font-bold text-xs uppercase tracking-tight block mb-1">
+            <span className="font-medium text-xs uppercase tracking-tight block mb-1">
               Noted By:
             </span>
-            <div className="w-full h-16 border-2 border-black flex flex-col justify-end p-1.5 bg-white">
+            <div className="w-full h-16 border-2 border-prime-blue flex flex-col justify-end p-1.5 bg-prime-white">
               <input
                 type="text"
                 placeholder="Team Leader"
                 value={data.notedByName}
                 onChange={(e) => updateField("notedByName", e.target.value)}
-                className="w-full text-center bg-transparent text-xs font-semibold focus:outline-none"
+                className="w-full text-center bg-transparent text-xs font-medium focus:outline-none"
               />
             </div>
-            <span className="text-[9px] text-rose-600 italic block mt-1 tracking-tight">
+            <span className="text-[11px] text-prime-blue italic block mt-1 tracking-tight">
               to be signed by TL
             </span>
           </div>
 
           {/* Approved By: */}
           <div className="flex flex-col items-center">
-            <span className="font-bold text-xs uppercase tracking-tight block mb-1">
+            <span className="font-medium text-xs uppercase tracking-tight block mb-1">
               Approved By:
             </span>
-            <div className="w-full h-16 border-2 border-black flex flex-col justify-end p-1.5 bg-white">
+            <div className="w-full h-16 border-2 border-prime-blue flex flex-col justify-end p-1.5 bg-prime-white">
               <input
                 type="text"
                 placeholder="Finance Officer"
                 value={data.approvedByName}
                 onChange={(e) => updateField("approvedByName", e.target.value)}
-                className="w-full text-center bg-transparent text-xs font-semibold focus:outline-none"
+                className="w-full text-center bg-transparent text-xs font-medium focus:outline-none"
               />
             </div>
-            <span className="text-[9px] text-rose-600 italic block mt-1 tracking-tight">
+            <span className="text-[11px] text-prime-blue italic block mt-1 tracking-tight">
               to be signed by Finance
             </span>
           </div>
 
           {/* Received By: */}
           <div className="flex flex-col items-center">
-            <span className="font-bold text-xs uppercase tracking-tight block mb-1">
+            <span className="font-medium text-xs uppercase tracking-tight block mb-1">
               Received By:
             </span>
-            <div className="w-full h-16 border-2 border-black flex flex-col justify-end p-1.5 bg-white">
+            <div className="w-full h-16 border-2 border-prime-blue flex flex-col justify-end p-1.5 bg-prime-white">
               <input
                 type="text"
                 placeholder="Payee Signature"
                 value={data.receivedByName}
                 onChange={(e) => updateField("receivedByName", e.target.value)}
-                className="w-full text-center bg-transparent text-xs font-semibold focus:outline-none"
+                className="w-full text-center bg-transparent text-xs font-medium focus:outline-none"
               />
             </div>
-            <span className="text-[9px] text-rose-600 italic block mt-1 tracking-tight">
+            <span className="text-[11px] text-prime-blue italic block mt-1 tracking-tight">
               to be signed by payee upon receipt of cash
             </span>
           </div>
@@ -336,7 +336,7 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
 
         {/* Footer */}
         <div className="mt-8 text-center">
-          <p className="text-[10px] text-slate-500 font-semibold tracking-wider">
+          <p className="text-[11px] text-prime-ink font-medium tracking-wider">
             * PLEASE DO NOT CUT *
           </p>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
+import { PrimeDialog } from "./PrimeDialog";
 import { Pen, Upload, RotateCcw, Check, X, Image as ImageIcon } from "lucide-react";
 
 interface SignatureModalProps {
@@ -133,36 +134,16 @@ export function SignatureModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-lg bg-white rounded-none shadow-2xl border-2 border-[#003366] flex flex-col relative overflow-hidden">
-        {/* Top Gold Accent Line */}
-        <div className="h-[3px] bg-[#C9AB4C] w-full" />
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
-          <div>
-            <h3 className="font-serif italic font-bold text-lg text-[#003366]">
-              Add Digital E-Signature
-            </h3>
-            <p className="text-xs text-slate-500">Sign directly on canvas or upload signature image</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
+    <PrimeDialog open={isOpen} title="Add your signature" onClose={onClose}>
         {/* Tab Selection */}
-        <div className="flex border-b border-slate-200 bg-slate-100/60">
+        <div className="flex border-b border-prime-rule bg-prime-white">
           <button
             type="button"
             onClick={() => setActiveTab("draw")}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-medium uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
               activeTab === "draw"
-                ? "border-[#003366] text-[#003366] bg-white"
-                : "border-transparent text-slate-600 hover:text-slate-900"
+                ? "border-prime-blue text-prime-blue bg-prime-white"
+                : "border-transparent text-prime-ink hover:text-prime-ink"
             }`}
           >
             <Pen className="w-3.5 h-3.5" />
@@ -171,10 +152,10 @@ export function SignatureModal({
           <button
             type="button"
             onClick={() => setActiveTab("upload")}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-medium uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
               activeTab === "upload"
-                ? "border-[#003366] text-[#003366] bg-white"
-                : "border-transparent text-slate-600 hover:text-slate-900"
+                ? "border-prime-blue text-prime-blue bg-prime-white"
+                : "border-transparent text-prime-ink hover:text-prime-ink"
             }`}
           >
             <Upload className="w-3.5 h-3.5" />
@@ -186,8 +167,9 @@ export function SignatureModal({
         <div className="p-6">
           {activeTab === "draw" ? (
             <div className="flex flex-col gap-3">
-              <div className="relative border-2 border-dashed border-slate-300 rounded-none bg-slate-50 overflow-hidden select-none touch-none">
+              <div className="relative border-2 border-dashed border-prime-rule rounded-none bg-prime-white overflow-hidden select-none touch-none">
                 <canvas
+                  aria-label="Draw your signature"
                   ref={canvasRef}
                   onMouseDown={startDrawing}
                   onMouseMove={draw}
@@ -196,9 +178,9 @@ export function SignatureModal({
                   onTouchStart={startDrawing}
                   onTouchMove={draw}
                   onTouchEnd={stopDrawing}
-                  className="w-full h-44 cursor-crosshair bg-white"
+                  className="w-full h-44 cursor-crosshair bg-prime-white"
                 />
-                <div className="absolute bottom-2 left-3 pointer-events-none text-[11px] text-slate-400">
+                <div className="absolute bottom-2 left-3 pointer-events-none text-[11px] text-prime-ink">
                   Draw signature above using mouse, touch, or stylus
                 </div>
               </div>
@@ -206,7 +188,7 @@ export function SignatureModal({
                 <button
                   type="button"
                   onClick={clearCanvas}
-                  className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-slate-600 hover:text-rose-600 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-prime-ink hover:text-prime-blue transition-colors cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   Clear Pad
@@ -216,7 +198,7 @@ export function SignatureModal({
           ) : (
             <div className="flex flex-col gap-4">
               {uploadedImage ? (
-                <div className="relative border-2 border-slate-300 rounded-none p-4 bg-slate-50 flex items-center justify-center h-44">
+                <div className="relative border-2 border-prime-rule rounded-none p-4 bg-prime-white flex items-center justify-center h-44">
                   <img
                     src={uploadedImage}
                     alt="Signature preview"
@@ -225,20 +207,21 @@ export function SignatureModal({
                   <button
                     type="button"
                     onClick={() => setUploadedImage(null)}
-                    className="absolute top-2 right-2 p-1 bg-white border border-slate-300 text-slate-500 hover:text-rose-600 cursor-pointer"
+                    aria-label="Remove signature image"
+                    className="absolute top-2 right-2 p-1 bg-prime-white border border-prime-rule text-prime-ink hover:text-prime-blue cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <label className="border-2 border-dashed border-slate-300 rounded-none h-44 flex flex-col items-center justify-center cursor-pointer hover:border-[#C9AB4C] hover:bg-[#003366]/5 transition-all">
-                  <div className="p-3 bg-slate-100 text-[#003366] rounded-none mb-2">
+                <label className="border-2 border-dashed border-prime-rule rounded-none h-44 flex flex-col items-center justify-center cursor-pointer hover:border-prime-gold hover:bg-prime-white transition-all">
+                  <div className="p-3 bg-prime-white text-prime-blue rounded-none mb-2">
                     <ImageIcon className="w-6 h-6" />
                   </div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                  <span className="text-xs font-medium uppercase tracking-wider text-prime-ink">
                     Click to select signature image
                   </span>
-                  <span className="text-[11px] text-slate-500 mt-1">
+                  <span className="text-[11px] text-prime-ink mt-1">
                     PNG (transparent background) or JPG
                   </span>
                   <input
@@ -254,7 +237,7 @@ export function SignatureModal({
         </div>
 
         {/* Footer actions */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 bg-prime-white border-t border-prime-rule">
           <button
             type="button"
             onClick={onClose}
@@ -268,11 +251,10 @@ export function SignatureModal({
             disabled={activeTab === "draw" ? !hasDrawing : !uploadedImage}
             className="edgy-btn-primary px-5 py-2 text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
-            <Check className="w-3.5 h-3.5 text-[#C9AB4C]" />
+            <Check className="w-3.5 h-3.5 text-prime-blue" />
             Apply Signature
           </button>
         </div>
-      </div>
-    </div>
+    </PrimeDialog>
   );
 }
