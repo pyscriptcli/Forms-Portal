@@ -160,7 +160,7 @@ export async function sendRequestorRevisionNotification({
   const config = getEmailConfig();
   const recipient = requestorEmail || data.requestedByEmail || "requestor@primephilippines.com";
   const recipientName = requestorName || data.requestedByName || "Requestor";
-  const editUrl = `${appUrl}/?taskId=${taskId}`;
+  const editUrl = `${appUrl}/form?taskId=${taskId}`;
   const trackUrl = `${appUrl}/track?id=${taskId}`;
 
   const subject = `[REVISION REQUESTED] Request #${taskId}: ${data.payee} — Action Required`;

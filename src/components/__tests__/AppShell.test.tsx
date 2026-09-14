@@ -26,14 +26,19 @@ vi.mock("@/components/GlobalSearch", () => ({
 import { AppShell } from "@/components/AppShell";
 
 describe("AppShell", () => {
-  it("renders Requests nav link", () => {
+  it("renders Forms nav link", () => {
     render(<AppShell><div>content</div></AppShell>);
-    expect(screen.getByRole("link", { name: /requests/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /forms/i })).toBeInTheDocument();
   });
 
-  it("renders Approvals nav link", () => {
+  it("renders Tasks nav link", () => {
     render(<AppShell><div>content</div></AppShell>);
-    expect(screen.getByRole("link", { name: /approvals/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /tasks/i })).toBeInTheDocument();
+  });
+
+  it("renders New Request action link", () => {
+    render(<AppShell><div>content</div></AppShell>);
+    expect(screen.getByRole("link", { name: /new request/i })).toBeInTheDocument();
   });
 
   it("renders the collapsible sidebar toggle button", () => {

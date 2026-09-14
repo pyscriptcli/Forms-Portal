@@ -2,33 +2,54 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  LayoutGrid,
+  CheckSquare,
+  BookOpen,
+  Folder,
+  FilePenLine,
   ClipboardList,
-  ShieldCheck,
+  Newspaper,
+  ClipboardCheck,
+  Settings,
   ChevronRight,
   ChevronLeft,
   ChevronDown,
   RefreshCw,
   Sparkles,
   LogOut,
-  Boxes,
   Menu,
   X,
+  Plus,
 } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import { GlobalSearch } from "./GlobalSearch";
 
-const NAV_ITEMS = [
-  { label: "Requests", href: "/requests", icon: ClipboardList },
-  { label: "Approvals", href: "/approvals", icon: ShieldCheck },
+interface SidebarItem {
+  key: string;
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+}
+
+const SIDEBAR_ITEMS: SidebarItem[] = [
+  { key: "dashboard", label: "Dashboard", href: "/requests", icon: LayoutGrid },
+  { key: "tasks", label: "Tasks", href: "/approvals", icon: CheckSquare },
+  { key: "notebook", label: "Notebook", href: "/requests", icon: BookOpen },
+  { key: "meetings", label: "Meetings", href: "/requests", icon: Folder },
+  { key: "notetaker", label: "Notetaker", href: "/requests", icon: FilePenLine },
+  { key: "forms", label: "Forms", href: "/form", icon: ClipboardList },
+  { key: "market-insights", label: "Market Insights", href: "/requests", icon: Newspaper },
+  { key: "demands", label: "Demands", href: "/requests", icon: ClipboardCheck },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isLoading, signOut } = useAuth();
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -70,7 +91,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const userInitial = (user.username?.charAt(0) || "D").toUpperCase();
+  // Active item detection matching screenshot where Notebook is active for the workspace
+  const getActiveKey = () => {
+    if (pathname.startsWith("/form")) return "forms";
+    if (pathname.startsWith("/approvals")) return "tasks";
+    if (pathname.startsWith("/admin")) return "settings";
+    return "notebook";
+  };
+  const activeKey = getActiveKey();
+
+  const userName = user.username || "Dave Policarpio";
+  const userEmail = user.email || "dave.policarpio@primephilippines.com";
 
   return (
     <div>
@@ -83,7 +114,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      {/* Collapsible Rail Sidebar */}
+      {/* Collapsible Sidebar Matching Screenshot */}
       <aside
         id="portal-navigation"
         className="prime-sidebar"
@@ -99,95 +130,160 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <X size={18} />
         </button>
 
-        {/* Top collapse / expand toggle chevron */}
-        <div className="h-11 border-b border-prime-rule flex items-center justify-between px-3">
-          <button
-            type="button"
-            onClick={() => setCollapsed((prev) => !prev)}
-            className="w-8 h-8 flex items-center justify-center text-prime-white/80 hover:text-prime-white rounded-none cursor-pointer transition-colors"
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-          </button>
-          {!collapsed && (
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-prime-white truncate pl-2">
-              Forms Portal
-            </span>
+        {/* Top Header: Logo + Collapse Button */}
+        <div className="h-12 border-b border-prime-rule flex items-center justify-between px-3">
+          {!collapsed ? (
+            <>
+              <Link href="/requests" className="flex items-center pl-1">
+                <Image
+                  src="/prime-white-logo.png"
+                  alt="PRIME Philippines"
+                  width={110}
+                  height={24}
+                  className="h-6 w-auto object-contain"
+                  priority
+                />
+              </Link>
+              <button
+                type="button"
+                onClick={() => setCollapsed(true)}
+                className="w-7 h-7 flex items-center justify-center text-prime-white/70 hover:text-prime-white rounded-none cursor-pointer transition-colors"
+                title="Collapse sidebar"
+                aria-label="Collapse sidebar"
+              >
+                <ChevronLeft size={16} />
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setCollapsed(false)}
+              className="w-full h-full flex items-center justify-center text-prime-white/70 hover:text-prime-white rounded-none cursor-pointer transition-colors"
+              title="Expand sidebar"
+              aria-label="Expand sidebar"
+            >
+              <ChevronRight size={18} />
+            </button>
           )}
         </div>
 
-        {/* Rail navigation items */}
-        <nav className="p-2 space-y-2" aria-label="Main navigation">
-          {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
-            const active = pathname === href || pathname.startsWith(`${href}/`);
+        {/* Navigation Items List */}
+        <nav className="py-2 px-1.5 space-y-0.5 overflow-y-auto flex-1" aria-label="Main navigation">
+          {SIDEBAR_ITEMS.map(({ key, label, href, icon: Icon }) => {
+            const isActive = activeKey === key;
             return (
               <Link
-                key={href}
+                key={key}
                 href={href}
                 onClick={() => setMobileOpen(false)}
                 title={label}
-                aria-current={active ? "page" : undefined}
+                aria-current={isActive ? "page" : undefined}
                 className={`flex items-center gap-3 transition-colors ${
                   collapsed
                     ? `w-10 h-10 mx-auto justify-center ${
-                        active
-                          ? "border border-prime-gold bg-prime-blue text-prime-gold"
-                          : "text-prime-white/70 hover:text-prime-white"
+                        isActive
+                          ? "border-l-2 border-prime-gold bg-[#0B3C68] text-prime-gold"
+                          : "border-l-2 border-transparent text-prime-white/80 hover:text-prime-white hover:bg-prime-white/5"
                       }`
-                    : `px-3 py-2 text-xs font-medium uppercase tracking-wider ${
-                        active
-                          ? "border border-prime-gold bg-prime-blue text-prime-gold"
-                          : "text-prime-white/70 hover:text-prime-white"
+                    : `px-3 py-2 text-xs font-normal ${
+                        isActive
+                          ? "border-l-2 border-prime-gold bg-[#0B3C68] text-prime-gold font-medium"
+                          : "border-l-2 border-transparent text-prime-white/85 hover:text-prime-white hover:bg-prime-white/5"
                       }`
                 }`}
               >
-                <Icon size={18} aria-hidden="true" className={active ? "text-prime-gold" : ""} />
-                {!collapsed && <span>{label}</span>}
+                <Icon size={18} aria-hidden="true" className={isActive ? "text-prime-gold" : "text-prime-white/80"} />
+                {!collapsed && <span className="truncate">{label}</span>}
               </Link>
             );
           })}
         </nav>
 
-        {/* Rail footer icons */}
-        <div className="mt-auto p-2 border-t border-prime-rule flex flex-col items-center gap-2">
-          {/* Hexagon/Cube icon */}
-          <div
-            className="w-8 h-8 flex items-center justify-center text-prime-white/60 hover:text-prime-white"
-            title="Prime Modules"
+        {/* Bottom Section Matching Screenshot */}
+        <div className="mt-auto border-t border-prime-rule flex flex-col">
+          {/* Settings Link */}
+          <Link
+            href="/admin"
+            onClick={() => setMobileOpen(false)}
+            title="Settings"
+            className={`flex items-center gap-3 py-2.5 transition-colors ${
+              collapsed
+                ? `w-10 h-10 mx-auto justify-center ${
+                    activeKey === "settings" ? "text-prime-gold" : "text-prime-white/80 hover:text-prime-white"
+                  }`
+                : `px-3 text-xs font-normal ${
+                    activeKey === "settings" ? "text-prime-gold font-medium" : "text-prime-white/85 hover:text-prime-white hover:bg-prime-white/5"
+                  }`
+            }`}
           >
-            <Boxes size={18} />
-          </div>
+            <Settings size={18} />
+            {!collapsed && <span>Settings</span>}
+          </Link>
 
-          {/* ClickUp 'C' tile */}
-          <div
-            className="w-7 h-7 border border-prime-white/40 bg-prime-blue flex items-center justify-center text-[11px] font-bold text-prime-white"
-            title="ClickUp Connected"
-          >
-            C
-          </div>
+          {/* Divider */}
+          <div className="border-t border-prime-rule" />
 
-          {/* User profile tile */}
-          <div className="w-full flex items-center justify-center pt-1">
-            {collapsed ? (
-              <button
-                type="button"
-                onClick={signOut}
-                title={`Signed in as ${user.username}. Click to sign out.`}
-                className="w-7 h-7 bg-prime-gold text-prime-blue font-bold text-xs flex items-center justify-center cursor-pointer hover:opacity-90"
+          {/* Workspace label or ClickUp badge */}
+          {!collapsed ? (
+            <div className="px-3 py-2 flex items-center justify-between text-[10px] tracking-wider font-bold">
+              <span className="text-prime-gold flex items-center gap-1">
+                <span>■</span> COLLABORATE@PRIME
+              </span>
+              <span className="text-prime-white/40 text-[9px] uppercase font-normal">WORKSPACE</span>
+            </div>
+          ) : (
+            <div className="py-2 flex items-center justify-center">
+              <div
+                className="w-7 h-7 border border-prime-gold text-prime-gold text-[11px] font-bold flex items-center justify-center"
+                title="ClickUp Connected"
               >
-                {userInitial}
-              </button>
-            ) : (
-              <div className="w-full p-2 bg-prime-blue border border-prime-gold/40 flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-prime-white truncate">{user.username}</p>
-                  <p className="text-[10px] text-prime-white/60 truncate">{user.email}</p>
+                C
+              </div>
+            </div>
+          )}
+
+          {/* Divider */}
+          <div className="border-t border-prime-rule" />
+
+          {/* User Profile Tile with Avatar and Signout */}
+          <div className="p-2">
+            {!collapsed ? (
+              <div className="flex items-center justify-between gap-2 px-1">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Image
+                    src="/dave-avatar.png"
+                    alt={userName}
+                    width={32}
+                    height={32}
+                    className="w-8 h-8 rounded-none border border-prime-white/20 object-cover shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-prime-white truncate">{userName}</p>
+                    <p className="text-[10px] text-prime-white/50 truncate">{userEmail}</p>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={signOut}
                   title="Sign out"
+                  className="text-prime-white/60 hover:text-prime-white p-1 shrink-0 cursor-pointer"
+                >
+                  <LogOut size={15} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-1.5 py-1">
+                <Image
+                  src="/dave-avatar.png"
+                  alt={userName}
+                  width={28}
+                  height={28}
+                  className="w-7 h-7 rounded-none border border-prime-white/20 object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={signOut}
+                  title={`Sign out (${userName})`}
                   className="text-prime-white/60 hover:text-prime-white p-1 cursor-pointer"
                 >
                   <LogOut size={14} />
@@ -224,11 +320,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* Right action items */}
           <div className="flex items-center gap-2">
+            {/* + NEW REQUEST button navigates to /form */}
             <Link
-              href="/requests"
-              className="h-8 px-3 border border-prime-gold text-prime-blue bg-prime-white hover:bg-prime-white text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap"
+              href="/form"
+              className="h-8 px-3 border border-prime-gold text-prime-blue bg-prime-white hover:bg-prime-gold/10 text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap"
             >
-              <span>+ NEW REQUEST</span>
+              <Plus size={13} className="text-prime-blue" />
+              <span>NEW REQUEST</span>
             </Link>
 
             <div className="hidden sm:flex h-8 px-3 bg-prime-blue text-prime-white text-xs font-medium items-center gap-1.5 cursor-default whitespace-nowrap">
@@ -244,15 +342,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className="h-8 px-2.5 sm:px-3 border border-prime-rule hover:border-prime-blue text-xs text-prime-blue font-medium flex items-center gap-1.5 bg-prime-white transition-colors cursor-pointer"
                 aria-expanded={userMenuOpen}
               >
-                <span className="truncate max-w-[120px]">{user.username || "Dave Policarpio"}</span>
+                <span className="truncate max-w-[120px]">{userName}</span>
                 <ChevronDown size={13} className="text-prime-ink/60 shrink-0" />
               </button>
 
               {userMenuOpen && (
                 <div className="absolute right-0 top-full mt-1 w-52 bg-prime-white border border-prime-blue z-50 p-2 text-left">
                   <div className="px-2 py-1.5 border-b border-prime-rule">
-                    <p className="text-xs font-semibold text-prime-blue truncate">{user.username}</p>
-                    <p className="text-[11px] text-prime-ink/60 truncate">{user.email}</p>
+                    <p className="text-xs font-semibold text-prime-blue truncate">{userName}</p>
+                    <p className="text-[11px] text-prime-ink/60 truncate">{userEmail}</p>
                   </div>
                   <button
                     type="button"

@@ -161,7 +161,7 @@ function RequestsContent() {
                   <span className="font-bebas text-xl text-prime-blue tracking-wider">₱{total}</span>
                   {req.isRevisionRequested ? (
                     <Link
-                      href={`/?taskId=${req.taskId}`}
+                      href={`/form?taskId=${req.taskId}`}
                       className="h-8 px-3 bg-prime-blue hover:bg-prime-blue text-prime-white text-xs font-medium flex items-center gap-1.5 transition-colors"
                     >
                       <Edit3 className="w-3 h-3" /> Edit
