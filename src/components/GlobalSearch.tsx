@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { Search, X, Command } from "lucide-react";
 
 interface SearchResult {
   taskId: string;
@@ -47,7 +47,7 @@ export function GlobalSearch() {
       } finally {
         setIsLoading(false);
       }
-    }, 300);
+    }, 250);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -102,8 +102,8 @@ export function GlobalSearch() {
 
   return (
     <div className="relative w-full max-w-md">
-      <div className="relative">
-        <Search className="w-4 h-4 text-white/50 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+      <div className="relative flex items-center">
+        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input
           ref={inputRef}
           type="text"
@@ -111,19 +111,24 @@ export function GlobalSearch() {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => results.length > 0 && setIsOpen(true)}
-          placeholder="Search requests, payee, task ID…"
+          placeholder="Search"
           aria-label="Global search"
-          className="w-full h-9 pl-9 pr-9 bg-white/10 hover:bg-white/15 focus:bg-white/20 border border-white/20 focus:border-white/40 text-white placeholder-white/40 text-xs rounded-sm focus:outline-none transition-colors"
+          className="w-full h-8 pl-8 pr-12 bg-[#F8FAFC] hover:bg-white focus:bg-white border border-slate-200 focus:border-[#003366] text-slate-900 placeholder:text-slate-400 text-xs rounded-md shadow-2xs focus:outline-none transition-all"
         />
-        {query && (
+        {query ? (
           <button
             type="button"
             onClick={() => { setQuery(""); setResults([]); setIsOpen(false); }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
             aria-label="Clear search"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-3 h-3" />
           </button>
+        ) : (
+          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-1 py-0.5 bg-slate-100 border border-slate-200 rounded text-[9px] font-mono text-slate-400 pointer-events-none">
+            <Command className="w-2.5 h-2.5" />
+            <span>K</span>
+          </div>
         )}
       </div>
 
@@ -132,7 +137,7 @@ export function GlobalSearch() {
           ref={dropdownRef}
           role="listbox"
           aria-label="Search results"
-          className="absolute top-full mt-1 w-full bg-white border border-slate-200 shadow-xl z-50 rounded-sm overflow-hidden"
+          className="absolute top-full mt-1.5 w-full bg-white border border-slate-200 shadow-xl z-50 rounded-md overflow-hidden text-left"
         >
           {results.map((r) => (
             <button
@@ -140,7 +145,7 @@ export function GlobalSearch() {
               role="option"
               type="button"
               onClick={() => handleSelect(r)}
-              className="w-full text-left px-3 py-2.5 hover:bg-slate-50 flex items-center justify-between gap-2 border-b border-slate-100 last:border-0 transition-colors"
+              className="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 flex items-center justify-between gap-2 border-b border-slate-100 last:border-0 transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-2 min-w-0">
                 <span className="font-mono text-[10px] font-bold text-[#003366] bg-blue-50 px-1.5 py-0.5 border border-blue-100 shrink-0">
@@ -168,7 +173,7 @@ export function GlobalSearch() {
       )}
 
       {isOpen && isLoading && (
-        <div className="absolute top-full mt-1 w-full bg-white border border-slate-200 shadow-xl z-50 rounded-sm px-3 py-2.5 text-xs text-slate-400">
+        <div className="absolute top-full mt-1.5 w-full bg-white border border-slate-200 shadow-xl z-50 rounded-md px-3.5 py-2 text-xs text-slate-400">
           Searching…
         </div>
       )}

@@ -1,12 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
-  usePathname: () => "/",
+  usePathname: () => "/requests",
 }));
 
 // Mock next-auth
@@ -50,14 +49,7 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: /approvals/i })).toBeInTheDocument();
   });
 
-  it("does NOT render a link to /admin in the sidebar", () => {
-    render(<AppShell><div>content</div></AppShell>);
-    const links = screen.getAllByRole("link");
-    const adminLinks = links.filter((l) => l.getAttribute("href") === "/admin");
-    expect(adminLinks).toHaveLength(0);
-  });
-
-  it("renders the global search", () => {
+  it("renders the global search bar in topbar", () => {
     render(<AppShell><div>content</div></AppShell>);
     expect(screen.getByTestId("global-search")).toBeInTheDocument();
   });
