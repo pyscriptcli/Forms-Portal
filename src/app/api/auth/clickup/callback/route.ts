@@ -16,6 +16,14 @@ export async function GET(req: NextRequest) {
   const defaultBase = `${protocol}://${host}`;
 
   const savedCallback = req.cookies.get("clickup_callback_url")?.value || "/";
+  const callbackTarget = (() => {
+    try {
+      const parsed = new URL(savedCallback, defaultBase);
+      return parsed.origin === defaultBase ? `${parsed.pathname}${parsed.search}${parsed.hash}` : "/";
+    } catch {
+      return "/";
+    }
+  })();
 
   if (error || !code) {
     console.error("ClickUp OAuth error or missing code:", error);
@@ -26,7 +34,7 @@ export async function GET(req: NextRequest) {
     const accessToken = await exchangeCodeForToken(code);
     const user = await fetchClickUpUser(accessToken);
 
-    const redirectResponse = NextResponse.redirect(`${defaultBase}${savedCallback}`);
+    const redirectResponse = NextResponse.redirect(`${defaultBase}${callbackTarget}`);
 
     // Set secure HTTP cookies
     const cookieOptions = {
