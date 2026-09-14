@@ -691,7 +691,7 @@ function RfpAppContent() {
       : formData.payee;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-[#0C0C0E] py-6 px-3 sm:px-6 flex flex-col items-center">
+    <div className="min-h-screen bg-[#FFFCFB] text-[#181D1E] py-6 px-3 sm:px-6 flex flex-col items-center">
       {/* Container - Aligned to exact 850px document width */}
       <div className="w-full max-w-[850px]">
         {/* Single Compressed Topbar */}
@@ -809,7 +809,7 @@ export default function Page() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 text-sm">
+        <div className="min-h-screen flex items-center justify-center bg-[#FFFCFB] text-[#888780] text-sm">
           Loading Forms Portal...
         </div>
       }

@@ -28,6 +28,10 @@ body {
   font-family: var(--font-sans);
 }
 
+button, input, select, textarea, img, table, th, td, [role="dialog"], [role="menu"] {
+  border-radius: 0 !important;
+}
+
 .font-serif {
   font-family: "Cormorant Garamond", Georgia, serif;
 }

@@ -40,7 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navigation = (
     <div className="flex h-full flex-col">
       <div className="flex h-[76px] items-center border-b border-[#FFFCFB]/10 px-6">
-        <Link href="/" className="flex items-center gap-3" onClick={() => setMobileOpen(false)}><span className="flex h-9 w-9 items-center justify-center bg-[#C9A84C] text-[#003366] font-serif text-xl font-bold">P</span><span className="text-[15px] font-semibold tracking-[-0.02em] text-[#FFFCFB]">Forms Portal</span></Link>
+        <Link href="/" className="flex items-center gap-3" onClick={() => setMobileOpen(false)}><img src="/prime-white-logo.png" alt="PRIME Philippines" className="h-9 w-auto object-contain object-left" /><span className="border-l border-[#FFFCFB]/25 pl-3 text-[13px] font-medium uppercase tracking-[0.12em] text-[#FFFCFB]">Forms Portal</span></Link>
         <button className="ml-auto text-[#FFFCFB]/45 md:hidden" onClick={() => setMobileOpen(false)} aria-label="Close navigation"><X size={20} /></button>
       </div>
       <div className="px-4 pt-7"><p className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#FFFCFB]/35">Navigate</p><nav className="mt-3 space-y-1">

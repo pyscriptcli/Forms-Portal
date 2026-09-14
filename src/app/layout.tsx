@@ -28,7 +28,7 @@ export default function RootLayout({
       lang="en"
       className="h-full antialiased"
     >
-      <body className="min-h-full font-sans bg-[#f8fafc] text-[#0C0C0E]">
+      <body className="min-h-full font-sans bg-[#FFFCFB] text-[#181D1E]">
         <AuthProvider>
           <AppShell>{children}</AppShell>
         </AuthProvider>
