@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Bebas_Neue, Montserrat } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/components/AuthProvider";
+import { AppShell } from "@/components/AppShell";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
@@ -21,22 +23,18 @@ const montserrat = Montserrat({
   weight: ["400", "500", "600", "700"],
 });
 
-import { PortalNav } from "@/components/PortalNav";
-import { PrototypeTourModal } from "@/components/PrototypeTourModal";
-import { AuthProvider } from "@/components/AuthProvider";
-
 export const metadata: Metadata = {
   title: "Forms Portal",
-  description: "Official Forms Portal & Request Tracker for ClickUp",
+  description: "Official Forms Portal & Request Tracker",
   openGraph: {
     title: "Forms Portal",
-    description: "Official Forms Portal & Request Tracker for ClickUp",
+    description: "Official Forms Portal & Request Tracker",
     siteName: "Forms Portal",
   },
   twitter: {
     card: "summary_large_image",
     title: "Forms Portal",
-    description: "Official Forms Portal & Request Tracker for ClickUp",
+    description: "Official Forms Portal & Request Tracker",
   },
 };
 
@@ -50,11 +48,9 @@ export default function RootLayout({
       lang="en"
       className={`${cormorant.variable} ${bebas.variable} ${montserrat.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans bg-[#f8fafc] text-[#0C0C0E]">
+      <body className="min-h-full font-sans bg-[#f8fafc] text-[#0C0C0E]">
         <AuthProvider>
-          <PortalNav />
-          <main className="flex-1 w-full">{children}</main>
-          <PrototypeTourModal />
+          <AppShell>{children}</AppShell>
         </AuthProvider>
       </body>
     </html>

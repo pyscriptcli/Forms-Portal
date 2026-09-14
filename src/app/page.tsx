@@ -31,6 +31,7 @@ import {
   scrollToFormField,
 } from "@/lib/rfpValidation";
 import { AlertCircle } from "lucide-react";
+import { getAdminSettings } from "@/lib/adminSettings";
 
 const getInitialFormData = (): RfpFormData => {
   const today = new Date().toISOString().split("T")[0];
@@ -133,11 +134,12 @@ function RfpAppContent() {
   const taskIdParam = searchParams.get("taskId");
   const prefillParam = searchParams.get("prefill");
   const tourParam = searchParams.get("tour");
+  const formParam = searchParams.get("form");
 
   const [formData, setFormData] = useState<RfpFormData>(getInitialFormData);
   const [poData, setPoData] = useState<PoFormData>(getInitialPoData);
   const [pcvData, setPcvData] = useState<PcvFormData>(getInitialPcvData);
-  const [selectedForm, setSelectedForm] = useState<string>("rfp");
+  const [selectedForm, setSelectedForm] = useState<string>(formParam ?? "rfp");
   const [previousDraft, setPreviousDraft] = useState<RfpFormData | null>(null);
   const [extractedBanner, setExtractedBanner] = useState<{
     vendorName: string;
@@ -185,6 +187,22 @@ function RfpAppContent() {
   const [submissionResponse, setSubmissionResponse] = useState<SubmissionResponse | null>(null);
   const [lastGeneratedPdf, setLastGeneratedPdf] = useState<Blob | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Feature flag: admin can disable RFP autofill
+  const [rfpAutofillEnabled, setRfpAutofillEnabled] = useState(true);
+  useEffect(() => {
+    // Client-side check
+    setRfpAutofillEnabled(getAdminSettings().rfpAutofillEnabled);
+    // Server-side flag (authoritative)
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((flags) => {
+        if (typeof flags.rfpAutofillEnabled === "boolean") {
+          setRfpAutofillEnabled(flags.rfpAutofillEnabled);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Load existing task if in revision mode
   useEffect(() => {
@@ -706,11 +724,13 @@ function RfpAppContent() {
 
         {/* AI Supplier Quotation Scanner (Dedicated for RFP) */}
         <div id="quotation-dropzone-section">
-          {selectedForm === "rfp" && <QuotationDropzone onDataExtracted={handleDataExtracted} />}
+          {rfpAutofillEnabled && selectedForm === "rfp" && (
+            <QuotationDropzone onDataExtracted={handleDataExtracted} />
+          )}
         </div>
 
         {/* Extraction Review & Undo Banner */}
-        {selectedForm === "rfp" && extractedBanner && (
+        {rfpAutofillEnabled && selectedForm === "rfp" && extractedBanner && (
           <ExtractionBanner
             vendorName={extractedBanner.vendorName}
             itemsCount={extractedBanner.itemsCount}

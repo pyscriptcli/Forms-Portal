@@ -1,9 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import { promises as fs } from "fs";
+import path from "path";
 
 export const maxDuration = 60;
 
+async function isAutofillEnabled(): Promise<boolean> {
+  try {
+    const flagsPath = path.join(process.cwd(), "src", "lib", "featureFlags.json");
+    const raw = await fs.readFile(flagsPath, "utf8");
+    const flags = JSON.parse(raw);
+    return flags.rfpAutofillEnabled !== false;
+  } catch {
+    return true; // default on if file unreadable
+  }
+}
+
 export async function POST(req: NextRequest) {
+  if (!(await isAutofillEnabled())) {
+    return NextResponse.json(
+      { success: false, message: "RFP Autofill feature is currently disabled." },
+      { status: 403 }
+    );
+  }
+
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
