@@ -1,34 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Bebas+Neue&family=Montserrat:wght@400;500&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0c0c0e;
+  --background: #fffcfb;
+  --foreground: #132033;
   --prime-blue: #003366;
-  --prime-gold: #c9ab4c;
-  --prime-dark: #0c0c0e;
+  --prime-gold: #c9a84c;
+  --prime-dark: #003366;
+  --prime-warm-white: #fffcfb;
+  --prime-yellow: #ffbf00;
+  --prime-gray: #181d1e;
+  --prime-deep-ink: #0c0c0e;
+  --prime-radius: 0;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-serif: var(--font-cormorant), Georgia, serif;
-  --font-bebas: var(--font-bebas), sans-serif;
-  --font-sans: var(--font-montserrat), system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-bebas: 'Bebas Neue', 'Arial Narrow', Impact, sans-serif;
+  --font-sans: 'Montserrat', Arial, Helvetica, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-montserrat), system-ui, sans-serif;
+  font-family: var(--font-sans);
 }
 
 .font-serif {
-  font-family: var(--font-cormorant), Georgia, serif;
+  font-family: "Cormorant Garamond", Georgia, serif;
 }
 
 .font-bebas {
-  font-family: var(--font-bebas), sans-serif;
+  font-family: var(--font-bebas);
   letter-spacing: 0.04em;
+}
+
+.prime-display {
+  font-family: var(--font-serif);
+  font-weight: 300;
+  font-size: clamp(3.5rem, 8vw, 7.5rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.prime-heading {
+  font-family: var(--font-serif);
+  font-weight: 300;
+  font-style: italic;
+  font-size: clamp(2.25rem, 5vw, 4.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.prime-label {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  line-height: 2;
+  letter-spacing: 0.35em;
 }
 
 /* Edgy architectural styles */

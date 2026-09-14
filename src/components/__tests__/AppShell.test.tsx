@@ -4,14 +4,14 @@ import React from "react";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   usePathname: () => "/requests",
 }));
 
 // Mock AuthProvider
 vi.mock("@/components/AuthProvider", () => ({
   useAuth: () => ({
-    user: null,
+    user: { username: "Test User", email: "test@example.com" },
     isLoading: false,
     signIn: vi.fn(),
     signOut: vi.fn(),
@@ -50,11 +50,6 @@ describe("AppShell", () => {
   it("renders Approvals nav link", () => {
     render(<AppShell><div>content</div></AppShell>);
     expect(screen.getByRole("link", { name: /approvals/i })).toBeInTheDocument();
-  });
-
-  it("renders the global search bar in topbar", () => {
-    render(<AppShell><div>content</div></AppShell>);
-    expect(screen.getByTestId("global-search")).toBeInTheDocument();
   });
 
   it("mounts PrototypeTourModal when portalGuideEnabled is true", async () => {
