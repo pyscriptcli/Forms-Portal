@@ -8,11 +8,14 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/requests",
 }));
 
-// Mock next-auth
-vi.mock("next-auth/react", () => ({
-  useSession: () => ({ data: null }),
-  signIn: vi.fn(),
-  signOut: vi.fn(),
+// Mock AuthProvider
+vi.mock("@/components/AuthProvider", () => ({
+  useAuth: () => ({
+    user: null,
+    isLoading: false,
+    signIn: vi.fn(),
+    signOut: vi.fn(),
+  }),
 }));
 
 // Mock GlobalSearch and PrototypeTourModal to isolate AppShell

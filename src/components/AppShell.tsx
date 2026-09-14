@@ -14,7 +14,7 @@ import {
   LogOut,
   Plus,
 } from "lucide-react";
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useAuth } from "./AuthProvider";
 import { GlobalSearch } from "./GlobalSearch";
 import { PrototypeTourModal } from "./PrototypeTourModal";
 import { getAdminSettings } from "@/lib/adminSettings";
@@ -42,7 +42,7 @@ const NAV_ITEMS = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { user, signIn, signOut } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [portalGuideEnabled, setPortalGuideEnabled] = useState(true);
 
@@ -96,35 +96,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           {/* User Auth or Sign In Button */}
-          {session ? (
+          {user ? (
             <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-              {session.user?.image ? (
+              {user.profilePicture ? (
                 <img
-                  src={session.user.image}
-                  alt={session.user.name || "Avatar"}
+                  src={user.profilePicture}
+                  alt={user.username || "Avatar"}
                   className="w-7 h-7 rounded-full border border-slate-200 object-cover shadow-2xs"
                 />
               ) : (
                 <div
                   className="w-7 h-7 rounded-full text-white flex items-center justify-center text-xs font-bold shadow-2xs"
                   style={{
-                    backgroundColor:
-                      (session.user as any)?.color || "#7B68EE",
+                    backgroundColor: user.color || "#7B68EE",
                   }}
                 >
-                  {session.user?.name?.charAt(0) ?? "U"}
+                  {user.username?.charAt(0) ?? "U"}
                 </div>
               )}
               <div className="hidden lg:flex flex-col text-left leading-tight max-w-[110px]">
                 <span className="text-xs font-bold text-slate-800 truncate">
-                  {session.user?.name}
+                  {user.username}
                 </span>
                 <span className="text-[10px] text-slate-400 truncate">ClickUp</span>
               </div>
               <button
                 type="button"
-                onClick={() => signOut({ callbackUrl: "/auth/signin" })}
-                className="text-slate-400 hover:text-slate-700 p-1 transition-colors"
+                onClick={() => signOut()}
+                className="text-slate-400 hover:text-slate-700 p-1 transition-colors cursor-pointer"
                 title="Sign Out"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -133,8 +132,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ) : (
             <button
               type="button"
-              onClick={() => signIn("clickup")}
-              className="h-8 px-3 text-xs font-bold text-[#002B49] bg-[#C9A84C] hover:bg-[#b89640] rounded flex items-center gap-1.5 shadow-2xs transition-colors"
+              onClick={() => signIn()}
+              className="h-8 px-3 text-xs font-bold text-[#002B49] bg-[#C9A84C] hover:bg-[#b89640] rounded flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
             >
               <span>Sign In</span>
             </button>

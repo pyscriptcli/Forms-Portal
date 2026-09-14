@@ -1,12 +1,15 @@
 "use client";
 
 import React, { Suspense } from "react";
-import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 
 function SignInContent() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+
+  const handleSignIn = () => {
+    window.location.href = `/api/auth/clickup/login?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+  };
 
   return (
     <div className="min-h-screen bg-[#FFFCFB] flex items-center justify-center p-6 text-[#0C0C0E]">
@@ -35,7 +38,7 @@ function SignInContent() {
           {/* ClickUp OAuth Button */}
           <button
             type="button"
-            onClick={() => signIn("clickup", { callbackUrl })}
+            onClick={handleSignIn}
             className="w-full h-11 px-4 bg-[#7B68EE] hover:bg-[#6c58e0] text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all shadow-sm hover:shadow active:scale-[0.99] cursor-pointer"
           >
             <svg
