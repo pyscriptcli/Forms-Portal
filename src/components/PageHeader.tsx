@@ -8,12 +8,12 @@ export function PageHeader({ title, description, eyebrow, actions }: {
 }) {
   return (
     <header className="prime-page-header">
-      <div>
-        {eyebrow && <p className="prime-label">{eyebrow}</p>}
-        <h1>{title}</h1>
-        {description && <p>{description}</p>}
+      <div className="text-left flex-1 min-w-0">
+        {eyebrow && <p className="prime-label text-left">{eyebrow}</p>}
+        <h1 className="text-left">{title}</h1>
+        {description && <p className="text-left">{description}</p>}
       </div>
-      {actions && <div className="prime-page-header-actions">{actions}</div>}
+      {actions && <div className="prime-page-header-actions shrink-0">{actions}</div>}
     </header>
   );
 }

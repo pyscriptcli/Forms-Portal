@@ -5,7 +5,6 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { useSearchParams } from "next/navigation";
 import {
-  Plus,
   Search,
   Building2,
   Loader2,
@@ -13,17 +12,12 @@ import {
   AlertTriangle,
   Edit3,
   FileText,
+  RefreshCw,
 } from "lucide-react";
 import { TrackedRfp } from "../api/rfp/track/route";
 import { DEPARTMENT_NAMES } from "@/types/rfp";
 
 const DEPARTMENTS = ["All Departments", ...DEPARTMENT_NAMES];
-
-const FORM_OPTIONS = [
-  { key: "rfp", label: "Request for Payment", short: "RFP" },
-  { key: "po", label: "Purchase Order", short: "PO" },
-  { key: "pcv", label: "Petty Cash Voucher", short: "PCV" },
-];
 
 function RequestsContent() {
   const searchParams = useSearchParams();
@@ -33,7 +27,6 @@ function RequestsContent() {
   const [selectedDept, setSelectedDept] = useState("All Departments");
   const [requests, setRequests] = useState<TrackedRfp[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showFormChooser, setShowFormChooser] = useState(false);
 
   const fetchRequests = useCallback(async () => {
     setIsLoading(true);
@@ -61,22 +54,21 @@ function RequestsContent() {
 
   return (
     <div className="prime-page">
-      <PageHeader title="Requests" description="Review submitted forms and follow their progress." actions={
-        <div className="relative">
-          <button type="button" className="prime-button" onClick={() => setShowFormChooser(v => !v)} aria-expanded={showFormChooser}>
-            <Plus size={16} /> New request
+      <PageHeader
+        title="Requests"
+        description="Review submitted forms and follow their progress."
+        actions={
+          <button
+            type="button"
+            className="prime-button secondary"
+            onClick={() => fetchRequests()}
+            disabled={isLoading}
+          >
+            <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
+            <span>Refresh</span>
           </button>
-          {showFormChooser && (
-            <div className="absolute right-0 top-full mt-2 bg-prime-white border border-prime-blue z-30 w-64">
-              {FORM_OPTIONS.map(f => (
-                <Link key={f.key} href={`/?form=${f.key}`} className="flex items-center gap-3 px-4 py-4 text-sm text-prime-blue border-b border-prime-rule last:border-0 hover:underline" onClick={() => setShowFormChooser(false)}>
-                  <FileText size={16} /> {f.label}
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      } />
+        }
+      />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2 mb-6">
@@ -118,11 +110,12 @@ function RequestsContent() {
             Try adjusting your search or submit a new request.
           </p>
           <button
-            onClick={() => setShowFormChooser(true)}
-            className="inline-flex items-center gap-1.5 h-8 px-4 text-xs font-medium text-prime-white bg-prime-blue hover:bg-prime-blue transition-colors"
+            type="button"
+            onClick={() => { setSearchQuery(""); setSelectedDept("All Departments"); fetchRequests(); }}
+            className="prime-button secondary"
           >
-            <Plus className="w-3.5 h-3.5" />
-            New Request
+            <RefreshCw size={14} />
+            <span>Reset filters</span>
           </button>
         </div>
       ) : (

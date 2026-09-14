@@ -79,7 +79,7 @@ export function GlobalSearch() {
     if (isApproval) {
       router.push(`/approvals?taskId=${result.taskId}`);
     } else {
-      router.push(`/track?id=${result.taskId}`);
+      router.push(`/requests?id=${result.taskId}`);
     }
   }
 
@@ -101,9 +101,9 @@ export function GlobalSearch() {
   };
 
   return (
-    <div className="relative w-full max-w-md">
+    <div className="relative w-full max-w-sm">
       <div className="relative flex items-center">
-        <Search className="w-3.5 h-3.5 text-prime-ink absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <Search className="w-3.5 h-3.5 text-prime-ink absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input
           ref={inputRef}
           type="text"
@@ -113,18 +113,22 @@ export function GlobalSearch() {
           onFocus={() => results.length > 0 && setIsOpen(true)}
           placeholder="Search"
           aria-label="Global search"
-          className="w-full min-h-11 pl-8 pr-12 bg-prime-white hover:bg-prime-white focus:bg-prime-white border border-prime-rule focus:border-prime-blue text-prime-ink placeholder:text-prime-ink text-xs rounded-none shadow-none focus:outline-none transition-all"
+          className="w-full h-8 pl-8 pr-11 bg-prime-white hover:bg-prime-white focus:bg-prime-white border border-prime-rule focus:border-prime-blue text-prime-ink placeholder:text-prime-ink text-xs rounded-none shadow-none focus:outline-none transition-all"
         />
         {query ? (
           <button
             type="button"
             onClick={() => { setQuery(""); setResults([]); setIsOpen(false); }}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-prime-ink hover:text-prime-ink"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-prime-ink hover:text-prime-blue"
             aria-label="Clear search"
           >
             <X className="w-3 h-3" />
           </button>
-        ) : null}
+        ) : (
+          <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-prime-ink/50 border border-prime-rule px-1 py-0.2 font-mono pointer-events-none">
+            ⌘K
+          </kbd>
+        )}
       </div>
 
       {isOpen && results.length > 0 && (

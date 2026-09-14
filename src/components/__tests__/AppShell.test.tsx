@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
 import React from "react";
 
 // Mock next/navigation
@@ -18,26 +18,10 @@ vi.mock("@/components/AuthProvider", () => ({
   }),
 }));
 
-// Mock GlobalSearch and PrototypeTourModal to isolate AppShell
+// Mock GlobalSearch to isolate AppShell
 vi.mock("@/components/GlobalSearch", () => ({
   GlobalSearch: () => <div data-testid="global-search" />,
 }));
-vi.mock("@/components/PrototypeTourModal", () => ({
-  PrototypeTourModal: () => <div data-testid="tour-modal" />,
-}));
-
-// Mock admin settings — default: guide enabled
-vi.mock("@/lib/adminSettings", () => ({
-  getAdminSettings: () => ({ portalGuideEnabled: true, rfpAutofillEnabled: true }),
-}));
-
-// Mock fetch for /api/admin/settings
-beforeEach(() => {
-  vi.spyOn(globalThis, "fetch").mockResolvedValue({
-    ok: true,
-    json: async () => ({ portalGuideEnabled: true, rfpAutofillEnabled: true }),
-  } as Response);
-});
 
 import { AppShell } from "@/components/AppShell";
 
@@ -52,10 +36,8 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: /approvals/i })).toBeInTheDocument();
   });
 
-  it("mounts PrototypeTourModal when portalGuideEnabled is true", async () => {
+  it("renders the collapsible sidebar toggle button", () => {
     render(<AppShell><div>content</div></AppShell>);
-    await waitFor(() => {
-      expect(screen.getByTestId("tour-modal")).toBeInTheDocument();
-    });
+    expect(screen.getByRole("button", { name: /expand sidebar|collapse sidebar/i })).toBeInTheDocument();
   });
 });

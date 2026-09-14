@@ -99,7 +99,7 @@ describe("GlobalSearch", () => {
     await waitFor(() => screen.getByText("Beta Supplies"));
     fireEvent.click(screen.getByText("Beta Supplies"));
 
-    expect(mockPush).toHaveBeenCalledWith("/track?id=87654321");
+    expect(mockPush).toHaveBeenCalledWith("/requests?id=87654321");
   });
 
   it("closes dropdown and clears query on Escape", async () => {
