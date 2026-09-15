@@ -62,6 +62,12 @@ export function Sidebar({
   // Effective expanded state
   const isExpanded = isPinned || isHovered;
 
+  // Profile image error handling to guarantee fallback
+  const [avatarError, setAvatarError] = useState<boolean>(false);
+  useEffect(() => {
+    setAvatarError(false);
+  }, [user?.profilePicture]);
+
   // Notify parent of expansion changes so adjacent content margin transitions smoothly
   useEffect(() => {
     onExpandedChange?.(isExpanded);
@@ -154,44 +160,54 @@ export function Sidebar({
     return workspaceName.slice(0, 2).toUpperCase() || "CP";
   }, [workspaceName]);
 
+  const avatarSrc = !avatarError && user?.profilePicture ? user.profilePicture : "/dave-avatar.png";
+
   return (
     <aside
       id="portal-navigation"
       aria-label="Main navigation"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className={`fixed inset-y-0 left-0 z-40 bg-[#0B2545] text-prime-warm-white border-r border-[#15345B] shadow-xl flex flex-col transition-[width] duration-[280ms] ease-in-out select-none ${
+      className={`fixed inset-y-0 left-0 z-40 bg-[#003366] text-prime-warm-white border-r border-white/10 shadow-2xl flex flex-col transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] select-none ${
         isExpanded ? "w-64" : "w-[72px]"
       } ${className}`}
     >
       {/* Header: Logo + Pin/Collapse Toggle */}
-      <div className="h-14 border-b border-[#15345B] flex items-center justify-between px-3.5 shrink-0 overflow-hidden">
-        {isExpanded ? (
-          <div className="flex items-center justify-between w-full min-w-0">
-            {/* Logo constrained so it never overflows */}
-            <div className="flex items-center pl-1 min-w-0 max-w-[170px] overflow-hidden">
-              <Image
-                src="/prime-white-logo.png"
-                alt="PRIME Philippines"
-                width={118}
-                height={26}
-                className="h-6 w-auto object-contain shrink-0"
-                priority
-              />
-            </div>
-            {/* Pin / Unpin button */}
-            <button
-              type="button"
-              onClick={togglePin}
-              title={isPinned ? "Unpin sidebar (auto-collapse on leave)" : "Pin sidebar (keep expanded)"}
-              aria-label={isPinned ? "Unpin sidebar" : "Pin sidebar"}
-              aria-pressed={isPinned}
-              className="w-8 h-8 rounded-none flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
-            >
-              {isPinned ? <ChevronLeft size={16} /> : <Pin size={15} />}
-            </button>
+      <div className="h-14 border-b border-white/10 flex items-center px-3.5 shrink-0 overflow-hidden relative">
+        {/* Expanded State: Logo & Pin Control */}
+        <div
+          className={`flex items-center justify-between w-full min-w-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+            isExpanded ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-4 pointer-events-none absolute"
+          }`}
+        >
+          <div className="flex items-center pl-1 min-w-0 max-w-[170px] overflow-hidden">
+            <Image
+              src="/prime-white-logo.png"
+              alt="PRIME Philippines"
+              width={118}
+              height={26}
+              className="h-6 w-auto object-contain shrink-0"
+              priority
+            />
           </div>
-        ) : (
+          <button
+            type="button"
+            onClick={togglePin}
+            title={isPinned ? "Unpin sidebar (auto-collapse on leave)" : "Pin sidebar (keep expanded)"}
+            aria-label={isPinned ? "Unpin sidebar" : "Pin sidebar"}
+            aria-pressed={isPinned}
+            className="w-8 h-8 rounded-none flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+          >
+            {isPinned ? <ChevronLeft size={16} /> : <Pin size={15} />}
+          </button>
+        </div>
+
+        {/* Collapsed State: Centered Expand Chevron Button */}
+        <div
+          className={`w-full h-full flex items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+            !isExpanded ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-75 pointer-events-none absolute"
+          }`}
+        >
           <button
             type="button"
             onClick={togglePin}
@@ -202,7 +218,7 @@ export function Sidebar({
           >
             <ChevronRight size={18} />
           </button>
-        )}
+        </div>
       </div>
 
       {/* Navigation Items List */}
@@ -221,38 +237,42 @@ export function Sidebar({
               title={!isExpanded ? label : undefined}
               aria-label={label}
               aria-current={isActive ? "page" : undefined}
-              className={`group relative flex items-center gap-3.5 rounded-none transition-colors shrink-0 h-11 cursor-pointer ${
-                isExpanded ? "px-3 w-full text-left" : "w-11 mx-auto justify-center"
+              className={`group relative flex items-center rounded-none transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shrink-0 h-11 cursor-pointer overflow-hidden ${
+                isExpanded ? "px-3 w-full text-left gap-3.5" : "w-11 mx-auto justify-center px-0 gap-0"
               } ${
                 isActive
-                  ? "bg-[#0E3863] text-prime-gold border-l-2 border-prime-gold font-semibold"
-                  : "border-l-2 border-transparent text-white/80 hover:text-white hover:bg-white/5 font-normal"
+                  ? "bg-[#004c99] text-prime-gold border-l-2 border-prime-gold font-semibold"
+                  : "border-l-2 border-transparent text-white/85 hover:text-white hover:bg-white/10 font-normal"
               }`}
             >
               {/* Icon */}
               <Icon
                 size={20}
                 aria-hidden="true"
-                className={`shrink-0 transition-colors ${
-                  isActive ? "text-prime-gold" : "text-white/80 group-hover:text-white"
+                className={`shrink-0 transition-colors duration-200 ${
+                  isActive ? "text-prime-gold" : "text-white/85 group-hover:text-white"
                 }`}
               />
 
-              {/* Label & Badge (only in expanded mode) */}
-              {isExpanded && (
-                <div className="flex-1 min-w-0 flex items-center justify-between gap-2 overflow-hidden">
-                  <span className="text-xs truncate tracking-wide">{label}</span>
-                  {badge !== undefined && badge !== null && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-none bg-prime-gold/20 text-prime-gold border border-prime-gold/40 shrink-0">
-                      {badge}
-                    </span>
-                  )}
-                </div>
-              )}
+              {/* Label & Badge: Smooth Slide and Fade Animation */}
+              <div
+                className={`flex-1 min-w-0 flex items-center justify-between gap-2 overflow-hidden whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+                  isExpanded
+                    ? "opacity-100 max-w-[180px] translate-x-0 pointer-events-auto"
+                    : "opacity-0 max-w-0 -translate-x-3 pointer-events-none"
+                }`}
+              >
+                <span className="text-xs truncate tracking-wide">{label}</span>
+                {badge !== undefined && badge !== null && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-none bg-prime-gold/20 text-prime-gold border border-prime-gold/40 shrink-0">
+                    {badge}
+                  </span>
+                )}
+              </div>
 
               {/* Collapsed Mode Floating Tooltip */}
               {!isExpanded && (
-                <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1 bg-[#05162B] text-white text-[11px] font-medium whitespace-nowrap shadow-xl border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1 bg-[#00264d] text-white text-[11px] font-medium whitespace-nowrap shadow-2xl border border-white/15 opacity-0 group-hover:opacity-100 transition-opacity z-50">
                   {label}
                   {badge !== undefined && badge !== null && (
                     <span className="ml-1.5 text-[9px] text-prime-gold">({badge})</span>
@@ -265,7 +285,7 @@ export function Sidebar({
       </nav>
 
       {/* Bottom Section: Visually Separated */}
-      <div className="mt-auto border-t border-[#15345B] flex flex-col shrink-0">
+      <div className="mt-auto border-t border-white/10 flex flex-col shrink-0">
         {/* Settings/Admin Button (Authorized Users Only) */}
         {canAccessSettings && (
           <button
@@ -274,12 +294,12 @@ export function Sidebar({
             title={!isExpanded ? "Settings / Admin" : undefined}
             aria-label="Settings / Admin"
             aria-current={currentView === "settings" ? "page" : undefined}
-            className={`group relative flex items-center gap-3.5 rounded-none transition-colors shrink-0 h-10 cursor-pointer ${
-              isExpanded ? "px-3.5 w-full text-left" : "w-11 mx-auto my-1 justify-center"
+            className={`group relative flex items-center rounded-none transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shrink-0 h-10 cursor-pointer overflow-hidden ${
+              isExpanded ? "px-3.5 w-full text-left gap-3.5" : "w-11 mx-auto my-1 justify-center px-0 gap-0"
             } ${
               currentView === "settings"
-                ? "bg-[#0E3863] text-prime-gold border-l-2 border-prime-gold font-semibold"
-                : "border-l-2 border-transparent text-white/80 hover:text-white hover:bg-white/5 font-normal"
+                ? "bg-[#004c99] text-prime-gold border-l-2 border-prime-gold font-semibold"
+                : "border-l-2 border-transparent text-white/85 hover:text-white hover:bg-white/10 font-normal"
             }`}
           >
             <Settings
@@ -287,12 +307,20 @@ export function Sidebar({
               className={`shrink-0 ${
                 currentView === "settings"
                   ? "text-prime-gold"
-                  : "text-white/80 group-hover:text-white"
+                  : "text-white/85 group-hover:text-white"
               }`}
             />
-            {isExpanded && <span className="text-xs truncate">Settings</span>}
+            <span
+              className={`text-xs truncate transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] whitespace-nowrap ${
+                isExpanded
+                  ? "opacity-100 max-w-[180px] translate-x-0 pointer-events-auto"
+                  : "opacity-0 max-w-0 -translate-x-3 pointer-events-none"
+              }`}
+            >
+              Settings
+            </span>
             {!isExpanded && (
-              <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1 bg-[#05162B] text-white text-[11px] font-medium whitespace-nowrap shadow-xl border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+              <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1 bg-[#00264d] text-white text-[11px] font-medium whitespace-nowrap shadow-2xl border border-white/15 opacity-0 group-hover:opacity-100 transition-opacity z-50">
                 Settings / Admin
               </span>
             )}
@@ -300,102 +328,89 @@ export function Sidebar({
         )}
 
         {/* Divider */}
-        {canAccessSettings && <div className="border-t border-[#15345B]" />}
+        {canAccessSettings && <div className="border-t border-white/10" />}
 
         {/* Workspace Indicator */}
-        {isExpanded ? (
-          <div className="px-3.5 py-2.5 flex items-center justify-between text-[10px] tracking-wider font-bold overflow-hidden">
-            <span className="text-prime-gold flex items-center gap-1.5 truncate">
-              <span className="text-xs">■</span>
-              <span className="truncate">{workspaceName}</span>
-            </span>
-            <span className="text-white/40 text-[9px] uppercase shrink-0 font-normal ml-1">
-              WORKSPACE
-            </span>
-          </div>
-        ) : (
-          <div
-            className="py-2 flex items-center justify-center cursor-default"
-            title={`${workspaceName} Workspace`}
-          >
-            <div className="w-8 h-6 border border-prime-gold/60 text-prime-gold text-[10px] font-bold flex items-center justify-center">
-              {workspaceInitials}
+        <div className="py-2.5 px-3.5 overflow-hidden">
+          {isExpanded ? (
+            <div className="flex items-center justify-between text-[10px] tracking-wider font-bold overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]">
+              <span className="text-prime-gold flex items-center gap-1.5 truncate">
+                <span className="text-xs">■</span>
+                <span className="truncate">{workspaceName}</span>
+              </span>
+              <span className="text-white/40 text-[9px] uppercase shrink-0 font-normal ml-1">
+                WORKSPACE
+              </span>
             </div>
-          </div>
-        )}
+          ) : (
+            <div
+              className="flex items-center justify-center cursor-default transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+              title={`${workspaceName} Workspace`}
+            >
+              <div className="w-8 h-6 border border-prime-gold/60 text-prime-gold text-[10px] font-bold flex items-center justify-center">
+                {workspaceInitials}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Divider */}
-        <div className="border-t border-[#15345B]" />
+        <div className="border-t border-white/10" />
 
-        {/* User Profile & Sign-out */}
-        <div className="p-2">
-          {isExpanded ? (
-            <div className="flex items-center justify-between gap-2 px-1">
-              <div className="flex items-center gap-2.5 min-w-0">
-                {user?.profilePicture ? (
-                  <Image
+        {/* User Profile & Sign-out with Always-Visible Avatar */}
+        <div className="p-2 overflow-hidden">
+          <div className="flex items-center justify-between gap-2 px-1">
+            <div className="flex items-center min-w-0">
+              {/* Avatar: loads profile picture with guaranteed initials fallback */}
+              <div className="w-8 h-8 shrink-0 relative flex items-center justify-center overflow-hidden border border-white/25 bg-[#004080]">
+                {user?.profilePicture && !avatarError ? (
+                  <img
                     src={user.profilePicture}
                     alt={username}
-                    width={32}
-                    height={32}
-                    className="w-8 h-8 rounded-none border border-white/20 object-cover shrink-0"
+                    onError={() => setAvatarError(true)}
+                    className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div
-                    className="w-8 h-8 rounded-none border border-white/20 bg-[#134575] text-white font-bold text-xs flex items-center justify-center shrink-0"
-                    title={username}
-                  >
+                  <span className="text-white font-bold text-xs select-none">
                     {userInitials}
-                  </div>
+                  </span>
                 )}
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-white truncate">{username}</p>
-                  <p className="text-[10px] text-white/50 truncate">{userEmail}</p>
-                </div>
               </div>
-              {onSignOut && (
+
+              {/* Username & Email (Animated width & opacity) */}
+              <div
+                className={`min-w-0 flex-1 overflow-hidden whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+                  isExpanded
+                    ? "opacity-100 max-w-[140px] translate-x-0 ml-2.5 pointer-events-auto"
+                    : "opacity-0 max-w-0 -translate-x-3 pointer-events-none ml-0"
+                }`}
+              >
+                <p className="text-xs font-bold text-white truncate">{username}</p>
+                <p className="text-[10px] text-white/60 truncate">{userEmail}</p>
+              </div>
+            </div>
+
+            {/* Logout button (Animates in expanded mode, icon button in collapsed) */}
+            {onSignOut && (
+              <div
+                className={`transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+                  isExpanded
+                    ? "opacity-100 scale-100 pointer-events-auto shrink-0"
+                    : "opacity-0 scale-75 pointer-events-none max-w-0 overflow-hidden"
+                }`}
+              >
                 <button
                   type="button"
                   onClick={onSignOut}
                   title="Sign out"
                   aria-label={`Sign out (${username})`}
-                  className="text-white/60 hover:text-white p-1.5 shrink-0 rounded-none hover:bg-white/10 transition-colors cursor-pointer"
+                  className="text-white/70 hover:text-white p-1.5 shrink-0 rounded-none hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   <LogOut size={15} />
                 </button>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-1.5 py-0.5">
-              {user?.profilePicture ? (
-                <Image
-                  src={user.profilePicture}
-                  alt={username}
-                  width={32}
-                  height={32}
-                  className="w-8 h-8 rounded-none border border-white/20 object-cover shrink-0"
-                />
-              ) : (
-                <div
-                  className="w-8 h-8 rounded-none border border-white/20 bg-[#134575] text-white font-bold text-[11px] flex items-center justify-center shrink-0"
-                  title={`${username} (${userEmail})`}
-                >
-                  {userInitials}
-                </div>
-              )}
-              {onSignOut && (
-                <button
-                  type="button"
-                  onClick={onSignOut}
-                  title={`Sign out (${username})`}
-                  aria-label={`Sign out (${username})`}
-                  className="text-white/60 hover:text-white p-1 rounded-none hover:bg-white/10 transition-colors cursor-pointer"
-                >
-                  <LogOut size={14} />
-                </button>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </aside>

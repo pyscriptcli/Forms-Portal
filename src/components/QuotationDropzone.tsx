@@ -62,7 +62,7 @@ export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
   };
 
   return (
-    <div className="w-full max-w-[850px] mx-auto mb-4">
+    <div className="w-full mb-4">
       <div
         onDragOver={(e) => {
           e.preventDefault();

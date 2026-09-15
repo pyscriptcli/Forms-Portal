@@ -179,4 +179,29 @@ describe("Sidebar", () => {
     fireEvent.click(signOutBtn);
     expect(onSignOut).toHaveBeenCalled();
   });
+
+  it("renders profile picture when provided and falls back to initials on error", () => {
+    const { rerender } = render(
+      <Sidebar
+        items={testItems}
+        currentView="forms"
+        onSelectView={() => {}}
+        user={{
+          username: "Dave Policarpio",
+          email: "dave@example.com",
+          profilePicture: "https://example.com/avatar.jpg",
+        }}
+      />
+    );
+
+    const img = screen.getByRole("img", { name: "Dave Policarpio" });
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute("src", "https://example.com/avatar.jpg");
+
+    // Trigger image load error
+    fireEvent.error(img);
+
+    // Should gracefully fall back to initials
+    expect(screen.getByText("DP")).toBeInTheDocument();
+  });
 });

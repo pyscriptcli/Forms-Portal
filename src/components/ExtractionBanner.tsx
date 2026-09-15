@@ -24,7 +24,7 @@ export function ExtractionBanner({
   });
 
   return (
-    <div className="w-full max-w-[850px] mx-auto mb-4 bg-prime-blue   text-prime-white p-3.5 border-l-4 border-prime-gold shadow-none flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in duration-300">
+    <div className="w-full mb-4 bg-prime-blue text-prime-white p-3.5 border-l-4 border-prime-gold shadow-none flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in duration-300">
       <div className="flex items-center gap-3">
         <CheckCircle2 className="w-5 h-5 text-prime-blue shrink-0" />
         <div className="text-xs">

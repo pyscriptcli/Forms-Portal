@@ -88,7 +88,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="md:hidden fixed inset-0 z-50 flex">
           <button
             type="button"
-            className="fixed inset-0 bg-[#0B2545]/70 backdrop-blur-xs cursor-pointer border-none"
+            className="fixed inset-0 bg-[#003366]/70 backdrop-blur-xs cursor-pointer border-none"
             aria-label="Close navigation overlay"
             onClick={() => setMobileOpen(false)}
           />

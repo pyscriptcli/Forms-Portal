@@ -19,7 +19,7 @@ export function ValidationAlertBanner({ items, onDismiss }: ValidationAlertBanne
   };
 
   return (
-    <div className="w-full max-w-[850px] mx-auto mb-6 bg-white border-2 border-red-600 p-4 shadow-lg relative animate-shake">
+    <div className="w-full mb-6 bg-white border-2 border-red-600 p-4 shadow-lg relative animate-shake">
       {/* Top Section */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
