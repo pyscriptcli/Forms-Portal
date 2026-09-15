@@ -18,11 +18,17 @@ const FORM_OPTIONS: FormOption[] = [
     description: "Official Request for Payment document for vendor & reimbursement disbursements",
     icon: Receipt,
   },
+  {
+    value: "gw-rfp",
+    label: "GW RFP (Request for Payment)",
+    description: "GreatWork Request for Payment document based on the revised GW template",
+    icon: Receipt,
+  },
 ];
 
 interface FormSelectProps {
   value: string;
-  onChange: (value: "rfp" | "po" | "pcv") => void;
+  onChange: (value: "rfp" | "gw-rfp" | "po" | "pcv") => void;
   className?: string;
   id?: string;
 }
@@ -67,12 +73,12 @@ export function FormSelect({
       e.preventDefault();
       const currentIndex = FORM_OPTIONS.findIndex((opt) => opt.value === value);
       const nextIndex = (currentIndex + 1) % FORM_OPTIONS.length;
-      onChange(FORM_OPTIONS[nextIndex].value as "rfp" | "po" | "pcv");
+      onChange(FORM_OPTIONS[nextIndex].value as "rfp" | "gw-rfp" | "po" | "pcv");
     } else if (e.key === "ArrowUp" && isOpen) {
       e.preventDefault();
       const currentIndex = FORM_OPTIONS.findIndex((opt) => opt.value === value);
       const prevIndex = (currentIndex - 1 + FORM_OPTIONS.length) % FORM_OPTIONS.length;
-      onChange(FORM_OPTIONS[prevIndex].value as "rfp" | "po" | "pcv");
+      onChange(FORM_OPTIONS[prevIndex].value as "rfp" | "gw-rfp" | "po" | "pcv");
     } else if (e.key === "Enter" || e.key === " ") {
       if (!isOpen) {
         e.preventDefault();
@@ -133,7 +139,7 @@ export function FormSelect({
                 role="option"
                 aria-selected={isSelected}
                 onClick={() => {
-                  onChange(option.value as "rfp" | "po" | "pcv");
+                  onChange(option.value as "rfp" | "gw-rfp" | "po" | "pcv");
                   setIsOpen(false);
                   triggerRef.current?.focus();
                 }}

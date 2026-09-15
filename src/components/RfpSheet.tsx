@@ -13,9 +13,10 @@ interface RfpSheetProps {
   data: RfpFormData;
   onChange: (data: RfpFormData) => void;
   validationErrors?: Record<string, string>;
+  variant?: "prime" | "gw";
 }
 
-export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
+export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }: RfpSheetProps) {
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [isTlSignatureModalOpen, setIsTlSignatureModalOpen] = useState(false);
 
@@ -115,19 +116,19 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
         </div>
 
         {/* Center: Official Title Box with soft PRIME blue background */}
-        <div className="flex-1 w-full sm:w-auto bg-[#e6ecfe] py-2 px-3 text-center border border-[#c7d8ea]">
-          <h1 className="font-bold text-base sm:text-lg tracking-wide text-[#003366] uppercase">
+        <div className={`flex-1 w-full sm:w-auto py-2 px-3 text-center border ${variant === "gw" ? "bg-[#f9eded] border-[#efd0d0]" : "bg-[#e6ecfe] border-[#c7d8ea]"}`}>
+          <h1 className={`font-bold text-base sm:text-lg tracking-wide uppercase ${variant === "gw" ? "text-[#a33f55]" : "text-[#003366]"}`}>
             REQUEST FOR PAYMENT (RFP)
           </h1>
           <p className="font-bold text-[9px] sm:text-[10px] tracking-wider text-[#002B49] uppercase mt-0.5">
-            PROPERTY INTERACTIVE MARKETING ENTERPRISE REALTY CORP.
+            {variant === "gw" ? "MY GREATWORK SPACES INC." : "PROPERTY INTERACTIVE MARKETING ENTERPRISE REALTY CORP."}
           </p>
         </div>
       </div>
 
       {/* Right-aligned RFP Document Code */}
       <div className="flex justify-end items-baseline gap-1 mb-2.5 text-xs font-bold text-[#002B49]">
-        <span>RFP-</span>
+        <span>{variant === "gw" ? "RFP-ADM-" : "RFP-"}</span>
         <input
           type="text"
           value={data.rfpCodeSuffix ?? "0000001"}
@@ -185,7 +186,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
                 value={data.time ?? ""}
                 onChange={(e) => updateField("time", e.target.value)}
                 placeholder=""
-                className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 min-w-[50px] text-xs px-1"
+                className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-none w-28 text-xs px-1"
               />
             </div>
           </div>

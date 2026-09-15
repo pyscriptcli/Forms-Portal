@@ -518,7 +518,7 @@ function RfpAppContent() {
       };
 
       const submissionData = new FormData();
-      submissionData.append("formType", "rfp");
+      submissionData.append("formType", selectedForm);
       submissionData.append("data", JSON.stringify(sanitizedFormData));
 
       submissionData.append("pdf", pdfBlob, `RFP_${sanitizedEntity}_${dateStr || "document"}.pdf`);
@@ -659,6 +659,7 @@ function RfpAppContent() {
             data={formData}
             onChange={setFormData}
             validationErrors={validationErrors}
+            variant={selectedForm === "gw-rfp" ? "gw" : "prime"}
           />
         </section>
 

@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     const taskId = taskResult.id;
 
     if (taskId) {
-      const typeLabel = formType.toUpperCase();
+      const typeLabel = formType === "gw-rfp" ? "GW-RFP" : formType.toUpperCase();
       const entityName = formType === "po" ? (data.vendorName || "Vendor") : (data.payee || "Payee");
       const sanitizedName = entityName.replace(/[^a-zA-Z0-9_-]/g, "_");
 
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const docName = formType === "po" ? "Purchase Order (PO)" : formType === "pcv" ? "Petty Cash Voucher (PCV)" : "Request for Payment (RFP)";
+    const docName = formType === "po" ? "Purchase Order (PO)" : formType === "pcv" ? "Petty Cash Voucher (PCV)" : formType === "gw-rfp" ? "GW Request for Payment (RFP)" : "Request for Payment (RFP)";
 
     return NextResponse.json({
       success: true,
