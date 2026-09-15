@@ -505,13 +505,24 @@ function RfpAppContent() {
       setSubmissionStage("packaging_attachments");
       await new Promise((r) => setTimeout(r, 400));
 
-      // 2. Prepare multipart FormData payload
+      // 2. Sanitize JSON payload so large base64 dataUrls are not duplicated in JSON string
+      const sanitizedFormData = {
+        ...formData,
+        supportingFiles: (formData.supportingFiles || []).map((f) => ({
+          id: f.id,
+          name: f.name,
+          size: f.size,
+          type: f.type,
+          dataUrl: "", // Avoid duplicating binary file data in JSON
+        })),
+      };
+
       const submissionData = new FormData();
       submissionData.append("formType", "rfp");
-      submissionData.append("data", JSON.stringify(formData));
+      submissionData.append("data", JSON.stringify(sanitizedFormData));
 
       submissionData.append("pdf", pdfBlob, `RFP_${sanitizedEntity}_${dateStr || "document"}.pdf`);
-      submissionData.append("previewImage", previewImageBlob, `RFP_${sanitizedEntity}_Preview.png`);
+      submissionData.append("previewImage", previewImageBlob, `RFP_${sanitizedEntity}_Preview.jpg`);
 
       rawSupportingFiles.forEach((file) => {
         submissionData.append("supportingFiles", file);
@@ -526,10 +537,22 @@ function RfpAppContent() {
         body: submissionData,
       });
 
-      const json: SubmissionResponse = await res.json();
+      // Robust response parsing: handles 413, 502, 504, or non-JSON gracefully
+      const resText = await res.text();
+      let json: SubmissionResponse | null = null;
+      try {
+        json = JSON.parse(resText);
+      } catch {
+        if (res.status === 413 || resText.toLowerCase().includes("request entity too large")) {
+          throw new Error(
+            "Attachment payload is too large for the server. Please attach smaller or compressed files."
+          );
+        }
+        throw new Error(resText || `Submission request failed with server error (${res.status}).`);
+      }
 
-      if (!res.ok || !json.success) {
-        throw new Error(json.message || "Failed to submit Request for Payment to ClickUp");
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.message || "Failed to submit Request for Payment to ClickUp");
       }
 
       setSubmissionStage("finalizing");

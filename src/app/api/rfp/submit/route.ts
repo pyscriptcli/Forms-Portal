@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       // 1. Upload high-res visual preview image of the form (appears in ClickUp right sidebar)
       const previewImageBlob = formData.get("previewImage") as File | null;
       if (previewImageBlob) {
-        const previewFilename = `${typeLabel}_${sanitizedName}_Preview.png`;
+        const previewFilename = previewImageBlob.name || `${typeLabel}_${sanitizedName}_Preview.jpg`;
         await uploadAttachmentToTask(taskId, previewImageBlob, previewFilename);
       }
 
