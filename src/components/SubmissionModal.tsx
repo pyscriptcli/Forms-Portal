@@ -49,9 +49,8 @@ export function SubmissionModal({
       actions={<button type="button" onClick={onClose} className="prime-button">Done</button>}>
       <div className="space-y-6">
         <div className="flex items-start gap-3"><CheckCircle2 className="text-prime-blue shrink-0 mt-1" /><p>{response.message || "Your request has been processed."}</p></div>
-        {response.isMock && <p className="prime-notice text-sm">Preview submission only. No live request was sent.</p>}
         <div className="border-y border-prime-rule py-5 flex flex-wrap items-center justify-between gap-4">
-          <div><p className="prime-label text-xs">Request ID</p><p className="font-bebas text-4xl text-prime-blue mt-2">#{response.taskId}</p></div>
+          <div><p className="prime-label text-xs">Request ID</p><p className="font-bebas text-4xl text-prime-blue mt-2">{response.requestId ?? `RFP-${response.taskId}`}</p></div>
           {response.taskUrl && !response.isMock && <a className="prime-button secondary" href={response.taskUrl} target="_blank" rel="noreferrer">View request <ExternalLink size={16} /></a>}
         </div>
         <p className="text-sm">Follow the review and payment stages on the request status page.</p>

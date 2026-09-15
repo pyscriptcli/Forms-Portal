@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
       taskId: taskResult.id,
       taskUrl: taskResult.url,
       isMock: taskResult.isMock || false,
+      requestId: `RFP-${String(data.rfpCodeSuffix || "0000001").replace(/^RFP-/, "")}`,
       message: isRevision
         ? `${docName} revised and updated in ClickUp successfully!`
         : `${docName} submitted and created in ClickUp successfully!`,

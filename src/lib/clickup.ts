@@ -7,6 +7,7 @@ import {
 } from "@/types/rfp";
 
 const CLICKUP_API_BASE = "https://api.clickup.com/api/v2";
+const DEFAULT_SUBMISSIONS_LIST_ID = "901420772915";
 
 export function getClickUpConfig(formType: FormType = "rfp") {
   const token = process.env.CLICKUP_API_TOKEN || "";
@@ -30,7 +31,7 @@ export function getClickUpConfig(formType: FormType = "rfp") {
       process.env.RFP_LIST_ID ||
       process.env.CLICKUP_RFP_LIST_ID ||
       process.env.CLICKUP_LIST_ID ||
-      "";
+      DEFAULT_SUBMISSIONS_LIST_ID;
   }
 
   const isConfigured = Boolean(token && listId && token !== "mock" && !token.startsWith("pk_your"));
