@@ -103,7 +103,7 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
                 placeholder="Employee Full Name"
                 value={data.payee}
                 onChange={(e) => updateField("payee", e.target.value)}
-                className={`w-full border-b border-prime-blue bg-transparent px-1 py-0.5 font-medium text-xs focus:outline-none focus:bg-prime-white ${hasError("payee") ? "border-b-2 border-prime-blue bg-prime-white" : ""}`}
+                className={`w-full border-b bg-transparent px-1 py-0.5 font-medium text-xs focus:outline-none focus:bg-prime-white ${hasError("payee") ? "border-b-2 border-red-600 bg-red-50/30 text-red-900 ring-1 ring-red-200" : "border-prime-blue"}`}
               />
             </div>
 
@@ -117,8 +117,8 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
                 value={data.department}
                 onChange={(val) => updateField("department", val)}
                 placeholder="ex. Brokerage"
-                className={`w-full border-b border-prime-blue bg-transparent px-1 py-0.5 text-xs font-medium focus:outline-none focus:bg-prime-white ${
-                  hasError("department") ? "border-b-2 border-prime-blue bg-prime-white" : ""
+                className={`w-full border-b bg-transparent px-1 py-0.5 text-xs font-medium focus:outline-none focus:bg-prime-white ${
+                  hasError("department") ? "border-b-2 border-red-600 bg-red-50/30 text-red-900" : "border-prime-blue"
                 }`}
                 hasError={hasError("department")}
               />
@@ -165,7 +165,7 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
                 type="date"
                 value={data.date}
                 onChange={(e) => updateField("date", e.target.value)}
-                className={`w-36 border-b border-prime-blue bg-transparent px-1 py-0.5 text-right font-medium text-xs focus:outline-none focus:bg-prime-white ${hasError("date") ? "border-b-2 border-prime-blue bg-prime-white" : ""}`}
+                className={`w-36 border-b bg-transparent px-1 py-0.5 text-right font-medium text-xs focus:outline-none focus:bg-prime-white ${hasError("date") ? "border-b-2 border-red-600 bg-red-50/30 text-red-900 ring-1 ring-red-200" : "border-prime-blue"}`}
               />
             </div>
           </div>
@@ -201,7 +201,7 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
                       minHeight={26}
                       rows={1}
                       onChange={(e) => handleParticularChange(idx, "description", e.target.value)}
-                      className={`px-1 py-0.5 text-xs focus:bg-prime-white ${hasError(`particular_${idx}_desc`) ? "border border-prime-blue bg-prime-white" : ""}`}
+                      className={`px-1 py-0.5 text-xs focus:bg-prime-white ${hasError(`particular_${idx}_desc`) ? "border border-red-500 bg-red-50/40 text-red-900" : ""}`}
                     />
                   </td>
                   <td className="align-top p-1 text-right">
@@ -220,7 +220,7 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
                             e.target.value === "" ? "" : parseFloat(e.target.value)
                           )
                         }
-                        className={`w-24 text-right bg-transparent py-1 text-xs focus:bg-prime-white font-sans tabular-nums font-medium ${hasError(`particular_${idx}_amount`) ? "border border-prime-blue bg-prime-white" : ""}`}
+                        className={`w-24 text-right bg-transparent py-1 text-xs focus:bg-prime-white font-sans tabular-nums font-medium ${hasError(`particular_${idx}_amount`) ? "border border-red-500 bg-red-50/40 text-red-700" : ""}`}
                       />
                     </div>
                   </td>
@@ -258,10 +258,10 @@ export function PcvSheet({ data, onChange, validationErrors }: PcvSheetProps) {
         <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
           {/* Requested by: */}
           <div className="flex flex-col items-center">
-            <span className="font-medium text-xs uppercase tracking-tight block mb-1">
+            <span className={`font-medium text-xs uppercase tracking-tight block mb-1 ${hasError("requestedByName") ? "text-red-700 font-semibold" : ""}`}>
               Requested by:
             </span>
-            <div className={`w-full h-16 border-2 border-prime-blue flex flex-col justify-end p-1.5 bg-prime-white ${hasError("requestedByName") ? "border-prime-blue bg-prime-white" : ""}`}>
+            <div className={`w-full h-16 border-2 flex flex-col justify-end p-1.5 ${hasError("requestedByName") ? "border-red-600 bg-red-50/30 ring-2 ring-red-200" : "border-prime-blue bg-prime-white"}`}>
               <input
                 id="pcv-field-requested-by"
                 type="text"

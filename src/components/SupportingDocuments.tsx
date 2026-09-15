@@ -70,16 +70,16 @@ export function SupportingDocuments({
       id="supporting-documents-section"
       className={`bg-prime-white rounded-none border ${
         hasError
-          ? "border-prime-blue ring-2 ring-prime-rule bg-prime-white"
+          ? "border-2 border-red-600 ring-2 ring-red-200 bg-red-50/10"
           : "border-prime-rule"
       } shadow-none p-6 relative overflow-hidden transition-all`}
     >
-      {/* Gold top accent */}
-      <div className={`absolute top-0 left-0 right-0 h-px ${hasError ? "bg-prime-blue" : "bg-prime-gold"}`} />
+      {/* Gold or Red top accent */}
+      <div className={`absolute top-0 left-0 right-0 h-1 ${hasError ? "bg-red-600" : "bg-prime-gold"}`} />
 
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-prime-blue text-prime-white rounded-none">
+          <div className={`p-2 ${hasError ? "bg-red-600" : "bg-prime-blue"} text-prime-white rounded-none`}>
             <Paperclip className="w-5 h-5" />
           </div>
           <div>
@@ -87,7 +87,9 @@ export function SupportingDocuments({
               <h3 className="font-serif text-4xl text-prime-blue">
                 Supporting Documents
               </h3>
-              <span className="text-[11px] uppercase font-medium tracking-wider px-2 py-0.5 bg-prime-white text-prime-blue border border-prime-rule">
+              <span className={`text-[11px] uppercase font-bold tracking-wider px-2 py-0.5 ${
+                hasError ? "bg-red-100 text-red-800 border border-red-300" : "bg-prime-white text-prime-blue border border-prime-rule"
+              }`}>
                 Required
               </span>
             </div>
@@ -98,7 +100,7 @@ export function SupportingDocuments({
         </div>
         <span className={`text-xs font-medium px-2.5 py-1 ${
           hasError
-            ? "bg-prime-white text-prime-blue border border-prime-rule font-medium"
+            ? "bg-red-50 text-red-700 border border-red-300 font-bold"
             : "bg-prime-white text-prime-ink border border-prime-rule"
         }`}>
           {files.length} {files.length === 1 ? "file" : "files"} attached
@@ -106,9 +108,9 @@ export function SupportingDocuments({
       </div>
 
       {hasError && (
-        <div className="mb-3 p-2.5 bg-prime-white border border-prime-rule text-prime-blue text-xs font-medium flex items-center gap-2 animate-pulse">
-          <span className="w-2 h-2 rounded-none bg-prime-blue shrink-0" />
-          <span>Attachment required: Please upload at least one vendor quotation, invoice, or receipt before submitting to ClickUp.</span>
+        <div className="mb-3 p-3 bg-red-50 border border-red-300 text-red-800 text-xs font-semibold flex items-center gap-2.5 animate-pulse">
+          <span className="w-2 h-2 rounded-full bg-red-600 shrink-0" />
+          <span>Attachment required: Please upload at least one vendor quotation, invoice, or receipt before submitting.</span>
         </div>
       )}
 

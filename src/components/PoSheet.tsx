@@ -142,7 +142,7 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
                   type="date"
                   value={data.date}
                   onChange={(e) => updateField("date", e.target.value)}
-                  className={`bg-transparent border ${hasError("date") ? "border-prime-blue bg-prime-white" : "border-prime-rule"} focus:border-prime-blue px-2 py-0.5 text-xs text-right font-medium`}
+                  className={`bg-transparent border ${hasError("date") ? "border-red-600 bg-red-50/30 ring-1 ring-red-200 text-red-900" : "border-prime-rule"} focus:border-prime-blue px-2 py-0.5 text-xs text-right font-medium`}
                 />
               </div>
               <div className="flex items-center justify-between md:justify-end gap-2">
@@ -189,7 +189,7 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
                 placeholder="Company / Vendor Name"
                 value={data.vendorName}
                 onChange={(e) => updateField("vendorName", e.target.value)}
-                className={`w-full bg-transparent font-medium text-xs focus:outline-none focus:bg-prime-white px-1 ${hasError("vendorName") ? "border-b-2 border-prime-blue bg-prime-white" : ""}`}
+                className={`w-full bg-transparent font-medium text-xs focus:outline-none focus:bg-prime-white px-1 ${hasError("vendorName") ? "border-b-2 border-red-600 bg-red-50/30 text-red-900 ring-1 ring-red-200" : ""}`}
               />
             </div>
 
@@ -310,7 +310,7 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
                       minHeight={26}
                       rows={1}
                       onChange={(e) => handleItemChange(idx, "details", e.target.value)}
-                      className={`px-2 py-1 text-xs focus:bg-prime-white ${hasError(`item_${idx}_details`) ? "border border-prime-blue bg-prime-white" : ""}`}
+                      className={`px-2 py-1 text-xs focus:bg-prime-white ${hasError(`item_${idx}_details`) ? "border border-red-500 bg-red-50/40 text-red-900" : ""}`}
                     />
                   </td>
 
@@ -341,7 +341,7 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
                           e.target.value === "" ? "" : parseFloat(e.target.value)
                         )
                       }
-                      className={`w-full text-center bg-transparent py-1 text-xs focus:bg-prime-white font-sans tabular-nums ${hasError(`item_${idx}_qty`) ? "border border-prime-blue bg-prime-white" : ""}`}
+                      className={`w-full text-center bg-transparent py-1 text-xs focus:bg-prime-white font-sans tabular-nums ${hasError(`item_${idx}_qty`) ? "border border-red-500 bg-red-50/40 text-red-700" : ""}`}
                     />
                   </td>
 
@@ -363,7 +363,7 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
                             e.target.value === "" ? "" : parseFloat(e.target.value)
                           )
                         }
-                        className={`w-full text-right bg-transparent py-1 text-xs focus:bg-prime-white font-sans tabular-nums ${hasError(`item_${idx}_price`) ? "border border-prime-blue bg-prime-white" : ""}`}
+                        className={`w-full text-right bg-transparent py-1 text-xs focus:bg-prime-white font-sans tabular-nums ${hasError(`item_${idx}_price`) ? "border border-red-500 bg-red-50/40 text-red-700" : ""}`}
                       />
                     </div>
                   </td>
@@ -516,7 +516,7 @@ export function PoSheet({ data, onChange, validationErrors }: PoSheetProps) {
                 placeholder="Employee Name"
                 value={data.preparedByName}
                 onChange={(e) => updateField("preparedByName", e.target.value)}
-                className={`w-full text-center bg-transparent text-xs font-medium focus:outline-none ${hasError("preparedByName") ? "border-b-2 border-prime-blue bg-prime-white" : ""}`}
+                className={`w-full text-center bg-transparent text-xs font-medium focus:outline-none ${hasError("preparedByName") ? "border-b-2 border-red-600 bg-red-50/30 text-red-900 ring-1 ring-red-200" : ""}`}
               />
             </div>
             <span className="text-[11px] text-prime-ink uppercase tracking-tight block mt-1">

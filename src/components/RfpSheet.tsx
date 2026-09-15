@@ -138,12 +138,12 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
           <div
             id="field-date"
             className={`col-span-12 sm:col-span-4 border-2 ${
-              hasError("date") ? "border-prime-blue bg-prime-white ring-2 ring-prime-rule" : "border-prime-blue"
+              hasError("date") ? "border-red-600 bg-red-50/25 ring-2 ring-red-200" : "border-prime-blue"
             } rounded-none p-2 flex items-center gap-2 transition-all`}
           >
             <label className="font-medium text-xs uppercase tracking-wider shrink-0 flex items-center gap-1">
               <span>DATE:</span>
-              {hasError("date") && <span className="text-prime-blue text-xs font-medium">*</span>}
+              {hasError("date") && <span className="text-red-600 text-xs font-bold">*</span>}
             </label>
             <input
               type="date"
@@ -157,12 +157,12 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
           <div
             id="field-payee"
             className={`col-span-12 sm:col-span-8 md:col-span-5 border-2 ${
-              hasError("payee") ? "border-prime-blue bg-prime-white ring-2 ring-prime-rule" : "border-prime-blue"
+              hasError("payee") ? "border-red-600 bg-red-50/25 ring-2 ring-red-200" : "border-prime-blue"
             } rounded-none p-2 flex items-start gap-2 transition-all`}
           >
             <label className="font-medium text-xs uppercase tracking-wider shrink-0 flex items-center gap-1 pt-0.5">
               <span>PAYEE:</span>
-              {hasError("payee") && <span className="text-prime-blue text-xs font-medium">*</span>}
+              {hasError("payee") && <span className="text-red-600 text-xs font-bold">*</span>}
             </label>
             <AutoResizeTextarea
               rows={1}
@@ -178,12 +178,12 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
           <div
             id="field-department"
             className={`col-span-12 sm:col-span-12 md:col-span-3 border-2 ${
-              hasError("department") ? "border-prime-blue bg-prime-white ring-2 ring-prime-rule" : "border-prime-blue"
+              hasError("department") ? "border-red-600 bg-red-50/25 ring-2 ring-red-200" : "border-prime-blue"
             } rounded-none p-2 flex items-center gap-2 transition-all relative`}
           >
             <label className="font-medium text-xs uppercase tracking-wider shrink-0 flex items-center gap-1">
               <span>DEPARTMENT:</span>
-              {hasError("department") && <span className="text-prime-blue text-xs font-medium">*</span>}
+              {hasError("department") && <span className="text-red-600 text-xs font-bold">*</span>}
             </label>
             <DepartmentCombobox
               id="field-department-input"
@@ -229,7 +229,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
                   className="border-b border-prime-blue group hover:bg-prime-white transition-colors"
                 >
                   {/* Description */}
-                  <td className={`align-top border-r border-prime-blue p-1 ${hasError(`item_${idx}_desc`) ? "bg-prime-white" : ""}`}>
+                  <td className={`align-top border-r border-prime-blue p-1 ${hasError(`item_${idx}_desc`) ? "bg-red-50/40" : ""}`}>
                     <AutoResizeTextarea
                       id={`field-item-desc-${idx}`}
                       placeholder={`Line item #${idx + 1}`}
@@ -238,13 +238,13 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
                       rows={1}
                       onChange={(e) => handleItemChange(idx, "description", e.target.value)}
                       className={`w-full px-2 py-1 text-xs focus:bg-prime-white ${
-                        hasError(`item_${idx}_desc`) ? "ring-1 ring-prime-blue bg-prime-white" : ""
+                        hasError(`item_${idx}_desc`) ? "ring-1 ring-red-500 bg-red-50/50 text-red-950 placeholder-red-300" : ""
                       }`}
                     />
                   </td>
 
                   {/* Qty */}
-                  <td className={`align-top border-r border-prime-blue p-1 ${hasError(`item_${idx}_qty`) ? "bg-prime-white" : ""}`}>
+                  <td className={`align-top border-r border-prime-blue p-1 ${hasError(`item_${idx}_qty`) ? "bg-red-50/40" : ""}`}>
                     <input
                       id={`field-item-qty-${idx}`}
                       type="number"
@@ -260,13 +260,13 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
                         )
                       }
                       className={`w-full text-center bg-transparent px-1 py-1 text-xs focus:outline-none focus:bg-prime-white font-sans tabular-nums ${
-                        hasError(`item_${idx}_qty`) ? "ring-1 ring-prime-blue bg-prime-white font-medium text-prime-blue" : ""
+                        hasError(`item_${idx}_qty`) ? "ring-1 ring-red-500 bg-red-50/50 font-medium text-red-700 placeholder-red-300" : ""
                       }`}
                     />
                   </td>
 
                   {/* Unit - Plain text box no presets */}
-                  <td className={`align-top border-r border-prime-blue p-1 ${hasError(`item_${idx}_unit`) ? "bg-prime-white" : ""}`}>
+                  <td className={`align-top border-r border-prime-blue p-1 ${hasError(`item_${idx}_unit`) ? "bg-red-50/40" : ""}`}>
                     <input
                       id={`field-item-unit-${idx}`}
                       type="text"
@@ -274,15 +274,15 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
                       placeholder=""
                       onChange={(e) => handleItemChange(idx, "unit", e.target.value)}
                       className={`w-full text-center bg-transparent px-1 py-1 text-xs focus:outline-none focus:bg-prime-white ${
-                        hasError(`item_${idx}_unit`) ? "ring-1 ring-prime-blue bg-prime-white font-medium text-prime-blue" : ""
+                        hasError(`item_${idx}_unit`) ? "ring-1 ring-red-500 bg-red-50/50 font-medium text-red-700 placeholder-red-300" : ""
                       }`}
                     />
                   </td>
 
                   {/* Unit Price */}
-                  <td className={`align-top border-r border-prime-blue p-1 ${hasError(`item_${idx}_price`) ? "bg-prime-white" : ""}`}>
+                  <td className={`align-top border-r border-prime-blue p-1 ${hasError(`item_${idx}_price`) ? "bg-red-50/40" : ""}`}>
                     <div className="flex items-center px-1">
-                      <span className="text-prime-ink mr-1 text-[11px] pt-1">₱</span>
+                      <span className={`mr-1 text-[11px] pt-1 ${hasError(`item_${idx}_price`) ? "text-red-600 font-semibold" : "text-prime-ink"}`}>₱</span>
                       <input
                         id={`field-item-price-${idx}`}
                         type="number"
@@ -298,7 +298,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
                           )
                         }
                         className={`w-full text-right bg-transparent py-1 text-xs focus:outline-none focus:bg-prime-white font-sans tabular-nums ${
-                          hasError(`item_${idx}_price`) ? "ring-1 ring-prime-blue bg-prime-white font-medium text-prime-blue" : ""
+                          hasError(`item_${idx}_price`) ? "ring-1 ring-red-500 bg-red-50/50 font-medium text-red-700 placeholder-red-300" : ""
                         }`}
                       />
                     </div>
@@ -364,13 +364,13 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
         <div
           id="field-purpose"
           className={`mt-3 border-2 ${
-            hasError("purpose") ? "border-prime-blue bg-prime-white ring-2 ring-prime-rule" : "border-prime-blue"
+            hasError("purpose") ? "border-red-600 bg-red-50/25 ring-2 ring-red-200" : "border-prime-blue"
           } rounded-none p-3 transition-all`}
         >
           <label className="font-medium text-xs uppercase tracking-wider block mb-1 flex items-center justify-between">
-            <span>Purpose:</span>
+            <span className={hasError("purpose") ? "text-red-700 font-semibold" : ""}>Purpose:</span>
             {hasError("purpose") && (
-              <span className="text-prime-blue text-[11px] font-medium lowercase italic">* required</span>
+              <span className="text-red-600 text-[11px] font-medium lowercase italic">* required</span>
             )}
           </label>
           <AutoResizeTextarea
@@ -379,7 +379,9 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
             placeholder="State the detailed reason or business purpose for this payment request..."
             value={data.purpose}
             onChange={(e) => updateField("purpose", e.target.value)}
-            className="w-full bg-transparent text-xs focus:outline-none focus:bg-prime-white rounded-none p-1 leading-relaxed"
+            className={`w-full bg-transparent text-xs focus:outline-none focus:bg-prime-white rounded-none p-1 leading-relaxed ${
+              hasError("purpose") ? "text-red-950 placeholder-red-300" : ""
+            }`}
           />
         </div>
 
@@ -388,11 +390,11 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
           {/* Payment Details (Left Side) */}
           <div className="col-span-12 md:col-span-7">
             <div className="flex items-center justify-between mb-2">
-              <span className="font-medium text-xs uppercase tracking-wider block">
+              <span className={`font-medium text-xs uppercase tracking-wider block ${hasError("paymentMethods") ? "text-red-700 font-semibold" : ""}`}>
                 Payment Details:
               </span>
               {hasError("paymentMethods") && (
-                <span className="text-prime-blue text-[11px] font-medium italic">* Check at least one</span>
+                <span className="text-red-600 text-[11px] font-medium italic">* Check at least one</span>
               )}
             </div>
 
@@ -401,7 +403,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
               id="field-payment-methods"
               className={`flex flex-wrap items-center gap-5 mb-3 p-2 border ${
                 hasError("paymentMethods")
-                  ? "border-prime-blue bg-prime-white ring-2 ring-prime-rule"
+                  ? "border-red-600 bg-red-50/25 ring-2 ring-red-200"
                   : "border-transparent"
               } transition-all`}
             >
@@ -413,7 +415,9 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
                   className="sr-only"
                 />
                 <div
-                  className={`w-4 h-4 border-2 border-prime-blue flex items-center justify-center transition-colors ${
+                  className={`w-4 h-4 border-2 ${
+                    hasError("paymentMethods") ? "border-red-600" : "border-prime-blue"
+                  } flex items-center justify-center transition-colors ${
                     (data.paymentMethods || (data.paymentMethod ? [data.paymentMethod] : [])).includes("cash")
                       ? "bg-prime-blue border-prime-blue"
                       : "bg-prime-white"
@@ -434,7 +438,9 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
                   className="sr-only"
                 />
                 <div
-                  className={`w-4 h-4 border-2 border-prime-blue flex items-center justify-center transition-colors ${
+                  className={`w-4 h-4 border-2 ${
+                    hasError("paymentMethods") ? "border-red-600" : "border-prime-blue"
+                  } flex items-center justify-center transition-colors ${
                     (data.paymentMethods || (data.paymentMethod ? [data.paymentMethod] : [])).includes("check")
                       ? "bg-prime-blue border-prime-blue"
                       : "bg-prime-white"
@@ -455,7 +461,9 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
                   className="sr-only"
                 />
                 <div
-                  className={`w-4 h-4 border-2 border-prime-blue flex items-center justify-center transition-colors ${
+                  className={`w-4 h-4 border-2 ${
+                    hasError("paymentMethods") ? "border-red-600" : "border-prime-blue"
+                  } flex items-center justify-center transition-colors ${
                     (data.paymentMethods || (data.paymentMethod ? [data.paymentMethod] : [])).includes("online")
                       ? "bg-prime-blue border-prime-blue"
                       : "bg-prime-white"
@@ -474,57 +482,63 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
               <div
                 id="field-bank"
                 className={`flex items-center gap-2 border-b ${
-                  hasError("bank") ? "border-prime-blue bg-prime-white" : "border-prime-blue"
+                  hasError("bank") ? "border-red-600 bg-red-50/25 ring-1 ring-red-200" : "border-prime-blue"
                 } pb-0.5 px-1 transition-all`}
               >
                 <span className="font-medium text-xs min-w-[100px] flex items-center justify-between">
-                  <span>Bank:</span>
-                  {hasError("bank") && <span className="text-prime-blue text-xs font-medium">*</span>}
+                  <span className={hasError("bank") ? "text-red-700 font-semibold" : ""}>Bank:</span>
+                  {hasError("bank") && <span className="text-red-600 text-xs font-bold">*</span>}
                 </span>
                 <input
                   type="text"
                   placeholder="e.g. BDO, BPI, Metrobank"
                   value={data.bank}
                   onChange={(e) => updateField("bank", e.target.value)}
-                  className="w-full bg-transparent text-xs focus:outline-none focus:bg-prime-white px-1"
+                  className={`w-full bg-transparent text-xs focus:outline-none focus:bg-prime-white px-1 ${
+                    hasError("bank") ? "text-red-950 placeholder-red-300" : ""
+                  }`}
                 />
               </div>
 
               <div
                 id="field-account-name"
                 className={`flex items-center gap-2 border-b ${
-                  hasError("accountName") ? "border-prime-blue bg-prime-white" : "border-prime-blue"
+                  hasError("accountName") ? "border-red-600 bg-red-50/25 ring-1 ring-red-200" : "border-prime-blue"
                 } pb-0.5 px-1 transition-all`}
               >
                 <span className="font-medium text-xs min-w-[100px] flex items-center justify-between">
-                  <span>Account Name:</span>
-                  {hasError("accountName") && <span className="text-prime-blue text-xs font-medium">*</span>}
+                  <span className={hasError("accountName") ? "text-red-700 font-semibold" : ""}>Account Name:</span>
+                  {hasError("accountName") && <span className="text-red-600 text-xs font-bold">*</span>}
                 </span>
                 <input
                   type="text"
                   placeholder="Account holder name"
                   value={data.accountName}
                   onChange={(e) => updateField("accountName", e.target.value)}
-                  className="w-full bg-transparent text-xs focus:outline-none focus:bg-prime-white px-1"
+                  className={`w-full bg-transparent text-xs focus:outline-none focus:bg-prime-white px-1 ${
+                    hasError("accountName") ? "text-red-950 placeholder-red-300" : ""
+                  }`}
                 />
               </div>
 
               <div
                 id="field-account-number"
                 className={`flex items-center gap-2 border-b ${
-                  hasError("accountNumber") ? "border-prime-blue bg-prime-white" : "border-prime-blue"
+                  hasError("accountNumber") ? "border-red-600 bg-red-50/25 ring-1 ring-red-200" : "border-prime-blue"
                 } pb-0.5 px-1 transition-all`}
               >
                 <span className="font-medium text-xs min-w-[100px] flex items-center justify-between">
-                  <span>Account Number:</span>
-                  {hasError("accountNumber") && <span className="text-prime-blue text-xs font-medium">*</span>}
+                  <span className={hasError("accountNumber") ? "text-red-700 font-semibold" : ""}>Account Number:</span>
+                  {hasError("accountNumber") && <span className="text-red-600 text-xs font-bold">*</span>}
                 </span>
                 <input
                   type="text"
                   placeholder="Account number"
                   value={data.accountNumber}
                   onChange={(e) => updateField("accountNumber", e.target.value)}
-                  className="w-full bg-transparent text-xs focus:outline-none focus:bg-prime-white px-1 font-sans tabular-nums"
+                  className={`w-full bg-transparent text-xs focus:outline-none focus:bg-prime-white px-1 font-sans tabular-nums ${
+                    hasError("accountNumber") ? "text-red-950 placeholder-red-300" : ""
+                  }`}
                 />
               </div>
             </div>
@@ -534,11 +548,11 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
           <div className="col-span-12 md:col-span-5 flex flex-col justify-between pl-0 md:pl-4 border-t md:border-t-0 md:border-l border-prime-rule pt-3 md:pt-0">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="font-medium text-xs uppercase tracking-wider block">
+                <span className={`font-medium text-xs uppercase tracking-wider block ${hasError("remarks") ? "text-red-700 font-semibold" : ""}`}>
                   Remarks:
                 </span>
                 {hasError("remarks") && (
-                  <span className="text-prime-blue text-[11px] font-medium italic">* Check option</span>
+                  <span className="text-red-600 text-[11px] font-medium italic">* Check option</span>
                 )}
               </div>
 
@@ -547,7 +561,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
                 id="field-remarks"
                 className={`flex items-center gap-6 mb-4 p-2 border ${
                   hasError("remarks")
-                    ? "border-prime-blue bg-prime-white ring-2 ring-prime-rule"
+                    ? "border-red-600 bg-red-50/25 ring-2 ring-red-200"
                     : "border-transparent"
                 } transition-all`}
               >
@@ -559,7 +573,9 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
                     className="sr-only"
                   />
                   <div
-                    className={`w-4 h-4 border-2 border-prime-blue flex items-center justify-center transition-colors ${
+                    className={`w-4 h-4 border-2 ${
+                      hasError("remarks") ? "border-red-600" : "border-prime-blue"
+                    } flex items-center justify-center transition-colors ${
                       (data.urgencyOptions || (data.urgency ? [data.urgency] : [])).includes("urgent")
                         ? "bg-prime-blue border-prime-blue"
                         : "bg-prime-white"
@@ -580,7 +596,9 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
                     className="sr-only"
                   />
                   <div
-                    className={`w-4 h-4 border-2 border-prime-blue flex items-center justify-center transition-colors ${
+                    className={`w-4 h-4 border-2 ${
+                      hasError("remarks") ? "border-red-600" : "border-prime-blue"
+                    } flex items-center justify-center transition-colors ${
                       (data.urgencyOptions || (data.urgency ? [data.urgency] : [])).includes("not_urgent")
                         ? "bg-prime-blue border-prime-blue"
                         : "bg-prime-white"
@@ -599,21 +617,23 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
               id="field-date-needed"
               className={`border-2 ${
                 hasError("dateNeeded")
-                  ? "border-prime-blue bg-prime-white ring-2 ring-prime-rule"
+                  ? "border-red-600 bg-red-50/25 ring-2 ring-red-200"
                   : "border-prime-blue bg-prime-white"
               } rounded-none p-2.5 transition-all`}
             >
               <label className="font-medium text-[11px] uppercase tracking-wider block mb-1 flex items-center justify-between">
-                <span>Date Needed (M-D-Y):</span>
+                <span className={hasError("dateNeeded") ? "text-red-700 font-semibold" : ""}>Date Needed (M-D-Y):</span>
                 {hasError("dateNeeded") && (
-                  <span className="text-prime-blue text-[11px] font-medium lowercase italic">* required</span>
+                  <span className="text-red-600 text-[11px] font-medium lowercase italic">* required</span>
                 )}
               </label>
               <input
                 type="date"
                 value={data.dateNeeded}
                 onChange={(e) => updateField("dateNeeded", e.target.value)}
-                className="w-full bg-prime-white border border-prime-rule rounded-none p-1 text-xs font-medium focus:outline-none"
+                className={`w-full bg-prime-white border ${
+                  hasError("dateNeeded") ? "border-red-400 bg-red-50/30 text-red-950" : "border-prime-rule"
+                } rounded-none p-1 text-xs font-medium focus:outline-none`}
               />
             </div>
           </div>
@@ -625,11 +645,11 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
             {/* Column 1: Requested By */}
             <div className="flex flex-col">
               <div className="h-6 mb-2 flex items-center justify-between">
-                <span className="font-medium text-xs uppercase tracking-wider">
+                <span className={`font-medium text-xs uppercase tracking-wider ${hasError("signature") || hasError("requestedByName") ? "text-red-700 font-semibold" : ""}`}>
                   Requested By:
                 </span>
-                {hasError("signature") && (
-                  <span className="text-prime-blue text-[11px] font-medium italic">* Required</span>
+                {(hasError("signature") || hasError("requestedByName")) && (
+                  <span className="text-red-600 text-[11px] font-medium italic">* Required</span>
                 )}
               </div>
 
@@ -639,7 +659,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
                 onClick={() => setIsSignatureModalOpen(true)}
                 className={`h-20 border-b-2 ${
                   hasError("signature")
-                    ? "border-prime-blue bg-prime-white ring-2 ring-prime-rule"
+                    ? "border-red-600 bg-red-50/30 ring-2 ring-red-200"
                     : "border-prime-blue"
                 } flex flex-col items-center justify-end pb-1 cursor-pointer hover:bg-prime-white transition-colors group relative`}
                 title="Click to sign or update signature"
@@ -655,7 +675,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
                     data-html2canvas-ignore="true"
                     className={`text-[11px] ${
                       hasError("signature")
-                        ? "text-prime-blue font-medium animate-pulse"
+                        ? "text-red-600 font-semibold animate-pulse"
                         : "text-prime-blue font-medium"
                     } flex items-center gap-1 mb-2`}
                   >
@@ -677,7 +697,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
               >
                 <span className="text-[11px] text-prime-ink block flex items-center justify-center gap-1">
                   <span>Signature Over Printed Name</span>
-                  {hasError("requestedByName") && <span className="text-prime-blue font-medium">*</span>}
+                  {hasError("requestedByName") && <span className="text-red-600 font-bold">*</span>}
                 </span>
                 <div className="h-7 flex items-center justify-center mt-1">
                   <input
@@ -686,7 +706,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
                     value={data.requestedByName}
                     onChange={(e) => updateField("requestedByName", e.target.value)}
                     className={`w-full text-center font-medium text-xs uppercase bg-transparent focus:outline-none border-b ${
-                      hasError("requestedByName") ? "border-prime-blue bg-prime-white ring-1 ring-prime-rule" : "border-dashed border-prime-rule"
+                      hasError("requestedByName") ? "border-red-600 bg-red-50/30 text-red-950 ring-1 ring-red-300" : "border-dashed border-prime-rule"
                     } pb-0.5`}
                   />
                 </div>

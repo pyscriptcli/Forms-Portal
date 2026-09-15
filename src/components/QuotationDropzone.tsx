@@ -15,7 +15,7 @@ export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
 
   const processFile = async (file: File) => {
     setIsScanning(true);
-    setScanStatus("Analyzing quotation document layout with Gemini Flash Vision...");
+    setScanStatus("Analyzing quotation document layout (Free Parser & DeepSeek Vision)...");
 
     try {
       const formData = new FormData();
@@ -31,7 +31,16 @@ export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
         throw new Error(json.message || "Failed to extract quotation data.");
       }
 
-      setScanStatus("Quotation data extracted successfully!");
+      const sourceLabel =
+        json.source === "free_parser"
+          ? "via Free Local Parser"
+          : json.source === "deepseek_vision"
+          ? "via DeepSeek Vision"
+          : json.source === "gemini_vision"
+          ? "via Gemini Vision"
+          : "";
+
+      setScanStatus(`Quotation data extracted ${sourceLabel} successfully!`);
       setTimeout(() => {
         onDataExtracted(json.data, file);
         setIsScanning(false);
@@ -39,7 +48,7 @@ export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
       }, 400);
     } catch (err: any) {
       console.error("Extraction error:", err);
-      alert(err.message || "Error scanning quotation document with Gemini.");
+      alert(err.message || "Error scanning quotation document.");
       setIsScanning(false);
       setScanStatus(null);
     }

@@ -69,8 +69,9 @@ export function DepartmentCombobox({
             if (e.key === "Escape") setIsOpen(false);
           }}
           placeholder={placeholder}
-          autoComplete="off"
-          className={`${className} pr-6`}
+          className={`${className} pr-6 ${
+            hasError ? "border-red-600 bg-red-50/20 text-red-900" : ""
+          }`}
         />
 
         {/* Dropdown toggle chevron */}
