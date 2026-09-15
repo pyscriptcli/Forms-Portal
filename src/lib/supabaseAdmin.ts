@@ -3,8 +3,10 @@ import {
   normalizeWorkflowStatuses,
   type WorkflowStatuses,
 } from "@/lib/adminSettings";
+import type { FormDestinationKey, FormDestination } from "@/lib/adminSettings";
 
 const WORKFLOW_TABLE = "forms-portal-workflow_statuses";
+const DESTINATIONS_TABLE = "forms-portal-form_destinations";
 
 function getSupabaseConfig() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -63,4 +65,34 @@ export async function saveWorkflowStatusesToSupabase(statuses: WorkflowStatuses)
   if (!response.ok) {
     throw new Error(`Supabase workflow status save failed (${response.status}): ${await response.text()}`);
   }
+}
+
+export async function readFormDestinationFromSupabase(
+  formType: FormDestinationKey
+): Promise<FormDestination | null> {
+  const { url, key, isConfigured } = getSupabaseConfig();
+  if (!isConfigured) return null;
+
+  const response = await fetch(
+    `${url}/rest/v1/${encodeURIComponent(DESTINATIONS_TABLE)}?form_type=eq.${encodeURIComponent(formType)}&select=clickup_list_id,clickup_workspace_id,display_name,enabled`,
+    { headers: supabaseHeaders(key), cache: "no-store" }
+  );
+  if (!response.ok) {
+    throw new Error(`Supabase form destination read failed (${response.status}): ${await response.text()}`);
+  }
+
+  const rows = await response.json() as Array<{
+    clickup_list_id?: string;
+    clickup_workspace_id?: string;
+    display_name?: string;
+    enabled?: boolean;
+  }>;
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    listId: row.clickup_list_id || "",
+    workspaceId: row.clickup_workspace_id || "",
+    label: row.display_name || formType,
+    enabled: row.enabled !== false,
+  };
 }

@@ -39,27 +39,27 @@ function getConfiguredWorkflowStatuses(): WorkflowStatuses {
   }
 }
 
-export function getClickUpConfig(formType: FormType = "rfp", oauthToken?: string) {
+export function getClickUpConfig(formType: FormType = "rfp", oauthToken?: string, listIdOverride?: string) {
   const token = oauthToken || process.env.CLICKUP_API_TOKEN || "";
   const isOAuth = Boolean(oauthToken);
-  let listId = "";
+  let listId = listIdOverride?.trim() || "";
   const adminDestination = getAdminDestination(formType);
 
   // Explicit environment variables remain the highest-priority override for
   // deployments, followed by the admin table, then the built-in default.
-  if (formType === "po") {
+  if (!listId && formType === "po") {
     listId =
       process.env.PO_LIST_ID ||
       process.env.CLICKUP_PO_LIST_ID ||
       process.env.CLICKUP_LIST_ID ||
       "";
-  } else if (formType === "pcv") {
+  } else if (!listId && formType === "pcv") {
     listId =
       process.env.PCV_LIST_ID ||
       process.env.CLICKUP_PCV_LIST_ID ||
       process.env.CLICKUP_LIST_ID ||
       "";
-  } else {
+  } else if (!listId) {
     // Deployment-specific RFP override; the admin destination and built-in
     // default are applied below when this is empty.
     listId =
@@ -295,11 +295,13 @@ export async function createClickUpTask(
   data: any,
   appUrl: string,
   formType: FormType = "rfp",
-  oauthToken?: string
+  oauthToken?: string,
+  listIdOverride?: string,
+  workflowStatusesOverride?: WorkflowStatuses
 ): Promise<ClickUpTaskResponse> {
   const actualFormType = formType || data.formType || "rfp";
-  const { token, listId, isConfigured, isOAuth } = getClickUpConfig(actualFormType, oauthToken);
-  const workflowStatuses = getConfiguredWorkflowStatuses();
+  const { token, listId, isConfigured, isOAuth } = getClickUpConfig(actualFormType, oauthToken, listIdOverride);
+  const workflowStatuses = workflowStatusesOverride || getConfiguredWorkflowStatuses();
 
   const isUrgent =
     data.urgency === "urgent" || (data.urgencyOptions && data.urgencyOptions.includes("urgent"));
@@ -369,6 +371,9 @@ export async function createClickUpTask(
 
   if (!createRes.ok) {
     const errText = await createRes.text();
+    if (createRes.status === 401 && errText.includes("OAUTH_027")) {
+      throw new Error(`ClickUp OAuth account has not authorized workspace ${data.clickupWorkspaceId || "configured for this form"}. Sign out and sign in again with a ClickUp account that has access to that workspace.`);
+    }
     throw new Error(`ClickUp task creation failed (${createRes.status}): ${errText}`);
   }
 
@@ -393,10 +398,11 @@ export async function updateClickUpTask(
   data: any,
   appUrl: string,
   formType: FormType = "rfp",
-  oauthToken?: string
+  oauthToken?: string,
+  listIdOverride?: string
 ): Promise<ClickUpTaskResponse> {
   const actualFormType = formType || data.formType || "rfp";
-  const { token, listId, isConfigured, isOAuth } = getClickUpConfig(actualFormType, oauthToken);
+  const { token, listId, isConfigured, isOAuth } = getClickUpConfig(actualFormType, oauthToken, listIdOverride);
 
   const isUrgent =
     data.urgency === "urgent" || (data.urgencyOptions && data.urgencyOptions.includes("urgent"));

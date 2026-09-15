@@ -7,6 +7,7 @@ import {
 } from "@/lib/clickup";
 import { sendApproverNotification } from "@/lib/email";
 import { getServerAuthSession } from "@/lib/auth";
+import { readFormDestinationFromSupabase, readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
 
 export const maxDuration = 60;
 
@@ -32,6 +33,15 @@ export async function POST(req: NextRequest) {
     }
 
     const data: any = JSON.parse(dataStr);
+    const [destination, workflowStatuses] = await Promise.all([
+      readFormDestinationFromSupabase(formType as "rfp" | "gw-rfp" | "travel-budget" | "po" | "pcv"),
+      readWorkflowStatusesFromSupabase(),
+    ]);
+    const destinationListId = destination?.enabled ? destination.listId : undefined;
+    if (!destinationListId) {
+      throw new Error(`No enabled ClickUp destination List is configured for ${formType}.`);
+    }
+    data.clickupWorkspaceId = destination?.workspaceId || "";
 
     // Determine application base URL
     const host = req.headers.get("host") || "localhost:3000";
@@ -42,9 +52,9 @@ export async function POST(req: NextRequest) {
     const isRevision = Boolean(data.taskId);
 
     if (isRevision && data.taskId) {
-      taskResult = await updateClickUpTask(data.taskId, data, appUrl, formType, accessToken);
+      taskResult = await updateClickUpTask(data.taskId, data, appUrl, formType, accessToken, destinationListId);
     } else {
-      taskResult = await createClickUpTask(data, appUrl, formType, accessToken);
+      taskResult = await createClickUpTask(data, appUrl, formType, accessToken, destinationListId, workflowStatuses || undefined);
     }
 
     if (taskResult.isMock || taskResult.id.startsWith("MOCK-")) {
