@@ -46,6 +46,7 @@ interface PrimeDatePickerProps {
   ariaLabel?: string;
   hasError?: boolean;
   id?: string;
+  disabled?: boolean;
 }
 
 export function PrimeDatePicker({
@@ -56,6 +57,7 @@ export function PrimeDatePicker({
   ariaLabel = "Date",
   hasError = false,
   id: customId,
+  disabled = false,
 }: PrimeDatePickerProps) {
   const generatedId = useId();
   const id = customId || generatedId;
@@ -88,6 +90,7 @@ export function PrimeDatePicker({
         placeholder={placeholder}
         value={formatPrimeDate(value)}
         onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
         className={`w-full border-b bg-transparent pr-6 text-xs px-1 focus:outline-none ${
           hasError ? "border-red-500 bg-red-50/50" : "border-[#0f172a] focus:border-[#003366]"
         }`}
@@ -97,6 +100,7 @@ export function PrimeDatePicker({
         title="Open Date Picker"
         aria-label={`Open ${ariaLabel} picker`}
         onClick={handleCalendarClick}
+        disabled={disabled}
         className="absolute right-0 top-1/2 -translate-y-1/2 text-[#003366] hover:text-[#002244] p-0.5 cursor-pointer"
         tabIndex={-1}
       >
@@ -108,6 +112,7 @@ export function PrimeDatePicker({
         aria-hidden="true"
         value={dateValue}
         onChange={(event) => onChange(formatPrimeDate(event.target.value))}
+        disabled={disabled}
         className="sr-only"
         tabIndex={-1}
       />

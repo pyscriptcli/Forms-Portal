@@ -9,6 +9,20 @@ import { SignatureModal } from "./SignatureModal";
 import { PrimeDatePicker } from "./PrimeDatePicker";
 import { PenTool, Trash2, Plus, Check } from "lucide-react";
 
+function timeInputValue(value?: string) {
+  const match = value?.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return "";
+  let hour = Number(match[1]) % 12;
+  if (match[3].toUpperCase() === "PM") hour += 12;
+  return `${String(hour).padStart(2, "0")}:${match[2]}`;
+}
+
+function formatTime(value: string) {
+  const [hours, minutes] = value.split(":").map(Number);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return "";
+  return `${hours % 12 || 12}:${String(minutes).padStart(2, "0")} ${hours >= 12 ? "PM" : "AM"}`;
+}
+
 interface RfpSheetProps {
   data: RfpFormData;
   onChange: (data: RfpFormData) => void;
@@ -147,7 +161,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
         </div>
         <div className="py-2 px-1">
           {/* Row 1: Dates & Time */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-2">
+          <div className="grid grid-cols-1 sm:grid-cols-[1.2fr_1.2fr_0.75fr] gap-4 mb-2">
             <div className="flex items-baseline gap-1">
               <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
                 Date Accomplished (MM/DD/YYYY):
@@ -159,7 +173,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
                   updateField("date", val);
                 }}
                 hasError={hasError("date")}
-                className="flex-1 min-w-[70px]"
+                className="flex-1 min-w-0"
               />
             </div>
 
@@ -173,7 +187,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
                   updateField("dueDate", val);
                   updateField("dateNeeded", val);
                 }}
-                className="flex-1 min-w-[70px]"
+                className="flex-1 min-w-0"
               />
             </div>
 
@@ -182,9 +196,9 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
                 Time:
               </span>
               <input
-                type="text"
-                value={data.time ?? ""}
-                onChange={(e) => updateField("time", e.target.value)}
+                type="time"
+                value={timeInputValue(data.time)}
+                onChange={(e) => updateField("time", formatTime(e.target.value))}
                 placeholder=""
                 className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-none w-28 text-xs px-1"
               />
@@ -353,9 +367,10 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
                   </td>
                   <td className="border border-[#334155] px-2 py-1 align-top">
                     <input
-                      type="number"
-                      value={item.unitPrice === "" ? "" : item.unitPrice}
-                      onChange={(e) => handleItemChange(index, "unitPrice", e.target.value)}
+                      type="text"
+                      inputMode="decimal"
+                      value={item.unitPrice === "" ? "" : Number(item.unitPrice).toLocaleString("en-US")}
+                      onChange={(e) => handleItemChange(index, "unitPrice", e.target.value.replace(/,/g, ""))}
                       placeholder=""
                       className="w-full text-right bg-transparent focus:outline-none text-xs p-0.5"
                     />
@@ -780,7 +795,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
             TO BE FILLED OUT BY FINANCE / ACCOUNTING ONLY
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 text-xs">
+          <fieldset disabled className="grid grid-cols-1 sm:grid-cols-2 text-xs opacity-80">
             {/* Top Row: ClickUp Queue Number & Accomplished Checklist */}
             <div className="p-2 border-b sm:border-r border-[#334155] flex flex-col justify-center">
               <div className="flex items-baseline gap-1.5">
@@ -919,7 +934,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
                 className="flex-1"
               />
             </div>
-          </div>
+          </fieldset>
         </div>
 
         {/* Disclaimer Footer Note */}
