@@ -3,7 +3,7 @@ export interface RfpLineItem {
   description: string;
   qty: number | "";
   unit: string;
-  unitPrice: number | "";
+  unitPrice: number | string;
   amount: number;
 }
 

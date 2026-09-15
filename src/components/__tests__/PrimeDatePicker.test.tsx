@@ -32,6 +32,13 @@ describe("PrimeDatePicker component", () => {
 
   it("renders calendar trigger button", () => {
     render(<PrimeDatePicker value="" onChange={vi.fn()} />);
-    expect(screen.getByTitle("Open Date Picker")).toBeInTheDocument();
+    expect(screen.getByTitle("Open Date Picker")).toHaveAttribute("type", "date");
+  });
+
+  it("accepts a date from the native picker and reports MM/DD/YYYY", () => {
+    const onChange = vi.fn();
+    render(<PrimeDatePicker value="" onChange={onChange} ariaLabel="Departure" />);
+    fireEvent.change(screen.getByLabelText("Choose Departure date"), { target: { value: "2026-10-25" } });
+    expect(onChange).toHaveBeenCalledWith("10/25/2026");
   });
 });

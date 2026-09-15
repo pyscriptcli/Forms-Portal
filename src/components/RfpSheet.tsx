@@ -10,6 +10,10 @@ import { PrimeDatePicker } from "./PrimeDatePicker";
 import { PenTool, Trash2, Plus, Check } from "lucide-react";
 
 function timeInputValue(value?: string) {
+  if (/^\d{1,2}:\d{2}$/.test(value ?? "")) {
+    const [hour, minute] = value!.split(":");
+    return `${hour.padStart(2, "0")}:${minute}`;
+  }
   const match = value?.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
   if (!match) return "";
   let hour = Number(match[1]) % 12;
@@ -21,6 +25,12 @@ function formatTime(value: string) {
   const [hours, minutes] = value.split(":").map(Number);
   if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return "";
   return `${hours % 12 || 12}:${String(minutes).padStart(2, "0")} ${hours >= 12 ? "PM" : "AM"}`;
+}
+
+function formatEditablePrice(value: string) {
+  const [whole, decimal] = value.replace(/,/g, "").split(".");
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return decimal === undefined ? grouped : `${grouped}.${decimal}`;
 }
 
 interface RfpSheetProps {
@@ -38,7 +48,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
   useEffect(() => {
     if (!data.time) {
       const now = new Date();
-      const defaultTime = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const defaultTime = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
       onChange({ ...data, time: defaultTime });
     }
   }, []);
@@ -48,6 +58,8 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
   const updateField = <K extends keyof RfpFormData>(field: K, value: RfpFormData[K]) => {
     onChange({ ...data, [field]: value });
   };
+
+  const updateFields = (fields: Partial<RfpFormData>) => onChange({ ...data, ...fields });
 
   const updateAttachedDocs = (key: string, val: any) => {
     const prev = data.attachedDocs || {};
@@ -66,7 +78,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
     const current = { ...updatedItems[index], [key]: val };
 
     const qtyNum = typeof current.qty === "number" ? current.qty : parseFloat(String(current.qty)) || 0;
-    const priceNum = typeof current.unitPrice === "number" ? current.unitPrice : parseFloat(String(current.unitPrice)) || 0;
+    const priceNum = parseFloat(String(current.unitPrice).replace(/,/g, "")) || 0;
     current.amount = qtyNum * priceNum;
 
     updatedItems[index] = current;
@@ -164,10 +176,8 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
               </span>
               <PrimeDatePicker
                 value={data.dateAccomplished ?? data.date}
-                onChange={(val) => {
-                  updateField("dateAccomplished", val);
-                  updateField("date", val);
-                }}
+                onChange={(val) => updateFields({ dateAccomplished: val, date: val })}
+                ariaLabel="Date Accomplished"
                 hasError={hasError("date")}
                 className="flex-1 min-w-0"
               />
@@ -179,10 +189,8 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
               </span>
               <PrimeDatePicker
                 value={data.dueDate ?? data.dateNeeded ?? ""}
-                onChange={(val) => {
-                  updateField("dueDate", val);
-                  updateField("dateNeeded", val);
-                }}
+                onChange={(val) => updateFields({ dueDate: val, dateNeeded: val })}
+                ariaLabel="Due Date"
                 className="flex-1 min-w-0"
               />
             </div>
@@ -206,19 +214,13 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
             <div className="space-y-1">
               <PrimeCheckbox
                 checked={data.isUrgentPayment === "yes" || data.urgency === "urgent"}
-                onChange={(c) => {
-                  updateField("isUrgentPayment", c ? "yes" : "");
-                  updateField("urgency", c ? "urgent" : "not_urgent");
-                }}
+                onChange={(c) => updateFields({ isUrgentPayment: c ? "yes" : "", urgency: c ? "urgent" : "not_urgent" })}
                 label={<span className="font-medium">Urgent for Payment — Yes</span>}
               />
               <div>
                 <PrimeCheckbox
                   checked={data.isUrgentPayment === "no" || data.urgency === "not_urgent"}
-                  onChange={(c) => {
-                    updateField("isUrgentPayment", c ? "no" : "");
-                    updateField("urgency", c ? "not_urgent" : "");
-                  }}
+                  onChange={(c) => updateFields({ isUrgentPayment: c ? "no" : "", urgency: c ? "not_urgent" : "" })}
                   label={<span className="font-medium">No</span>}
                 />
               </div>
@@ -313,10 +315,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
             id="rfp-field-payee"
             type="text"
             value={data.vendor ?? data.payee}
-            onChange={(e) => {
-              updateField("vendor", e.target.value);
-              updateField("payee", e.target.value);
-            }}
+            onChange={(e) => updateFields({ vendor: e.target.value, payee: e.target.value })}
             placeholder=""
             className={`border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1 font-medium ${
               hasError("payee") ? "border-red-500 bg-red-50/50" : ""
@@ -365,8 +364,11 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
                     <input
                       type="text"
                       inputMode="decimal"
-                      value={item.unitPrice === "" ? "" : Number(item.unitPrice).toLocaleString("en-US")}
-                      onChange={(e) => handleItemChange(index, "unitPrice", e.target.value.replace(/,/g, ""))}
+                      value={item.unitPrice === "" ? "" : formatEditablePrice(String(item.unitPrice))}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/,/g, "");
+                        if (/^\d*(?:\.\d{0,2})?$/.test(raw)) handleItemChange(index, "unitPrice", raw);
+                      }}
                       placeholder=""
                       className="w-full text-right bg-transparent focus:outline-none text-xs p-0.5"
                     />
@@ -603,20 +605,14 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
             <div>
               <PrimeCheckbox
                 checked={data.modeBankTransfer ?? (data.paymentMethod === "online")}
-                onChange={(c) => {
-                  updateField("modeBankTransfer", c);
-                  if (c) updateField("paymentMethod", "online");
-                }}
+                onChange={(c) => updateFields({ modeBankTransfer: c, ...(c ? { paymentMethod: "online" as const } : {}) })}
                 label="Bank Transfer"
               />
             </div>
             <div>
               <PrimeCheckbox
                 checked={data.modeCheck ?? (data.paymentMethod === "check")}
-                onChange={(c) => {
-                  updateField("modeCheck", c);
-                  if (c) updateField("paymentMethod", "check");
-                }}
+                onChange={(c) => updateFields({ modeCheck: c, ...(c ? { paymentMethod: "check" as const } : {}) })}
                 label="Check"
               />
             </div>
@@ -709,10 +705,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
               <input
                 type="text"
                 value={data.departmentCostCenter ?? data.department}
-                onChange={(e) => {
-                  updateField("departmentCostCenter", e.target.value);
-                  updateField("department", e.target.value);
-                }}
+                onChange={(e) => updateFields({ departmentCostCenter: e.target.value, department: e.target.value })}
                 className={`border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1 ${
                   hasError("department") ? "border-red-500 bg-red-50/50" : ""
                 }`}
@@ -726,10 +719,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
               <input
                 type="text"
                 value={data.tlSignatureName ?? data.approvedByName ?? ""}
-                onChange={(e) => {
-                  updateField("tlSignatureName", e.target.value);
-                  updateField("approvedByName", e.target.value);
-                }}
+                onChange={(e) => updateFields({ tlSignatureName: e.target.value, approvedByName: e.target.value })}
                 placeholder="Printed Name"
                 className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
               />
@@ -816,11 +806,13 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
                 <PrimeCheckbox
                   checked={data.financeAccomplishedChecklist === "yes"}
                   onChange={(c) => updateField("financeAccomplishedChecklist", c ? "yes" : "")}
+                  disabled
                   label="Yes"
                 />
                 <PrimeCheckbox
                   checked={data.financeAccomplishedChecklist === "no"}
                   onChange={(c) => updateField("financeAccomplishedChecklist", c ? "no" : "")}
+                  disabled
                   label="No"
                 />
               </div>
@@ -948,10 +940,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
       <SignatureModal
         isOpen={isSignatureModalOpen}
         onClose={() => setIsSignatureModalOpen(false)}
-        onSave={(dataUrl, type) => {
-          updateField("signatureDataUrl", dataUrl);
-          updateField("signatureType", type);
-        }}
+        onSave={(dataUrl, type) => updateFields({ signatureDataUrl: dataUrl, signatureType: type })}
         currentSignature={data.signatureDataUrl}
         title="Requestor Electronic Signature"
       />
@@ -960,10 +949,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
       <SignatureModal
         isOpen={isTlSignatureModalOpen}
         onClose={() => setIsTlSignatureModalOpen(false)}
-        onSave={(dataUrl) => {
-          updateField("tlSignatureDataUrl", dataUrl);
-          updateField("approvedBySignature", dataUrl);
-        }}
+        onSave={(dataUrl) => updateFields({ tlSignatureDataUrl: dataUrl, approvedBySignature: dataUrl })}
         currentSignature={data.tlSignatureDataUrl}
         title="Approver / Team Leader Electronic Signature"
       />

@@ -46,7 +46,7 @@ const getInitialFormData = (): RfpFormData => {
   const dd = String(now.getDate()).padStart(2, "0");
   const yyyy = String(now.getFullYear());
   const today = `${mm}/${dd}/${yyyy}`;
-  const currentTime = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const currentTime = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
   const initialItems: RfpLineItem[] = [
     { id: "row-1", description: "", qty: "", unit: "pcs", unitPrice: "", amount: 0 },

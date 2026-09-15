@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useId, useMemo, useRef } from "react";
+import React, { useId, useMemo } from "react";
 import { Calendar } from "lucide-react";
 
 export function toDateValue(value?: string) {
@@ -61,24 +61,7 @@ export function PrimeDatePicker({
 }: PrimeDatePickerProps) {
   const generatedId = useId();
   const id = customId || generatedId;
-  const nativePickerRef = useRef<HTMLInputElement | null>(null);
-
   const dateValue = useMemo(() => toDateValue(value), [value]);
-
-  const handleCalendarClick = () => {
-    try {
-      if (nativePickerRef.current) {
-        if (typeof nativePickerRef.current.showPicker === "function") {
-          nativePickerRef.current.showPicker();
-        } else {
-          nativePickerRef.current.focus();
-          nativePickerRef.current.click();
-        }
-      }
-    } catch {
-      nativePickerRef.current?.focus();
-    }
-  };
 
   return (
     <span className={`relative inline-flex items-center min-w-[118px] group ${className}`}>
@@ -95,26 +78,18 @@ export function PrimeDatePicker({
           hasError ? "border-red-500 bg-red-50/50" : "border-[#0f172a] focus:border-[#003366]"
         }`}
       />
-      <button
-        type="button"
-        title="Open Date Picker"
-        aria-label={`Open ${ariaLabel} picker`}
-        onClick={handleCalendarClick}
-        disabled={disabled}
-        className="absolute right-0 top-1/2 -translate-y-1/2 text-[#003366] hover:text-[#002244] p-0.5 cursor-pointer"
-        tabIndex={-1}
-      >
-        <Calendar size={13} className="shrink-0" />
-      </button>
+      <Calendar size={13} aria-hidden="true" className="absolute right-0 top-1/2 -translate-y-1/2 text-[#003366] pointer-events-none" />
       <input
-        ref={nativePickerRef}
         type="date"
-        aria-hidden="true"
+        aria-label={`Choose ${ariaLabel} date`}
+        title="Open Date Picker"
         value={dateValue}
         onChange={(event) => onChange(formatPrimeDate(event.target.value))}
         disabled={disabled}
-        className="sr-only"
-        tabIndex={-1}
+        onClick={(event) => {
+          try { event.currentTarget.showPicker?.(); } catch { /* The native click still opens the picker where supported. */ }
+        }}
+        className="absolute right-0 top-0 z-10 h-full w-6 cursor-pointer opacity-0 disabled:cursor-not-allowed"
       />
     </span>
   );
