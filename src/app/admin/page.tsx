@@ -14,7 +14,6 @@ import {
   Trash2,
   Save,
   CheckCircle2,
-  ExternalLink,
   RefreshCw,
   Database,
 } from "lucide-react";
@@ -38,7 +37,6 @@ import {
   type UserAccessRecord,
   type UserRole,
 } from "@/lib/rbac";
-import { DEFAULT_RBAC_LIST_ID } from "@/lib/clickupRbac";
 
 const DEFAULT_FORM_DESTINATIONS: FormDestinations = {
   rfp: { listId: "901420772915", workspaceId: "9014981136", label: "PRIME RFP submissions", enabled: true },
@@ -64,11 +62,6 @@ export default function AdminPage() {
 
   // RBAC State
   const [users, setUsers] = useState<UserAccessRecord[]>(DEFAULT_USERS);
-  const [dbSource, setDbSource] = useState<"clickup" | "fallback">("clickup");
-  const [clickUpListId, setClickUpListId] = useState<string>(DEFAULT_RBAC_LIST_ID);
-  const [clickUpUrl, setClickUpUrl] = useState<string>(
-    `https://app.clickup.com/9014981136/v/li/${DEFAULT_RBAC_LIST_ID}`
-  );
   const [isSavingRbac, setIsSavingRbac] = useState(false);
   const [isRefreshingRbac, setIsRefreshingRbac] = useState(false);
   const [rbacSaveMsg, setRbacSaveMsg] = useState("");
@@ -85,15 +78,11 @@ export default function AdminPage() {
       if (data && Array.isArray(data.users)) {
         setUsers(data.users);
         saveLocalRbacUsers(data.users);
-        if (data.source) setDbSource(data.source);
-        if (data.listId) setClickUpListId(data.listId);
-        if (data.clickUpUrl) setClickUpUrl(data.clickUpUrl);
       } else {
         setUsers(getLocalRbacUsers());
       }
     } catch {
       setUsers(getLocalRbacUsers());
-      setDbSource("fallback");
     } finally {
       setIsRefreshingRbac(false);
     }
@@ -117,7 +106,7 @@ export default function AdminPage() {
           if (localSettings.destinations) setDestinations(localSettings.destinations);
         });
 
-      // Load RBAC users from ClickUp DB / fallback
+      // Load RBAC users from the server-side RBAC database
       loadRbacData();
     }
   }, []);
@@ -265,12 +254,7 @@ export default function AdminPage() {
         saveLocalRbacUsers(data.users);
       }
 
-      if (data.savedToClickUp) {
-        setRbacSaveMsg(`Successfully synchronized and saved to ClickUp List DB (#${clickUpListId})!`);
-        setDbSource("clickup");
-      } else {
-        setRbacSaveMsg("Saved locally (ClickUp token not configured in this environment).");
-      }
+      setRbacSaveMsg("Role assignments saved to the local RBAC database.");
     } catch (err: any) {
       setRbacSaveMsg("Saved to local storage fallback.");
     } finally {
@@ -457,7 +441,7 @@ export default function AdminPage() {
                 type="button"
                 onClick={loadRbacData}
                 disabled={isRefreshingRbac}
-                title="Refresh users from ClickUp List"
+                title="Refresh users from the local RBAC database"
                 className="prime-button secondary flex items-center justify-center gap-1.5 h-[38px] px-3 text-xs cursor-pointer"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingRbac ? "animate-spin" : ""}`} />
@@ -470,32 +454,23 @@ export default function AdminPage() {
                 className="prime-button flex items-center justify-center gap-2 shrink-0 h-[38px] cursor-pointer"
               >
                 <Save className="w-4 h-4" />
-                {isSavingRbac ? "Saving to ClickUp..." : "Save Role Assignments"}
+                {isSavingRbac ? "Saving..." : "Save Role Assignments"}
               </button>
             </div>
           </div>
 
-          {/* ClickUp Database Indicator Banner */}
+          {/* Local Database Indicator Banner */}
           <div className="mb-6 p-3 bg-prime-surface/40 border border-prime-rule flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2.5">
               <Database className="w-4 h-4 text-prime-blue shrink-0" />
               <div>
                 <span className="font-bold text-prime-blue">RBAC Database:</span>{" "}
-                <span className="font-mono text-prime-ink/80">ClickUp List #{clickUpListId}</span>
+                <span className="font-mono text-prime-ink/80">forms-portal-RBAC</span>
                 <span className="ml-2 inline-flex items-center px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800">
-                  {dbSource === "clickup" ? "ClickUp Cloud DB" : "Local Sync Ready"}
+                  Local storage
                 </span>
               </div>
             </div>
-            <a
-              href={clickUpUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-semibold text-prime-blue hover:text-prime-gold transition-colors underline"
-            >
-              <span>View Database in ClickUp</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
           </div>
 
           {rbacSaveMsg && (
@@ -566,14 +541,7 @@ export default function AdminPage() {
                     return (
                       <tr key={u.id} className="hover:bg-prime-surface/10 transition-colors">
                         <td className="p-3">
-                          <div className="font-semibold text-prime-ink flex items-center gap-1.5">
-                            <span>{u.name}</span>
-                            {u.clickUpTaskId && (
-                              <span className="text-[9px] font-mono px-1 py-0.2 bg-prime-surface text-prime-blue border border-prime-rule/60">
-                                ClickUp #{u.clickUpTaskId}
-                              </span>
-                            )}
-                          </div>
+                          <div className="font-semibold text-prime-ink">{u.name}</div>
                           <div className="text-[11px] text-prime-ink/60 font-mono">{u.email}</div>
                         </td>
                         <td className="p-3 font-medium text-prime-ink/80">{u.department}</td>

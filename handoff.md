@@ -55,7 +55,7 @@ ClickUp acts as the primary task management system and prototype database.
 
 ### RBAC Prototype (ClickUp-backed)
 - **Interface**: Located at `/admin` ([`src/app/admin/page.tsx`](src/app/admin/page.tsx)).
-- **Database Engine**: [`src/lib/clickupRbac.ts`](src/lib/clickupRbac.ts) reads and writes tasks to ClickUp List `901412841984`.
+- **Database Engine**: RBAC is persisted through the local server-side store and is modeled for SQL in [`sql/forms_portal_schema.sql`](sql/forms_portal_schema.sql), table `forms-portal-RBAC`.
 - **Structure**: Each user is represented as a ClickUp task containing a human-readable markdown profile and a structured JSON metadata block for lossless two-way sync.
 - **Auto-Seeding**: Automatically seeds default users if the ClickUp list is initially empty.
 - **Fallback**: Gracefully falls back to local in-memory storage if ClickUp API is unreachable or tokens are unconfigured.
@@ -93,7 +93,6 @@ Forms-Portal/
 │   │   └── SupportingDocuments.tsx # File attachments list & validation
 │   ├── lib/
 │   │   ├── clickup.ts         # Core ClickUp API client (task creation, markdown formatting)
-│   │   ├── clickupRbac.ts     # ClickUp List 901412841984 RBAC database adapter
 │   │   ├── pdfGenerator.ts    # High-efficiency JPEG-based PDF & preview generator
 │   │   └── quotationParser.ts # AI prompt engineering & quotation data extraction
 │   └── types/

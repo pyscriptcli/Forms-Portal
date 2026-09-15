@@ -3,11 +3,6 @@ import { promises as fs } from "fs";
 import path from "path";
 import { ADMIN_TOKEN } from "@/lib/adminSettings";
 import { DEFAULT_USERS, ROLE_DEFINITIONS, UserAccessRecord } from "@/lib/rbac";
-import {
-  fetchRbacUsersFromClickUp,
-  saveRbacUsersToClickUp,
-  DEFAULT_RBAC_LIST_ID,
-} from "@/lib/clickupRbac";
 
 const RBAC_FILE_PATH = path.join(process.cwd(), "src", "lib", "rbacData.json");
 
@@ -30,22 +25,12 @@ async function writeFallbackRbacUsers(users: UserAccessRecord[]) {
 }
 
 export async function GET() {
-  const clickUpResult = await fetchRbacUsersFromClickUp();
-  let users = clickUpResult.users;
-
-  if (clickUpResult.source === "fallback") {
-    const fallbackUsers = await readFallbackRbacUsers();
-    if (fallbackUsers && fallbackUsers.length > 0) {
-      users = fallbackUsers;
-    }
-  }
+  const users = await readFallbackRbacUsers();
 
   return NextResponse.json({
     users,
     roles: ROLE_DEFINITIONS,
-    source: clickUpResult.source,
-    listId: clickUpResult.listId,
-    clickUpUrl: `https://app.clickup.com/9014981136/v/li/${clickUpResult.listId}`,
+    source: "local",
   });
 }
 
@@ -77,18 +62,12 @@ export async function POST(req: NextRequest) {
       clickUpTaskId: u.clickUpTaskId || undefined,
     }));
 
-    // 1. Sync to ClickUp List DB (List 901412841984)
-    const clickUpSaveResult = await saveRbacUsersToClickUp(validatedUsers);
-
-    // 2. Save local fallback
-    await writeFallbackRbacUsers(clickUpSaveResult.users);
+    await writeFallbackRbacUsers(validatedUsers);
 
     return NextResponse.json({
       success: true,
-      users: clickUpSaveResult.users,
-      savedToClickUp: clickUpSaveResult.savedToClickUp,
-      listId: clickUpSaveResult.listId,
-      clickUpUrl: `https://app.clickup.com/9014981136/v/li/${clickUpSaveResult.listId}`,
+      users: validatedUsers,
+      source: "local",
     });
   } catch (err: any) {
     return NextResponse.json(

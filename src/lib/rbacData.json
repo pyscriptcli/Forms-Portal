@@ -1,0 +1,34 @@
+[
+  {
+    "id": "usr-1",
+    "name": "Dave Policarpio",
+    "email": "dave@primephilippines.com",
+    "department": "Executive",
+    "role": "admin",
+    "status": "active"
+  },
+  {
+    "id": "usr-2",
+    "name": "Finance Officer",
+    "email": "finance@primephilippines.com",
+    "department": "Finance & Accounting",
+    "role": "finance",
+    "status": "active"
+  },
+  {
+    "id": "usr-3",
+    "name": "Department Team Leader",
+    "email": "tl.lead@primephilippines.com",
+    "department": "ISD",
+    "role": "approver",
+    "status": "active"
+  },
+  {
+    "id": "usr-4",
+    "name": "Operations Staff",
+    "email": "staff@primephilippines.com",
+    "department": "Operations",
+    "role": "requestor",
+    "status": "active"
+  }
+]
