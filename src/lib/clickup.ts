@@ -26,8 +26,9 @@ function getAdminDestination(formType: FormType) {
   }
 }
 
-export function getClickUpConfig(formType: FormType = "rfp") {
-  const token = process.env.CLICKUP_API_TOKEN || "";
+export function getClickUpConfig(formType: FormType = "rfp", oauthToken?: string) {
+  const token = oauthToken || process.env.CLICKUP_API_TOKEN || "";
+  const isOAuth = Boolean(oauthToken);
   let listId = "";
   const adminDestination = getAdminDestination(formType);
 
@@ -63,7 +64,11 @@ export function getClickUpConfig(formType: FormType = "rfp") {
   }
 
   const isConfigured = Boolean(token && listId && token !== "mock" && !token.startsWith("pk_your"));
-  return { token, listId, isConfigured };
+  return { token, listId, isConfigured, isOAuth };
+}
+
+function authorizationHeader(token: string, isOAuth: boolean): string {
+  return isOAuth ? `Bearer ${token}` : token;
 }
 
 /**
@@ -276,10 +281,11 @@ async function getMatchingCustomFields(listId: string, token: string, data: RfpF
 export async function createClickUpTask(
   data: any,
   appUrl: string,
-  formType: FormType = "rfp"
+  formType: FormType = "rfp",
+  oauthToken?: string
 ): Promise<ClickUpTaskResponse> {
   const actualFormType = formType || data.formType || "rfp";
-  const { token, listId, isConfigured } = getClickUpConfig(actualFormType);
+  const { token, listId, isConfigured, isOAuth } = getClickUpConfig(actualFormType, oauthToken);
 
   const isUrgent =
     data.urgency === "urgent" || (data.urgencyOptions && data.urgencyOptions.includes("urgent"));
@@ -313,7 +319,7 @@ export async function createClickUpTask(
 
   if (!isConfigured) {
     throw new Error(
-      "ClickUp is not configured. Add a valid CLICKUP_API_TOKEN and destination List ID in Vercel, then redeploy."
+      "ClickUp is not configured. Sign in with ClickUp before submitting, or configure CLICKUP_API_TOKEN and a destination List ID in Vercel."
     );
   }
 
@@ -341,7 +347,7 @@ export async function createClickUpTask(
   const createRes = await fetch(`${CLICKUP_API_BASE}/list/${listId}/task`, {
     method: "POST",
     headers: {
-      Authorization: token,
+      Authorization: authorizationHeader(token, isOAuth),
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
@@ -372,10 +378,11 @@ export async function updateClickUpTask(
   taskId: string,
   data: any,
   appUrl: string,
-  formType: FormType = "rfp"
+  formType: FormType = "rfp",
+  oauthToken?: string
 ): Promise<ClickUpTaskResponse> {
   const actualFormType = formType || data.formType || "rfp";
-  const { token, listId, isConfigured } = getClickUpConfig(actualFormType);
+  const { token, listId, isConfigured, isOAuth } = getClickUpConfig(actualFormType, oauthToken);
 
   const isUrgent =
     data.urgency === "urgent" || (data.urgencyOptions && data.urgencyOptions.includes("urgent"));
@@ -437,7 +444,7 @@ export async function updateClickUpTask(
   const updateRes = await fetch(`${CLICKUP_API_BASE}/task/${taskId}`, {
     method: "PUT",
     headers: {
-      Authorization: token,
+      Authorization: authorizationHeader(token, isOAuth),
       "Content-Type": "application/json",
     },
     body: JSON.stringify(updateBody),
@@ -470,9 +477,10 @@ export interface UploadAttachmentResult {
 export async function uploadAttachmentToTask(
   taskId: string,
   fileBlob: Blob,
-  filename: string
+  filename: string,
+  oauthToken?: string
 ): Promise<UploadAttachmentResult> {
-  const { token, isConfigured } = getClickUpConfig();
+  const { token, isConfigured, isOAuth } = getClickUpConfig("rfp", oauthToken);
 
   if (!isConfigured || taskId.startsWith("MOCK-")) {
     console.log(`[Mock Mode] Attachment simulated for task ${taskId}: ${filename}`);
@@ -486,7 +494,7 @@ export async function uploadAttachmentToTask(
     const res = await fetch(`${CLICKUP_API_BASE}/task/${taskId}/attachment`, {
       method: "POST",
       headers: {
-        Authorization: token,
+        Authorization: authorizationHeader(token, isOAuth),
       },
       body: formData,
     });

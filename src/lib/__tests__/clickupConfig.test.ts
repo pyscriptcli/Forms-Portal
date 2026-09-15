@@ -42,6 +42,13 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
     expect(config.listId).toBe("901420772915");
   });
 
+  it("uses the OAuth session token when one is provided", () => {
+    const config = getClickUpConfig("rfp", "oauth-access-token");
+    expect(config.token).toBe("oauth-access-token");
+    expect(config.isOAuth).toBe(true);
+    expect(config.listId).toBe("901420772915");
+  });
+
   it("does not report a mock task as a successful ClickUp submission", async () => {
     delete process.env.CLICKUP_API_TOKEN;
     await expect(

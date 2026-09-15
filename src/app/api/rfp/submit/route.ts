@@ -6,11 +6,20 @@ import {
   uploadAttachmentToTask,
 } from "@/lib/clickup";
 import { sendApproverNotification } from "@/lib/email";
+import { getServerAuthSession } from "@/lib/auth";
 
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
+    const { accessToken } = await getServerAuthSession();
+    if (!accessToken) {
+      return NextResponse.json(
+        { success: false, message: "Sign in with ClickUp before submitting a request." },
+        { status: 401 }
+      );
+    }
+
     const formData = await req.formData();
     const dataStr = formData.get("data") as string;
     const formType = ((formData.get("formType") as string) || "rfp") as FormType;
@@ -33,9 +42,9 @@ export async function POST(req: NextRequest) {
     const isRevision = Boolean(data.taskId);
 
     if (isRevision && data.taskId) {
-      taskResult = await updateClickUpTask(data.taskId, data, appUrl, formType);
+      taskResult = await updateClickUpTask(data.taskId, data, appUrl, formType, accessToken);
     } else {
-      taskResult = await createClickUpTask(data, appUrl, formType);
+      taskResult = await createClickUpTask(data, appUrl, formType, accessToken);
     }
 
     if (taskResult.isMock || taskResult.id.startsWith("MOCK-")) {
@@ -53,14 +62,14 @@ export async function POST(req: NextRequest) {
       const previewImageBlob = formData.get("previewImage") as File | null;
       if (previewImageBlob) {
         const previewFilename = previewImageBlob.name || `${typeLabel}_${sanitizedName}_Preview.jpg`;
-        await uploadAttachmentToTask(taskId, previewImageBlob, previewFilename);
+        await uploadAttachmentToTask(taskId, previewImageBlob, previewFilename, accessToken);
       }
 
       // 2. Upload official generated PDF document
       const pdfBlob = formData.get("pdf") as File | null;
       if (pdfBlob) {
         const pdfFilename = `${typeLabel}_${sanitizedName}_${data.date || "document"}.pdf`;
-        await uploadAttachmentToTask(taskId, pdfBlob, pdfFilename);
+        await uploadAttachmentToTask(taskId, pdfBlob, pdfFilename, accessToken);
       }
 
       // 3. Upload all supporting documents
@@ -68,7 +77,7 @@ export async function POST(req: NextRequest) {
       if (supportingFiles && supportingFiles.length > 0) {
         for (const file of supportingFiles) {
           if (file && file.size > 0) {
-            await uploadAttachmentToTask(taskId, file, file.name);
+            await uploadAttachmentToTask(taskId, file, file.name, accessToken);
           }
         }
       }
