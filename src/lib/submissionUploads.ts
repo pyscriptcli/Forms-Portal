@@ -63,15 +63,20 @@ export async function uploadSubmissionFiles(
   onUploaded: (key: string) => void
 ) {
   assertUploadSizes(entries);
-  for (const { key, file } of entries) {
-    if (completed.has(key)) continue;
-    try {
-      await uploadSupportingFile(file, taskId);
-    } catch (error) {
-      if (error instanceof Error && error.message) throw error;
-      throw new Error(`Upload interrupted for ${file.name}. Retry to continue the existing request.`);
+  const pending = entries.filter(({ key }) => !completed.has(key));
+  let nextIndex = 0;
+  const worker = async () => {
+    while (nextIndex < pending.length) {
+      const entry = pending[nextIndex++];
+      try {
+        await uploadSupportingFile(entry.file, taskId);
+      } catch (error) {
+        if (error instanceof Error && error.message) throw error;
+        throw new Error(`Upload interrupted for ${entry.file.name}. Retry to continue the existing request.`);
+      }
+      completed.add(entry.key);
+      onUploaded(entry.key);
     }
-    completed.add(key);
-    onUploaded(key);
-  }
+  };
+  await Promise.all(Array.from({ length: Math.min(3, pending.length) }, worker));
 }

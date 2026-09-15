@@ -24,8 +24,9 @@ export async function POST(req: NextRequest) {
     const fileSize = Number(body.fileSize || 0);
     if (!fileSize || fileSize > MAX_STAGING_FILE_BYTES) return NextResponse.json({ success: false, message: "Files must be 50 MB or smaller." }, { status: 413 });
     if (!ALLOWED_TYPES.has(mimeType)) return NextResponse.json({ success: false, message: "This file type is not supported." }, { status: 415 });
-    await removeExpiredStagedFiles();
-    return NextResponse.json({ success: true, ...(await createStagingUpload(filename)) });
+    const upload = await createStagingUpload(filename);
+    void removeExpiredStagedFiles().catch((error) => console.warn("Staged-file cleanup deferred:", error));
+    return NextResponse.json({ success: true, ...upload });
   } catch (error: any) {
     console.error("Error creating staging upload:", error);
     return NextResponse.json({ success: false, message: error.message || "Could not prepare large-file upload." }, { status: 500 });

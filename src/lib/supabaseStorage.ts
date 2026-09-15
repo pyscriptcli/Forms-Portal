@@ -1,6 +1,7 @@
 const STAGING_BUCKET = "staging-attachments";
 const STAGING_PREFIX = "staging/";
 const MAX_STAGING_FILE_BYTES = 50 * 1024 * 1024;
+let stagingBucketReady: Promise<void> | null = null;
 
 function getStorageConfig() {
   const url = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/$/, "");
@@ -22,6 +23,17 @@ async function storageRequest(path: string, init: RequestInit = {}) {
 }
 
 export async function ensureStagingBucket() {
+  if (stagingBucketReady) return stagingBucketReady;
+  stagingBucketReady = ensureStagingBucketInternal();
+  try {
+    await stagingBucketReady;
+  } catch (error) {
+    stagingBucketReady = null;
+    throw error;
+  }
+}
+
+async function ensureStagingBucketInternal() {
   const existing = await storageRequest(`/bucket/${STAGING_BUCKET}`);
   if (existing.ok) return;
   const create = await storageRequest("/bucket", {
