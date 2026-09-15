@@ -40,41 +40,88 @@ export interface SupportingFile {
   dataUrl: string; // base64 for preview / client upload
 }
 
+export interface AttachedDocsChecklist {
+  invoiceBilling?: boolean;
+  soa?: boolean;
+  signedContract?: boolean;
+  poCostEstimate?: boolean;
+  liquidationReceipt?: boolean;
+  other?: boolean;
+  otherSpecify?: string;
+}
+
 export interface RfpFormData {
   // Document Reference / Revision
   taskId?: string; // If editing an existing ClickUp task
+  rfpCodeSuffix?: string; // e.g. COD-2026-001 or editable suffix
   
-  // Header
-  date: string;
-  payee: string;
+  // Section 1: Timing of Submission
+  date: string; // Synced with dateAccomplished
+  dateAccomplished?: string;
+  dueDate?: string;
+  time?: string;
+  isUrgentPayment?: "yes" | "no" | "";
+  budgetStatus?: "within_budget" | "exceeds_budget" | "";
+  
+  // Section 2: Urgent Request Details
+  requiredPaymentDate?: string;
+  reasonForUrgency?: string;
+  impactIfDelayed?: string;
+
+  // Section 3: Vendor
+  vendor?: string;
+  payee: string; // Kept synced with vendor
   department: string;
   
-  // Items Table
+  // Section 4: Items Table & Currency
   items: RfpLineItem[];
   totalAmount: number;
+  currencyType?: "PHP" | "other";
+  currencyOther?: string;
   
-  // Purpose
+  // Section 5: Purpose / Business Justification
   purpose: string;
   
-  // Payment Details
-  paymentMethod: PaymentMethod;
-  paymentMethods?: string[]; // Multi-select: ["cash", "check", "online"]
+  // Section 6: Supporting Documents Attached
+  attachedDocs?: AttachedDocsChecklist;
+
+  // Section 7: Payee Details & Mode of Payment
   bank: string;
   accountName: string;
   accountNumber: string;
+  swiftCode?: string;
+  paymentMethod: PaymentMethod;
+  paymentMethods?: string[]; // Multi-select
+  modeBankTransfer?: boolean;
+  modeCheck?: boolean;
+  modeWireTransfer?: boolean;
   
-  // Urgency & Timeline
-  urgency: UrgencyLevel;
-  urgencyOptions?: string[]; // Multi-select: ["urgent", "not_urgent"]
-  dateNeeded: string;
-  
-  // Requested By (Sign-off)
+  // Section 8: Requestor & Authorized Signatories
+  departmentCostCenter?: string;
   requestedByName: string;
   requestedByEmail: string;
   signatureType: "draw" | "upload" | "none";
   signatureDataUrl?: string;
+  requestorDate?: string;
+  tlSignatureName?: string;
+  tlSignatureDate?: string;
+  tlSignatureDataUrl?: string;
   requestedByRemarks: string;
   
+  // Section 9: Finance / Accounting Only
+  clickUpQueueNumber?: string;
+  financeAccomplishedChecklist?: "yes" | "no" | "";
+  financeReceivedBy?: string;
+  financeApprovedPaymentAmountUrgent?: string;
+  financeReceivedDate?: string;
+  financePaymentReleaseDateUrgent?: string;
+  financeReviewedBy?: string;
+  financeValidatedBy?: string;
+  financeDateReviewed?: string;
+  financeApprovedBy?: string;
+  financeRemarks?: string;
+  financeDate?: string;
+
   // Approver / Finance Placeholders
   approvedByName?: string;
   approvedBySignature?: string;
@@ -85,6 +132,9 @@ export interface RfpFormData {
 
   // Supporting files
   supportingFiles?: SupportingFile[];
+  urgency: UrgencyLevel;
+  urgencyOptions?: string[];
+  dateNeeded: string;
 }
 
 export type FormType = "rfp" | "po" | "pcv";

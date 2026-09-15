@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { RfpFormData, RfpLineItem, PaymentMethod, UrgencyLevel } from "@/types/rfp";
+import Image from "next/image";
+import { RfpFormData, RfpLineItem } from "@/types/rfp";
 import { PrimeLogo } from "./PrimeLogo";
-import { Trash2, Plus, PenTool, CheckCircle, HelpCircle, Check } from "lucide-react";
-import { SignatureModal } from "./SignatureModal";
+import { PrimeCheckbox } from "./PrimeCheckbox";
 import { AutoResizeTextarea } from "./AutoResizeTextarea";
-import { DepartmentCombobox } from "./DepartmentCombobox";
+import { SignatureModal } from "./SignatureModal";
+import { PenTool, Trash2, Plus, Check } from "lucide-react";
 
 interface RfpSheetProps {
   data: RfpFormData;
@@ -16,33 +17,22 @@ interface RfpSheetProps {
 
 export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
+  const [isTlSignatureModalOpen, setIsTlSignatureModalOpen] = useState(false);
 
   const hasError = (key: string) => Boolean(validationErrors?.[key]);
 
-  // Field updater
   const updateField = <K extends keyof RfpFormData>(field: K, value: RfpFormData[K]) => {
     onChange({ ...data, [field]: value });
   };
 
-  // Single-select toggle for payment methods (mutually exclusive checkboxes)
-  const handlePaymentMethodToggle = (method: PaymentMethod) => {
-    const isAlreadySelected = data.paymentMethod === method;
-    const next = isAlreadySelected ? "" : method;
+  const updateAttachedDocs = (key: string, val: any) => {
+    const prev = data.attachedDocs || {};
     onChange({
       ...data,
-      paymentMethod: next as PaymentMethod,
-      paymentMethods: next ? [next] : [],
-    });
-  };
-
-  // Single-select toggle for remarks urgency (mutually exclusive checkboxes)
-  const handleUrgencyToggle = (level: UrgencyLevel) => {
-    const isAlreadySelected = data.urgency === level;
-    const next = isAlreadySelected ? "" : level;
-    onChange({
-      ...data,
-      urgency: next as UrgencyLevel,
-      urgencyOptions: next ? [next] : [],
+      attachedDocs: {
+        ...prev,
+        [key]: val,
+      },
     });
   };
 
@@ -51,14 +41,12 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
     const updatedItems = [...data.items];
     const current = { ...updatedItems[index], [key]: val };
 
-    // Auto-calculate amount
     const qtyNum = typeof current.qty === "number" ? current.qty : parseFloat(String(current.qty)) || 0;
     const priceNum = typeof current.unitPrice === "number" ? current.unitPrice : parseFloat(String(current.unitPrice)) || 0;
     current.amount = qtyNum * priceNum;
 
     updatedItems[index] = current;
 
-    // Recalculate total
     const newTotal = updatedItems.reduce((acc, item) => acc + (Number(item.amount) || 0), 0);
     onChange({
       ...data,
@@ -72,7 +60,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       id: Math.random().toString(36).substring(2, 9),
       description: "",
       qty: "",
-      unit: "",
+      unit: "pcs",
       unitPrice: "",
       amount: 0,
     };
@@ -93,713 +81,827 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
     });
   };
 
-  const handleSignatureSave = (signatureDataUrl: string, type: "draw" | "upload") => {
-    onChange({
-      ...data,
-      signatureDataUrl,
-      signatureType: type,
+  const formatCurrency = (val: number) => {
+    return Number(val || 0).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     });
   };
 
+  const attached = data.attachedDocs || {};
+
   return (
-    <div className="w-full flex justify-center py-2">
-      {/* Printable Sheet Wrapper */}
-      <div
-        id="rfp-printable-sheet"
-        className="prime-document p-8 md:p-10 relative font-sans leading-tight text-xs"
-        style={{ minHeight: "1100px" }}
-      >
-        {/* Top Header Grid */}
-        <div className="flex flex-col md:flex-row items-start justify-between gap-4 pb-4">
-          {/* Company Name */}
-          <div className="text-center md:text-left pt-1">
-            <p className="text-base md:text-[17px] font-medium tracking-tight text-prime-ink uppercase">
-              Property Interactive Marketing Enterprise
-            </p>
-            <p className="text-sm md:text-[15px] font-medium tracking-tight text-prime-ink uppercase mt-0.5">
-              Realty Corp
-            </p>
-          </div>
-
-          {/* Logo & Title Banner */}
-          <div className="flex flex-col items-end w-full md:w-auto">
-            <PrimeLogo className="h-11 mb-2" />
-            <div className="w-full text-prime-blue border-t border-prime-gold pt-2 text-right">
-              <h2 className="font-serif">
-                Request for payment
-              </h2>
-            </div>
-          </div>
+    <div
+      id="rfp-printable-sheet"
+      className="bg-white text-[#0f172a] w-full max-w-[850px] mx-auto p-5 sm:p-7 border border-[#cbd5e1] shadow-md font-sans text-xs select-text print:p-0 print:border-none print:shadow-none"
+    >
+      {/* ========================================================================= */}
+      {/* HEADER AREA */}
+      {/* ========================================================================= */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-2">
+        {/* Left: PRIME Logo */}
+        <div className="shrink-0 flex items-center">
+          <PrimeLogo className="h-10 sm:h-11 w-auto" />
         </div>
 
-        {/* Header Fields (Date, Payee, Department) */}
-        <div className="grid grid-cols-12 gap-3 my-3">
-          {/* Date */}
-          <div
-            id="field-date"
-            className={`col-span-12 sm:col-span-4 border-2 ${
-              hasError("date") ? "border-red-600 bg-red-50/25 ring-2 ring-red-200" : "border-prime-blue"
-            } rounded-none p-2 flex items-center gap-2 transition-all`}
-          >
-            <label className="font-medium text-xs uppercase tracking-wider shrink-0 flex items-center gap-1">
-              <span>DATE:</span>
-              {hasError("date") && <span className="text-red-600 text-xs font-bold">*</span>}
-            </label>
-            <input
-              type="date"
-              value={data.date}
-              onChange={(e) => updateField("date", e.target.value)}
-              className="w-full bg-transparent font-medium text-xs focus:outline-none focus:bg-prime-white rounded-none px-1"
-            />
-          </div>
-
-          {/* Payee */}
-          <div
-            id="field-payee"
-            className={`col-span-12 sm:col-span-8 md:col-span-5 border-2 ${
-              hasError("payee") ? "border-red-600 bg-red-50/25 ring-2 ring-red-200" : "border-prime-blue"
-            } rounded-none p-2 flex items-start gap-2 transition-all`}
-          >
-            <label className="font-medium text-xs uppercase tracking-wider shrink-0 flex items-center gap-1 pt-0.5">
-              <span>PAYEE:</span>
-              {hasError("payee") && <span className="text-red-600 text-xs font-bold">*</span>}
-            </label>
-            <AutoResizeTextarea
-              rows={1}
-              minHeight={20}
-              placeholder="Name of recipient / vendor"
-              value={data.payee}
-              onChange={(e) => updateField("payee", e.target.value)}
-              className="w-full bg-transparent font-medium text-xs focus:outline-none focus:bg-prime-white rounded-none px-1"
-            />
-          </div>
-
-          {/* Department */}
-          <div
-            id="field-department"
-            className={`col-span-12 sm:col-span-12 md:col-span-3 border-2 ${
-              hasError("department") ? "border-red-600 bg-red-50/25 ring-2 ring-red-200" : "border-prime-blue"
-            } rounded-none p-2 flex items-center gap-2 transition-all relative`}
-          >
-            <label className="font-medium text-xs uppercase tracking-wider shrink-0 flex items-center gap-1">
-              <span>DEPARTMENT:</span>
-              {hasError("department") && <span className="text-red-600 text-xs font-bold">*</span>}
-            </label>
-            <DepartmentCombobox
-              id="field-department-input"
-              value={data.department}
-              onChange={(val) => updateField("department", val)}
-              placeholder="ex. Brokerage"
-              className="w-full bg-transparent font-medium text-xs focus:outline-none focus:bg-prime-white rounded-none px-1"
-              hasError={hasError("department")}
-            />
-          </div>
+        {/* Center: Official Title Box with soft blue background */}
+        <div className="flex-1 w-full sm:w-auto bg-[#D8E6F3] border border-[#B0C8DE] py-2 px-3 text-center">
+          <h1 className="font-bold text-xs sm:text-sm tracking-wide text-[#002B49] uppercase">
+            REQUEST FOR PAYMENT (RFP)
+          </h1>
+          <p className="font-bold text-[9px] sm:text-[10px] tracking-wider text-[#002B49] uppercase mt-0.5">
+            PROPERTY INTERACTIVE MARKETING ENTERPRISE REALTY CORPORATION
+          </p>
         </div>
+      </div>
 
-        {/* Items Table */}
-        <div className="mt-4 border-2 border-prime-blue overflow-hidden">
-          <table className="w-full border-collapse text-xs">
-            <thead>
-              <tr className="border-b-2 border-prime-blue bg-prime-white">
-                <th className="border-r border-prime-blue p-2 text-center font-medium uppercase tracking-wider">
-                  ITEMS/DESCRIPTION
-                </th>
-                <th className="border-r border-prime-blue p-2 text-center font-medium uppercase tracking-wider w-16">
-                  QTY
-                </th>
-                <th className="border-r border-prime-blue p-2 text-center font-medium uppercase tracking-wider w-20">
-                  UNIT
-                </th>
-                <th className="border-r border-prime-blue p-2 text-center font-medium uppercase tracking-wider w-28">
-                  UNIT PRICE
-                </th>
-                <th className="p-2 text-center font-medium uppercase tracking-wider w-28">
-                  AMOUNT
-                </th>
-                <th
-                  data-html2canvas-ignore="true"
-                  className="w-8 border-l border-prime-blue p-1 text-center font-normal no-print"
-                ></th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.map((item, idx) => (
-                <tr
-                  key={item.id || idx}
-                  className="border-b border-prime-blue group hover:bg-prime-white transition-colors"
-                >
-                  {/* Description */}
-                  <td className={`align-top border-r border-prime-blue p-1 ${hasError(`item_${idx}_desc`) ? "bg-red-50/40" : ""}`}>
-                    <AutoResizeTextarea
-                      id={`field-item-desc-${idx}`}
-                      placeholder={`Line item #${idx + 1}`}
-                      value={item.description}
-                      minHeight={26}
-                      rows={1}
-                      onChange={(e) => handleItemChange(idx, "description", e.target.value)}
-                      className={`w-full px-2 py-1 text-xs focus:bg-prime-white ${
-                        hasError(`item_${idx}_desc`) ? "ring-1 ring-red-500 bg-red-50/50 text-red-950 placeholder-red-300" : ""
-                      }`}
-                    />
-                  </td>
+      {/* Right-aligned RFP Document Code */}
+      <div className="flex justify-end items-baseline gap-1 mb-2.5 text-xs font-bold text-[#002B49]">
+        <span>RFP-COD-</span>
+        <input
+          type="text"
+          value={data.rfpCodeSuffix ?? (data.taskId ? String(data.taskId).replace(/^#/, "") : "")}
+          onChange={(e) => updateField("rfpCodeSuffix", e.target.value)}
+          placeholder="____________"
+          className="border-b border-[#002B49] bg-transparent focus:outline-none w-28 text-xs font-bold text-[#002B49]"
+        />
+      </div>
 
-                  {/* Qty */}
-                  <td className={`align-top border-r border-prime-blue p-1 ${hasError(`item_${idx}_qty`) ? "bg-red-50/40" : ""}`}>
-                    <input
-                      id={`field-item-qty-${idx}`}
-                      type="number"
-                      min="0"
-                      step="any"
-                      placeholder="0"
-                      value={item.qty}
-                      onChange={(e) =>
-                        handleItemChange(
-                          idx,
-                          "qty",
-                          e.target.value === "" ? "" : parseFloat(e.target.value)
-                        )
-                      }
-                      className={`w-full text-center bg-transparent px-1 py-1 text-xs focus:outline-none focus:bg-prime-white font-sans tabular-nums ${
-                        hasError(`item_${idx}_qty`) ? "ring-1 ring-red-500 bg-red-50/50 font-medium text-red-700 placeholder-red-300" : ""
-                      }`}
-                    />
-                  </td>
-
-                  {/* Unit - Plain text box no presets */}
-                  <td className={`align-top border-r border-prime-blue p-1 ${hasError(`item_${idx}_unit`) ? "bg-red-50/40" : ""}`}>
-                    <input
-                      id={`field-item-unit-${idx}`}
-                      type="text"
-                      value={item.unit}
-                      placeholder=""
-                      onChange={(e) => handleItemChange(idx, "unit", e.target.value)}
-                      className={`w-full text-center bg-transparent px-1 py-1 text-xs focus:outline-none focus:bg-prime-white ${
-                        hasError(`item_${idx}_unit`) ? "ring-1 ring-red-500 bg-red-50/50 font-medium text-red-700 placeholder-red-300" : ""
-                      }`}
-                    />
-                  </td>
-
-                  {/* Unit Price */}
-                  <td className={`align-top border-r border-prime-blue p-1 ${hasError(`item_${idx}_price`) ? "bg-red-50/40" : ""}`}>
-                    <div className="flex items-center px-1">
-                      <span className={`mr-1 text-[11px] pt-1 ${hasError(`item_${idx}_price`) ? "text-red-600 font-semibold" : "text-prime-ink"}`}>₱</span>
-                      <input
-                        id={`field-item-price-${idx}`}
-                        type="number"
-                        min="0"
-                        step="any"
-                        placeholder="0.00"
-                        value={item.unitPrice}
-                        onChange={(e) =>
-                          handleItemChange(
-                            idx,
-                            "unitPrice",
-                            e.target.value === "" ? "" : parseFloat(e.target.value)
-                          )
-                        }
-                        className={`w-full text-right bg-transparent py-1 text-xs focus:outline-none focus:bg-prime-white font-sans tabular-nums ${
-                          hasError(`item_${idx}_price`) ? "ring-1 ring-red-500 bg-red-50/50 font-medium text-red-700 placeholder-red-300" : ""
-                        }`}
-                      />
-                    </div>
-                  </td>
-
-                  {/* Amount (Calculated) */}
-                  <td className="align-top p-1 text-right font-bebas text-lg text-prime-ink tracking-wide pr-3 pt-1">
-                    {item.amount > 0 ? (
-                      <span>
-                        ₱{item.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    ) : (
-                      <span className="text-prime-ink font-sans text-xs">-</span>
-                    )}
-                  </td>
-
-                  {/* Delete row action */}
-                  <td
-                    data-html2canvas-ignore="true"
-                    className="align-top border-l border-prime-blue p-1 text-center no-print pt-1.5"
-                  >
-                    {data.items.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeItemRow(idx)}
-                        className="p-1 text-prime-ink hover:text-prime-blue transition-colors"
-                        title="Remove row"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-
-              {/* Total Amount Row */}
-              <tr className="border-t-2 border-prime-blue bg-prime-white font-medium">
-                <td colSpan={4} className="border-r border-prime-blue p-2 text-right uppercase tracking-wider">
-                  TOTAL AMOUNT
-                </td>
-                <td className="p-2 text-right font-bebas text-2xl text-prime-blue tracking-wider pr-3">
-                  ₱{data.totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </td>
-                <td data-html2canvas-ignore="true" className="border-l border-prime-blue no-print"></td>
-              </tr>
-            </tbody>
-          </table>
+      {/* ========================================================================= */}
+      {/* SECTION 1: TIMING OF SUBMISSION */}
+      {/* ========================================================================= */}
+      <div className="mb-3">
+        <div className="bg-[#D8E6F3] px-2.5 py-1 text-[11px] font-bold text-[#002B49] uppercase tracking-wide">
+          TIMING OF SUBMISSION
         </div>
-
-        {/* Add Row helper in DOM */}
-        <div data-html2canvas-ignore="true" className="flex justify-end mt-2 no-print">
-          <button
-            type="button"
-            onClick={addItemRow}
-            className="edgy-btn-outline px-3 py-1 text-xs flex items-center gap-1.5 cursor-pointer font-medium"
-          >
-            <Plus className="w-3.5 h-3.5 text-prime-blue" />
-            <span>Add Row</span>
-          </button>
-        </div>
-
-        {/* Purpose Box */}
-        <div
-          id="field-purpose"
-          className={`mt-3 border-2 ${
-            hasError("purpose") ? "border-red-600 bg-red-50/25 ring-2 ring-red-200" : "border-prime-blue"
-          } rounded-none p-3 transition-all`}
-        >
-          <label className="font-medium text-xs uppercase tracking-wider block mb-1 flex items-center justify-between">
-            <span className={hasError("purpose") ? "text-red-700 font-semibold" : ""}>Purpose:</span>
-            {hasError("purpose") && (
-              <span className="text-red-600 text-[11px] font-medium lowercase italic">* required</span>
-            )}
-          </label>
-          <AutoResizeTextarea
-            rows={2}
-            minHeight={48}
-            placeholder="State the detailed reason or business purpose for this payment request..."
-            value={data.purpose}
-            onChange={(e) => updateField("purpose", e.target.value)}
-            className={`w-full bg-transparent text-xs focus:outline-none focus:bg-prime-white rounded-none p-1 leading-relaxed ${
-              hasError("purpose") ? "text-red-950 placeholder-red-300" : ""
-            }`}
-          />
-        </div>
-
-        {/* Payment Details & Urgency Section */}
-        <div className="mt-4 grid grid-cols-12 gap-4">
-          {/* Payment Details (Left Side) */}
-          <div className="col-span-12 md:col-span-7">
-            <div className="flex items-center justify-between mb-2">
-              <span className={`font-medium text-xs uppercase tracking-wider block ${hasError("paymentMethods") ? "text-red-700 font-semibold" : ""}`}>
-                Payment Details:
+        <div className="py-2 px-1">
+          {/* Row 1: Dates & Time */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-2">
+            <div className="flex items-baseline gap-1">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                Date Accomplished (MM/DD/YY):
               </span>
-              {hasError("paymentMethods") && (
-                <span className="text-red-600 text-[11px] font-medium italic">* Check at least one</span>
-              )}
-            </div>
-
-            {/* Multi-Select Checkboxes for Payment Method */}
-            <div
-              id="field-payment-methods"
-              className={`flex flex-wrap items-center gap-5 mb-3 p-2 border ${
-                hasError("paymentMethods")
-                  ? "border-red-600 bg-red-50/25 ring-2 ring-red-200"
-                  : "border-transparent"
-              } transition-all`}
-            >
-              <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={(data.paymentMethods || (data.paymentMethod ? [data.paymentMethod] : [])).includes("cash")}
-                  onChange={() => handlePaymentMethodToggle("cash")}
-                  className="sr-only"
-                />
-                <div
-                  className={`w-4 h-4 border-2 ${
-                    hasError("paymentMethods") ? "border-red-600" : "border-prime-blue"
-                  } flex items-center justify-center transition-colors ${
-                    (data.paymentMethods || (data.paymentMethod ? [data.paymentMethod] : [])).includes("cash")
-                      ? "bg-prime-blue border-prime-blue"
-                      : "bg-prime-white"
-                  }`}
-                >
-                  {(data.paymentMethods || (data.paymentMethod ? [data.paymentMethod] : [])).includes("cash") && (
-                    <Check className="w-3 h-3 text-prime-white stroke-[3.5]" />
-                  )}
-                </div>
-                <span className="text-xs font-medium">Cash</span>
-              </label>
-
-              <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={(data.paymentMethods || (data.paymentMethod ? [data.paymentMethod] : [])).includes("check")}
-                  onChange={() => handlePaymentMethodToggle("check")}
-                  className="sr-only"
-                />
-                <div
-                  className={`w-4 h-4 border-2 ${
-                    hasError("paymentMethods") ? "border-red-600" : "border-prime-blue"
-                  } flex items-center justify-center transition-colors ${
-                    (data.paymentMethods || (data.paymentMethod ? [data.paymentMethod] : [])).includes("check")
-                      ? "bg-prime-blue border-prime-blue"
-                      : "bg-prime-white"
-                  }`}
-                >
-                  {(data.paymentMethods || (data.paymentMethod ? [data.paymentMethod] : [])).includes("check") && (
-                    <Check className="w-3 h-3 text-prime-white stroke-[3.5]" />
-                  )}
-                </div>
-                <span className="text-xs font-medium">Check</span>
-              </label>
-
-              <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={(data.paymentMethods || (data.paymentMethod ? [data.paymentMethod] : [])).includes("online")}
-                  onChange={() => handlePaymentMethodToggle("online")}
-                  className="sr-only"
-                />
-                <div
-                  className={`w-4 h-4 border-2 ${
-                    hasError("paymentMethods") ? "border-red-600" : "border-prime-blue"
-                  } flex items-center justify-center transition-colors ${
-                    (data.paymentMethods || (data.paymentMethod ? [data.paymentMethod] : [])).includes("online")
-                      ? "bg-prime-blue border-prime-blue"
-                      : "bg-prime-white"
-                  }`}
-                >
-                  {(data.paymentMethods || (data.paymentMethod ? [data.paymentMethod] : [])).includes("online") && (
-                    <Check className="w-3 h-3 text-prime-white stroke-[3.5]" />
-                  )}
-                </div>
-                <span className="text-xs font-medium">Online Payment/Bank Transfer</span>
-              </label>
-            </div>
-
-            {/* Bank details lines */}
-            <div className="space-y-2 mt-3">
-              <div
-                id="field-bank"
-                className={`flex items-center gap-2 border-b ${
-                  hasError("bank") ? "border-red-600 bg-red-50/25 ring-1 ring-red-200" : "border-prime-blue"
-                } pb-0.5 px-1 transition-all`}
-              >
-                <span className="font-medium text-xs min-w-[100px] flex items-center justify-between">
-                  <span className={hasError("bank") ? "text-red-700 font-semibold" : ""}>Bank:</span>
-                  {hasError("bank") && <span className="text-red-600 text-xs font-bold">*</span>}
-                </span>
-                <input
-                  type="text"
-                  placeholder="e.g. BDO, BPI, Metrobank"
-                  value={data.bank}
-                  onChange={(e) => updateField("bank", e.target.value)}
-                  className={`w-full bg-transparent text-xs focus:outline-none focus:bg-prime-white px-1 ${
-                    hasError("bank") ? "text-red-950 placeholder-red-300" : ""
-                  }`}
-                />
-              </div>
-
-              <div
-                id="field-account-name"
-                className={`flex items-center gap-2 border-b ${
-                  hasError("accountName") ? "border-red-600 bg-red-50/25 ring-1 ring-red-200" : "border-prime-blue"
-                } pb-0.5 px-1 transition-all`}
-              >
-                <span className="font-medium text-xs min-w-[100px] flex items-center justify-between">
-                  <span className={hasError("accountName") ? "text-red-700 font-semibold" : ""}>Account Name:</span>
-                  {hasError("accountName") && <span className="text-red-600 text-xs font-bold">*</span>}
-                </span>
-                <input
-                  type="text"
-                  placeholder="Account holder name"
-                  value={data.accountName}
-                  onChange={(e) => updateField("accountName", e.target.value)}
-                  className={`w-full bg-transparent text-xs focus:outline-none focus:bg-prime-white px-1 ${
-                    hasError("accountName") ? "text-red-950 placeholder-red-300" : ""
-                  }`}
-                />
-              </div>
-
-              <div
-                id="field-account-number"
-                className={`flex items-center gap-2 border-b ${
-                  hasError("accountNumber") ? "border-red-600 bg-red-50/25 ring-1 ring-red-200" : "border-prime-blue"
-                } pb-0.5 px-1 transition-all`}
-              >
-                <span className="font-medium text-xs min-w-[100px] flex items-center justify-between">
-                  <span className={hasError("accountNumber") ? "text-red-700 font-semibold" : ""}>Account Number:</span>
-                  {hasError("accountNumber") && <span className="text-red-600 text-xs font-bold">*</span>}
-                </span>
-                <input
-                  type="text"
-                  placeholder="Account number"
-                  value={data.accountNumber}
-                  onChange={(e) => updateField("accountNumber", e.target.value)}
-                  className={`w-full bg-transparent text-xs focus:outline-none focus:bg-prime-white px-1 font-sans tabular-nums ${
-                    hasError("accountNumber") ? "text-red-950 placeholder-red-300" : ""
-                  }`}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Urgency & Date Needed (Right Side) */}
-          <div className="col-span-12 md:col-span-5 flex flex-col justify-between pl-0 md:pl-4 border-t md:border-t-0 md:border-l border-prime-rule pt-3 md:pt-0">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className={`font-medium text-xs uppercase tracking-wider block ${hasError("remarks") ? "text-red-700 font-semibold" : ""}`}>
-                  Remarks:
-                </span>
-                {hasError("remarks") && (
-                  <span className="text-red-600 text-[11px] font-medium italic">* Check option</span>
-                )}
-              </div>
-
-              {/* Multi-Select Checkboxes for Remarks / Urgency */}
-              <div
-                id="field-remarks"
-                className={`flex items-center gap-6 mb-4 p-2 border ${
-                  hasError("remarks")
-                    ? "border-red-600 bg-red-50/25 ring-2 ring-red-200"
-                    : "border-transparent"
-                } transition-all`}
-              >
-                <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={(data.urgencyOptions || (data.urgency ? [data.urgency] : [])).includes("urgent")}
-                    onChange={() => handleUrgencyToggle("urgent")}
-                    className="sr-only"
-                  />
-                  <div
-                    className={`w-4 h-4 border-2 ${
-                      hasError("remarks") ? "border-red-600" : "border-prime-blue"
-                    } flex items-center justify-center transition-colors ${
-                      (data.urgencyOptions || (data.urgency ? [data.urgency] : [])).includes("urgent")
-                        ? "bg-prime-blue border-prime-blue"
-                        : "bg-prime-white"
-                    }`}
-                  >
-                    {(data.urgencyOptions || (data.urgency ? [data.urgency] : [])).includes("urgent") && (
-                      <Check className="w-3 h-3 text-prime-white stroke-[3.5]" />
-                    )}
-                  </div>
-                  <span className="text-xs font-medium text-prime-blue">Urgent</span>
-                </label>
-
-                <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={(data.urgencyOptions || (data.urgency ? [data.urgency] : [])).includes("not_urgent")}
-                    onChange={() => handleUrgencyToggle("not_urgent")}
-                    className="sr-only"
-                  />
-                  <div
-                    className={`w-4 h-4 border-2 ${
-                      hasError("remarks") ? "border-red-600" : "border-prime-blue"
-                    } flex items-center justify-center transition-colors ${
-                      (data.urgencyOptions || (data.urgency ? [data.urgency] : [])).includes("not_urgent")
-                        ? "bg-prime-blue border-prime-blue"
-                        : "bg-prime-white"
-                    }`}
-                  >
-                    {(data.urgencyOptions || (data.urgency ? [data.urgency] : [])).includes("not_urgent") && (
-                      <Check className="w-3 h-3 text-prime-white stroke-[3.5]" />
-                    )}
-                  </div>
-                  <span className="text-xs font-medium">Not urgent</span>
-                </label>
-              </div>
-            </div>
-
-            <div
-              id="field-date-needed"
-              className={`border-2 ${
-                hasError("dateNeeded")
-                  ? "border-red-600 bg-red-50/25 ring-2 ring-red-200"
-                  : "border-prime-blue bg-prime-white"
-              } rounded-none p-2.5 transition-all`}
-            >
-              <label className="font-medium text-[11px] uppercase tracking-wider block mb-1 flex items-center justify-between">
-                <span className={hasError("dateNeeded") ? "text-red-700 font-semibold" : ""}>Date Needed (M-D-Y):</span>
-                {hasError("dateNeeded") && (
-                  <span className="text-red-600 text-[11px] font-medium lowercase italic">* required</span>
-                )}
-              </label>
               <input
-                type="date"
-                value={data.dateNeeded}
-                onChange={(e) => updateField("dateNeeded", e.target.value)}
-                className={`w-full bg-prime-white border ${
-                  hasError("dateNeeded") ? "border-red-400 bg-red-50/30 text-red-950" : "border-prime-rule"
-                } rounded-none p-1 text-xs font-medium focus:outline-none`}
+                type="text"
+                value={data.dateAccomplished ?? data.date}
+                onChange={(e) => {
+                  updateField("dateAccomplished", e.target.value);
+                  updateField("date", e.target.value);
+                }}
+                className={`border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 min-w-[70px] text-xs px-1 ${
+                  hasError("date") ? "border-red-500 bg-red-50/50" : ""
+                }`}
+              />
+            </div>
+
+            <div className="flex items-baseline gap-1">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                Due Date (MM/DD/YY):
+              </span>
+              <input
+                type="text"
+                value={data.dueDate ?? data.dateNeeded ?? ""}
+                onChange={(e) => {
+                  updateField("dueDate", e.target.value);
+                  updateField("dateNeeded", e.target.value);
+                }}
+                placeholder=""
+                className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 min-w-[70px] text-xs px-1"
+              />
+            </div>
+
+            <div className="flex items-baseline gap-1">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                Time:
+              </span>
+              <input
+                type="text"
+                value={data.time ?? ""}
+                onChange={(e) => updateField("time", e.target.value)}
+                placeholder=""
+                className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 min-w-[50px] text-xs px-1"
               />
             </div>
           </div>
-        </div>
 
-        {/* Signatures & Workflow Section */}
-        <div className="mt-8 pt-4 border-t-2 border-prime-blue">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Column 1: Requested By */}
-            <div className="flex flex-col">
-              <div className="h-6 mb-2 flex items-center justify-between">
-                <span className={`font-medium text-xs uppercase tracking-wider ${hasError("signature") || hasError("requestedByName") ? "text-red-700 font-semibold" : ""}`}>
-                  Requested By:
-                </span>
-                {(hasError("signature") || hasError("requestedByName")) && (
-                  <span className="text-red-600 text-[11px] font-medium italic">* Required</span>
-                )}
-              </div>
-
-              {/* Signature display / interactive button */}
-              <div
-                id="field-signature"
-                onClick={() => setIsSignatureModalOpen(true)}
-                className={`h-20 border-b-2 ${
-                  hasError("signature")
-                    ? "border-red-600 bg-red-50/30 ring-2 ring-red-200"
-                    : "border-prime-blue"
-                } flex flex-col items-center justify-end pb-1 cursor-pointer hover:bg-prime-white transition-colors group relative`}
-                title="Click to sign or update signature"
-              >
-                {data.signatureDataUrl ? (
-                  <img
-                    src={data.signatureDataUrl}
-                    alt="Requestor signature"
-                    className="max-h-16 max-w-full object-contain mb-1"
-                  />
-                ) : (
-                  <div
-                    data-html2canvas-ignore="true"
-                    className={`text-[11px] ${
-                      hasError("signature")
-                        ? "text-red-600 font-semibold animate-pulse"
-                        : "text-prime-blue font-medium"
-                    } flex items-center gap-1 mb-2`}
-                  >
-                    <PenTool className="w-3.5 h-3.5" />
-                    <span>{hasError("signature") ? "Signature Required - Click to Sign" : "Click to Add Signature"}</span>
-                  </div>
-                )}
-                <span
-                  data-html2canvas-ignore="true"
-                  className="text-[11px] text-prime-ink absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  Edit
-                </span>
-              </div>
-
-              <div
-                id="field-requested-by-name"
-                className="text-center mt-1.5 transition-all"
-              >
-                <span className="text-[11px] text-prime-ink block flex items-center justify-center gap-1">
-                  <span>Signature Over Printed Name</span>
-                  {hasError("requestedByName") && <span className="text-red-600 font-bold">*</span>}
-                </span>
-                <div className="h-7 flex items-center justify-center mt-1">
-                  <input
-                    type="text"
-                    placeholder="Requestor Full Name"
-                    value={data.requestedByName}
-                    onChange={(e) => updateField("requestedByName", e.target.value)}
-                    className={`w-full text-center font-medium text-xs uppercase bg-transparent focus:outline-none border-b ${
-                      hasError("requestedByName") ? "border-red-600 bg-red-50/30 text-red-950 ring-1 ring-red-300" : "border-dashed border-prime-rule"
-                    } pb-0.5`}
-                  />
-                </div>
-              </div>
-
-              <div className="mt-3 flex items-center gap-1 border-b border-prime-blue pb-0.5 h-7">
-                <span className="font-medium text-[11px] whitespace-nowrap">Remarks:</span>
-                <input
-                  type="text"
-                  placeholder="Optional notes"
-                  value={data.requestedByRemarks}
-                  onChange={(e) => updateField("requestedByRemarks", e.target.value)}
-                  className="w-full bg-transparent text-[11px] focus:outline-none px-1"
+          {/* Row 2: Checkboxes */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 pt-0.5">
+            <div className="space-y-1">
+              <PrimeCheckbox
+                checked={data.isUrgentPayment === "yes" || data.urgency === "urgent"}
+                onChange={(c) => {
+                  updateField("isUrgentPayment", c ? "yes" : "");
+                  updateField("urgency", c ? "urgent" : "not_urgent");
+                }}
+                label={<span className="font-medium">Urgent for Payment — Yes</span>}
+              />
+              <div>
+                <PrimeCheckbox
+                  checked={data.isUrgentPayment === "no" || data.urgency === "not_urgent"}
+                  onChange={(c) => {
+                    updateField("isUrgentPayment", c ? "no" : "");
+                    updateField("urgency", c ? "not_urgent" : "");
+                  }}
+                  label={<span className="font-medium">No</span>}
                 />
               </div>
             </div>
 
-            {/* Column 2: Approved By (Team Leader/ Co-TL) */}
-            <div className="flex flex-col">
-              <div className="h-6 mb-2 flex items-center">
-                <span className="font-medium text-xs uppercase tracking-wider">
-                  Approved By:
-                </span>
-              </div>
-
-              <div className="h-20 border-b-2 border-prime-blue flex items-center justify-center">
-                <span
-                  data-pdf-ignore="true"
-                  data-html2canvas-ignore="true"
-                  className="text-prime-ink text-[11px] italic font-medium select-none"
-                >
-                  (Approval in ClickUp)
-                </span>
-              </div>
-
-              <div className="text-center mt-1.5">
-                <span className="text-[11px] text-prime-ink block">
-                  Signature Over Printed Name
-                </span>
-                <div className="h-7 flex items-center justify-center mt-1">
-                  <span className="text-xs font-medium text-prime-ink uppercase tracking-wide">
-                    Team Leader/ Co-TL
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-3 h-7 border-b border-transparent">
-                {/* Visual alignment spacer matching Column 1's Remarks row */}
-              </div>
-            </div>
-
-            {/* Column 3: Received By (Finance Officer) */}
-            <div className="flex flex-col">
-              <div className="h-6 mb-2 flex items-center">
-                <span className="font-medium text-xs uppercase tracking-wider">
-                  Received By:
-                </span>
-              </div>
-
-              <div className="h-20 border-b-2 border-prime-blue flex items-center justify-center">
-                <span
-                  data-pdf-ignore="true"
-                  data-html2canvas-ignore="true"
-                  className="text-prime-ink text-[11px] italic font-medium select-none"
-                >
-                  (Disbursement in Finance)
-                </span>
-              </div>
-
-              <div className="text-center mt-1.5">
-                <span className="text-[11px] text-prime-ink block">
-                  Signature Over Printed Name
-                </span>
-                <div className="h-7 flex items-center justify-center mt-1">
-                  <span className="text-xs font-medium text-prime-ink uppercase tracking-wide">
-                    Finance Officer
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-3 h-7 border-b border-transparent">
-                {/* Visual alignment spacer matching Column 1's Remarks row */}
+            <div className="space-y-1">
+              <PrimeCheckbox
+                checked={data.budgetStatus === "within_budget"}
+                onChange={(c) => updateField("budgetStatus", c ? "within_budget" : "")}
+                label={<span className="font-medium">Within Budget</span>}
+              />
+              <div>
+                <PrimeCheckbox
+                  checked={data.budgetStatus === "exceeds_budget"}
+                  onChange={(c) => updateField("budgetStatus", c ? "exceeds_budget" : "")}
+                  label={<span className="font-medium">Exceeds Budget</span>}
+                />
               </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* ========================================================================= */}
+      {/* SECTION 2: URGENT REQUEST DETAILS */}
+      {/* ========================================================================= */}
+      <div className="mb-3">
+        <div className="bg-[#D8E6F3] px-2.5 py-1 text-[11px] font-bold text-[#002B49] tracking-wide">
+          <span className="uppercase">URGENT REQUEST DETAILS</span>{" "}
+          <span className="italic font-normal text-[10px] text-[#002B49]">
+            (complete only if Urgent for Payment)
+          </span>
+        </div>
+        <div className="py-2 px-1">
+          {/* Required Payment Date line */}
+          <div className="flex items-baseline gap-1.5 mb-2.5">
+            <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+              Required Payment Date (MM/DD/YY):
+            </span>
+            <input
+              type="text"
+              value={data.requiredPaymentDate ?? ""}
+              onChange={(e) => updateField("requiredPaymentDate", e.target.value)}
+              className="border-b border-[#0f172a] bg-transparent focus:outline-none w-44 text-xs px-1"
+            />
+          </div>
+
+          {/* Two rounded boxes: Reason for Urgency & Impact if Delayed */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="border border-[#334155] rounded-xl p-2.5 bg-white flex flex-col justify-start">
+              <span className="font-bold text-[11px] text-[#0f172a] mb-1">
+                Reason for Urgency:
+              </span>
+              <AutoResizeTextarea
+                value={data.reasonForUrgency ?? ""}
+                onChange={(e) => updateField("reasonForUrgency", e.target.value)}
+                minHeight={48}
+                rows={2}
+                placeholder=""
+                className="text-xs text-[#0f172a] p-1 bg-transparent focus:outline-none"
+              />
+            </div>
+
+            <div className="border border-[#334155] rounded-xl p-2.5 bg-white flex flex-col justify-start">
+              <span className="font-bold text-[11px] text-[#0f172a] mb-1">
+                Impact if Delayed:
+              </span>
+              <AutoResizeTextarea
+                value={data.impactIfDelayed ?? ""}
+                onChange={(e) => updateField("impactIfDelayed", e.target.value)}
+                minHeight={48}
+                rows={2}
+                placeholder=""
+                className="text-xs text-[#0f172a] p-1 bg-transparent focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* SECTION 3: VENDOR */}
+      {/* ========================================================================= */}
+      <div className="mb-3">
+        <div className="bg-[#D8E6F3] px-2.5 py-1 text-[11px] font-bold text-[#002B49] uppercase tracking-wide">
+          VENDOR
+        </div>
+        <div className="py-2 px-1 flex items-baseline gap-2">
+          <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+            Vendor:
+          </span>
+          <input
+            id="rfp-field-payee"
+            type="text"
+            value={data.vendor ?? data.payee}
+            onChange={(e) => {
+              updateField("vendor", e.target.value);
+              updateField("payee", e.target.value);
+            }}
+            placeholder=""
+            className={`border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1 font-medium ${
+              hasError("payee") ? "border-red-500 bg-red-50/50" : ""
+            }`}
+          />
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* SECTION 4: ITEMIZED TABLE & CURRENCY */}
+      {/* ========================================================================= */}
+      <div className="mb-3">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse border border-[#334155] text-xs">
+            <thead>
+              <tr className="bg-[#D8E6F3] text-[#002B49] font-bold text-[11px]">
+                <th className="border border-[#334155] px-2 py-1 text-center font-bold">
+                  Item / Description
+                </th>
+                <th className="border border-[#334155] px-2 py-1 text-center font-bold w-28">
+                  Unit Price
+                </th>
+                <th className="border border-[#334155] px-2 py-1 text-center font-bold w-24">
+                  Quantity
+                </th>
+                <th className="border border-[#334155] px-2 py-1 text-center font-bold w-32">
+                  Amount
+                </th>
+                <th className="border border-[#334155] px-1 py-1 w-7 print:hidden text-center"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.items.map((item, index) => (
+                <tr key={item.id} className="hover:bg-slate-50/50">
+                  <td className="border border-[#334155] px-2 py-1 align-top">
+                    <AutoResizeTextarea
+                      value={item.description}
+                      onChange={(e) => handleItemChange(index, "description", e.target.value)}
+                      minHeight={22}
+                      rows={1}
+                      placeholder=""
+                      className="text-xs text-[#0f172a] p-0.5"
+                    />
+                  </td>
+                  <td className="border border-[#334155] px-2 py-1 align-top">
+                    <input
+                      type="number"
+                      value={item.unitPrice === "" ? "" : item.unitPrice}
+                      onChange={(e) => handleItemChange(index, "unitPrice", e.target.value)}
+                      placeholder=""
+                      className="w-full text-right bg-transparent focus:outline-none text-xs p-0.5"
+                    />
+                  </td>
+                  <td className="border border-[#334155] px-2 py-1 align-top">
+                    <input
+                      type="number"
+                      value={item.qty === "" ? "" : item.qty}
+                      onChange={(e) => handleItemChange(index, "qty", e.target.value)}
+                      placeholder=""
+                      className="w-full text-center bg-transparent focus:outline-none text-xs p-0.5"
+                    />
+                  </td>
+                  <td className="border border-[#334155] px-2 py-1 align-top text-right font-medium">
+                    {formatCurrency(item.amount)}
+                  </td>
+                  <td className="border border-[#334155] p-1 text-center print:hidden align-middle">
+                    {data.items.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeItemRow(index)}
+                        className="text-red-400 hover:text-red-600 transition-colors p-0.5"
+                        title="Remove row"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+
+              {/* Total Row */}
+              <tr>
+                <td colSpan={3} className="border border-[#334155] px-3 py-1.5 text-right font-bold text-xs text-[#002B49]">
+                  Total Price for Payment:
+                </td>
+                <td className="border border-[#334155] px-2 py-1.5 text-right font-bold text-xs text-[#002B49]">
+                  {formatCurrency(data.totalAmount)}
+                </td>
+                <td className="border border-[#334155] print:hidden"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Add Row Button (Screen only) */}
+        <div className="mt-1 flex justify-between items-center print:hidden">
+          <button
+            type="button"
+            onClick={addItemRow}
+            className="text-[11px] text-[#003366] hover:text-[#002244] font-medium flex items-center gap-1 py-1"
+          >
+            <Plus size={12} /> Add Item Row
+          </button>
+        </div>
+
+        {/* Currency row */}
+        <div className="flex items-center gap-6 mt-2 px-1">
+          <span className="font-bold text-[11px] text-[#0f172a]">Currency:</span>
+          <div className="flex items-center gap-6">
+            <PrimeCheckbox
+              checked={data.currencyType === "PHP" || !data.currencyType}
+              onChange={() => updateField("currencyType", "PHP")}
+              label={<span className="font-medium">PHP</span>}
+            />
+            <div className="flex items-center gap-1.5">
+              <PrimeCheckbox
+                checked={data.currencyType === "other"}
+                onChange={(c) => updateField("currencyType", c ? "other" : "PHP")}
+                label={<span className="font-medium">Other (Specify):</span>}
+              />
+              <input
+                type="text"
+                value={data.currencyOther ?? ""}
+                onChange={(e) => updateField("currencyOther", e.target.value)}
+                disabled={data.currencyType !== "other"}
+                className="border-b border-[#0f172a] bg-transparent focus:outline-none w-32 text-xs px-1 disabled:opacity-40"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* SECTION 5: PURPOSE OF REQUEST / BUSINESS JUSTIFICATION */}
+      {/* ========================================================================= */}
+      <div className="mb-3">
+        <div className="bg-[#D8E6F3] px-2.5 py-1 text-[11px] font-bold text-[#002B49] uppercase tracking-wide">
+          PURPOSE OF REQUEST / BUSINESS JUSTIFICATION
+        </div>
+        <div className="py-2 px-1">
+          <AutoResizeTextarea
+            id="rfp-field-purpose"
+            value={data.purpose}
+            onChange={(e) => updateField("purpose", e.target.value)}
+            minHeight={52}
+            rows={2}
+            placeholder=""
+            className={`w-full text-xs text-[#0f172a] p-1.5 border-b border-[#cbd5e1] focus:border-[#003366] focus:outline-none bg-transparent ${
+              hasError("purpose") ? "border-red-500 bg-red-50/50" : ""
+            }`}
+          />
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* SECTION 6: SUPPORTING DOCUMENTS ATTACHED */}
+      {/* ========================================================================= */}
+      <div className="mb-3">
+        <div className="bg-[#D8E6F3] px-2.5 py-1 text-[11px] font-bold text-[#002B49] uppercase tracking-wide">
+          SUPPORTING DOCUMENTS ATTACHED
+        </div>
+        <div className="py-2 px-1 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+          {/* Left Column */}
+          <div className="space-y-1.5">
+            <div>
+              <PrimeCheckbox
+                checked={Boolean(attached.invoiceBilling)}
+                onChange={(c) => updateAttachedDocs("invoiceBilling", c)}
+                label="Invoice / Billing Statement"
+              />
+            </div>
+            <div>
+              <PrimeCheckbox
+                checked={Boolean(attached.signedContract)}
+                onChange={(c) => updateAttachedDocs("signedContract", c)}
+                label="Signed Contract / Agreement"
+              />
+            </div>
+            <div>
+              <PrimeCheckbox
+                checked={Boolean(attached.liquidationReceipt)}
+                onChange={(c) => updateAttachedDocs("liquidationReceipt", c)}
+                label="Liquidation / Completion Receipt"
+              />
+            </div>
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-1.5">
+            <div>
+              <PrimeCheckbox
+                checked={Boolean(attached.soa)}
+                onChange={(c) => updateAttachedDocs("soa", c)}
+                label="Statement of Account (SOA)"
+              />
+            </div>
+            <div>
+              <PrimeCheckbox
+                checked={Boolean(attached.poCostEstimate)}
+                onChange={(c) => updateAttachedDocs("poCostEstimate", c)}
+                label="Purchase Order / Cost Estimate"
+              />
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <PrimeCheckbox
+                checked={Boolean(attached.other)}
+                onChange={(c) => updateAttachedDocs("other", c)}
+                label="Other (Please specify):"
+              />
+              <input
+                type="text"
+                value={attached.otherSpecify ?? ""}
+                onChange={(e) => updateAttachedDocs("otherSpecify", e.target.value)}
+                disabled={!attached.other}
+                className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 min-w-[60px] text-xs px-1 disabled:opacity-40"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* SECTION 7: PAYEE DETAILS & MODE OF PAYMENT */}
+      {/* ========================================================================= */}
+      <div className="mb-3">
+        <div className="bg-[#D8E6F3] px-2.5 py-1 text-[11px] font-bold text-[#002B49] uppercase tracking-wide">
+          PAYEE DETAILS & MODE OF PAYMENT
+        </div>
+        <div className="py-2 px-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Left Column: Bank Inputs */}
+          <div className="space-y-2">
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] w-28 whitespace-nowrap">
+                Bank:
+              </span>
+              <input
+                type="text"
+                value={data.bank}
+                onChange={(e) => updateField("bank", e.target.value)}
+                className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
+              />
+            </div>
+
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] w-28 whitespace-nowrap">
+                Account Name:
+              </span>
+              <input
+                type="text"
+                value={data.accountName}
+                onChange={(e) => updateField("accountName", e.target.value)}
+                className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
+              />
+            </div>
+
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] w-28 whitespace-nowrap">
+                Account Number:
+              </span>
+              <input
+                type="text"
+                value={data.accountNumber}
+                onChange={(e) => updateField("accountNumber", e.target.value)}
+                className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
+              />
+            </div>
+
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] w-28 whitespace-nowrap">
+                Swift Code:
+              </span>
+              <input
+                type="text"
+                value={data.swiftCode ?? ""}
+                onChange={(e) => updateField("swiftCode", e.target.value)}
+                className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
+              />
+            </div>
+          </div>
+
+          {/* Right Column: Mode of Payment Checkboxes */}
+          <div className="flex flex-col justify-start space-y-2.5 pt-1 sm:pl-4">
+            <div>
+              <PrimeCheckbox
+                checked={data.modeBankTransfer ?? (data.paymentMethod === "online")}
+                onChange={(c) => {
+                  updateField("modeBankTransfer", c);
+                  if (c) updateField("paymentMethod", "online");
+                }}
+                label="Bank Transfer"
+              />
+            </div>
+            <div>
+              <PrimeCheckbox
+                checked={data.modeCheck ?? (data.paymentMethod === "check")}
+                onChange={(c) => {
+                  updateField("modeCheck", c);
+                  if (c) updateField("paymentMethod", "check");
+                }}
+                label="Check"
+              />
+            </div>
+            <div>
+              <PrimeCheckbox
+                checked={Boolean(data.modeWireTransfer)}
+                onChange={(c) => updateField("modeWireTransfer", c)}
+                label="Wire Transfer (Other Currency)"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* SECTION 8: REQUESTOR & AUTHORIZED SIGNATORIES */}
+      {/* ========================================================================= */}
+      <div className="mb-3">
+        <div className="bg-[#D8E6F3] px-2.5 py-1 text-[11px] font-bold text-[#002B49] uppercase tracking-wide">
+          REQUESTOR & AUTHORIZED SIGNATORIES
+        </div>
+        <div className="py-2 px-1 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+          {/* Left: Requestor Column */}
+          <div className="space-y-2.5">
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                Name:
+              </span>
+              <input
+                type="text"
+                value={data.requestedByName}
+                onChange={(e) => updateField("requestedByName", e.target.value)}
+                className={`border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1 ${
+                  hasError("requestedByName") ? "border-red-500 bg-red-50/50" : ""
+                }`}
+              />
+            </div>
+
+            {/* Signature Area */}
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                Signature:
+              </span>
+              <div className="flex-1 flex items-center justify-between border-b border-[#0f172a] pb-0.5">
+                {data.signatureDataUrl ? (
+                  <div className="flex items-center gap-2">
+                    <img
+                      src={data.signatureDataUrl}
+                      alt="Signature"
+                      className="h-8 max-w-[150px] object-contain"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setIsSignatureModalOpen(true)}
+                      className="text-[10px] text-[#003366] underline print:hidden"
+                    >
+                      Change
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsSignatureModalOpen(true)}
+                    className="text-[11px] text-[#003366] hover:underline flex items-center gap-1 py-1 font-medium print:hidden"
+                  >
+                    <PenTool size={12} /> Click to Sign
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                Date (MM/DD/YY):
+              </span>
+              <input
+                type="text"
+                value={data.requestorDate ?? data.date}
+                onChange={(e) => updateField("requestorDate", e.target.value)}
+                className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
+              />
+            </div>
+          </div>
+
+          {/* Right: Department & TL Column */}
+          <div className="space-y-2.5">
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                Department / Cost Center:
+              </span>
+              <input
+                type="text"
+                value={data.departmentCostCenter ?? data.department}
+                onChange={(e) => {
+                  updateField("departmentCostCenter", e.target.value);
+                  updateField("department", e.target.value);
+                }}
+                className={`border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1 ${
+                  hasError("department") ? "border-red-500 bg-red-50/50" : ""
+                }`}
+              />
+            </div>
+
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                TL Signature over Printed Name:
+              </span>
+              <input
+                type="text"
+                value={data.tlSignatureName ?? data.approvedByName ?? ""}
+                onChange={(e) => {
+                  updateField("tlSignatureName", e.target.value);
+                  updateField("approvedByName", e.target.value);
+                }}
+                className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
+              />
+            </div>
+
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                Date (MM/DD/YY):
+              </span>
+              <input
+                type="text"
+                value={data.tlSignatureDate ?? ""}
+                onChange={(e) => updateField("tlSignatureDate", e.target.value)}
+                className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* SECTION 9: TO BE FILLED OUT BY FINANCE / ACCOUNTING ONLY */}
+      {/* ========================================================================= */}
+      <div className="mb-2">
+        <div className="border border-[#334155]">
+          <div className="bg-[#D8E6F3] px-2.5 py-1 text-[11px] font-bold text-[#002B49] uppercase tracking-wide border-b border-[#334155]">
+            TO BE FILLED OUT BY FINANCE / ACCOUNTING ONLY
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 text-xs">
+            {/* Top Row: ClickUp Queue Number & Accomplished Checklist */}
+            <div className="p-2 border-b sm:border-r border-[#334155] flex flex-col justify-center">
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                  ClickUp Queue Number:
+                </span>
+                <input
+                  type="text"
+                  value={data.clickUpQueueNumber ?? (data.taskId ? `#${data.taskId}` : "")}
+                  onChange={(e) => updateField("clickUpQueueNumber", e.target.value)}
+                  placeholder="Task ID"
+                  className="border-b border-[#334155] bg-transparent focus:outline-none flex-1 text-xs px-1 font-mono font-medium"
+                />
+              </div>
+            </div>
+
+            <div className="p-2 border-b border-[#334155]">
+              <span className="font-bold text-[11px] text-[#0f172a] block mb-1">
+                Accomplished RFP Checklist:
+              </span>
+              <div className="flex items-center gap-6">
+                <PrimeCheckbox
+                  checked={data.financeAccomplishedChecklist === "yes"}
+                  onChange={(c) => updateField("financeAccomplishedChecklist", c ? "yes" : "")}
+                  label="Yes"
+                />
+                <PrimeCheckbox
+                  checked={data.financeAccomplishedChecklist === "no"}
+                  onChange={(c) => updateField("financeAccomplishedChecklist", c ? "no" : "")}
+                  label="No"
+                />
+              </div>
+            </div>
+
+            {/* Row: Received By | Approved Payment Amount */}
+            <div className="p-1.5 border-b sm:border-r border-[#334155] flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">Received By:</span>
+              <input
+                type="text"
+                value={data.financeReceivedBy ?? data.receivedByName ?? ""}
+                onChange={(e) => {
+                  updateField("financeReceivedBy", e.target.value);
+                  updateField("receivedByName", e.target.value);
+                }}
+                className="border-b border-[#cbd5e1] bg-transparent focus:outline-none flex-1 text-xs px-1"
+              />
+            </div>
+            <div className="p-1.5 border-b border-[#334155] flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">Approved Payment Amount (Urgent Request):</span>
+              <input
+                type="text"
+                value={data.financeApprovedPaymentAmountUrgent ?? ""}
+                onChange={(e) => updateField("financeApprovedPaymentAmountUrgent", e.target.value)}
+                className="border-b border-[#cbd5e1] bg-transparent focus:outline-none flex-1 text-xs px-1"
+              />
+            </div>
+
+            {/* Row: Received Date | Payment Release Date */}
+            <div className="p-1.5 border-b sm:border-r border-[#334155] flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">Received Date:</span>
+              <input
+                type="text"
+                value={data.financeReceivedDate ?? ""}
+                onChange={(e) => updateField("financeReceivedDate", e.target.value)}
+                className="border-b border-[#cbd5e1] bg-transparent focus:outline-none flex-1 text-xs px-1"
+              />
+            </div>
+            <div className="p-1.5 border-b border-[#334155] flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">Payment Release Date (Urgent Request):</span>
+              <input
+                type="text"
+                value={data.financePaymentReleaseDateUrgent ?? ""}
+                onChange={(e) => updateField("financePaymentReleaseDateUrgent", e.target.value)}
+                className="border-b border-[#cbd5e1] bg-transparent focus:outline-none flex-1 text-xs px-1"
+              />
+            </div>
+
+            {/* Row: Reviewed By | Validated By */}
+            <div className="p-1.5 border-b sm:border-r border-[#334155] flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">Reviewed By:</span>
+              <input
+                type="text"
+                value={data.financeReviewedBy ?? ""}
+                onChange={(e) => updateField("financeReviewedBy", e.target.value)}
+                className="border-b border-[#cbd5e1] bg-transparent focus:outline-none flex-1 text-xs px-1"
+              />
+            </div>
+            <div className="p-1.5 border-b border-[#334155] flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">Validated By:</span>
+              <input
+                type="text"
+                value={data.financeValidatedBy ?? ""}
+                onChange={(e) => updateField("financeValidatedBy", e.target.value)}
+                className="border-b border-[#cbd5e1] bg-transparent focus:outline-none flex-1 text-xs px-1"
+              />
+            </div>
+
+            {/* Row: Date Reviewed | Approved By */}
+            <div className="p-1.5 border-b sm:border-r border-[#334155] flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">Date Reviewed:</span>
+              <input
+                type="text"
+                value={data.financeDateReviewed ?? ""}
+                onChange={(e) => updateField("financeDateReviewed", e.target.value)}
+                className="border-b border-[#cbd5e1] bg-transparent focus:outline-none flex-1 text-xs px-1"
+              />
+            </div>
+            <div className="p-1.5 border-b border-[#334155] flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">Approved By:</span>
+              <input
+                type="text"
+                value={data.financeApprovedBy ?? data.approvedByName ?? ""}
+                onChange={(e) => {
+                  updateField("financeApprovedBy", e.target.value);
+                  updateField("approvedByName", e.target.value);
+                }}
+                className="border-b border-[#cbd5e1] bg-transparent focus:outline-none flex-1 text-xs px-1"
+              />
+            </div>
+
+            {/* Row: Remarks | Date (MM/DD/YY) */}
+            <div className="p-1.5 sm:border-r border-[#334155] flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">Remarks:</span>
+              <input
+                type="text"
+                value={data.financeRemarks ?? data.requestedByRemarks ?? ""}
+                onChange={(e) => {
+                  updateField("financeRemarks", e.target.value);
+                  updateField("requestedByRemarks", e.target.value);
+                }}
+                className="border-b border-[#cbd5e1] bg-transparent focus:outline-none flex-1 text-xs px-1"
+              />
+            </div>
+            <div className="p-1.5 flex items-baseline gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">Date (MM/DD/YY):</span>
+              <input
+                type="text"
+                value={data.financeDate ?? ""}
+                onChange={(e) => updateField("financeDate", e.target.value)}
+                className="border-b border-[#cbd5e1] bg-transparent focus:outline-none flex-1 text-xs px-1"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Disclaimer Footer Note */}
+        <p className="mt-2 text-[9.5px] italic text-[#475569] leading-tight">
+          This form is invalid without complete signatures and supporting documents. Urgent request is subject to Finance evaluation and does not guarantee expedited release.
+        </p>
+      </div>
+
       {/* Signature Modal */}
       <SignatureModal
         isOpen={isSignatureModalOpen}
         onClose={() => setIsSignatureModalOpen(false)}
-        onSave={handleSignatureSave}
+        onSave={(dataUrl, type) => {
+          updateField("signatureDataUrl", dataUrl);
+          updateField("signatureType", type);
+        }}
         currentSignature={data.signatureDataUrl}
       />
     </div>

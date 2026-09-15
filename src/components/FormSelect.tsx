@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { ChevronDown, Check, Receipt, FileSpreadsheet, Banknote } from "lucide-react";
+import Image from "next/image";
+import { ChevronDown, Check, Receipt } from "lucide-react";
 
 export type FormOption = {
   value: string;
@@ -13,8 +14,8 @@ export type FormOption = {
 const FORM_OPTIONS: FormOption[] = [
   {
     value: "rfp",
-    label: "Request for Payment",
-    description: "Standard reimbursement or supplier invoice payment",
+    label: "PRIME RFP (Request for Payment)",
+    description: "Official Request for Payment document for vendor & reimbursement disbursements",
     icon: Receipt,
   },
 ];
@@ -95,9 +96,13 @@ export function FormSelect({
         className="group min-h-11 h-11 px-3.5 bg-prime-white border border-prime-rule hover:border-prime-gold focus:border-prime-gold focus:outline-none flex items-center justify-between gap-3 text-xs font-medium text-prime-blue transition-all cursor-pointer shadow-sm hover:shadow"
       >
         <div className="flex items-center gap-2.5">
-          <CurrentIcon
-            size={16}
-            className="text-prime-blue group-hover:text-prime-gold transition-colors shrink-0"
+          <Image
+            src="/prime-icon.png"
+            alt="PRIME Logo"
+            width={20}
+            height={20}
+            unoptimized
+            className="w-5 h-5 object-contain shrink-0"
           />
           <span className="font-semibold text-prime-blue tracking-wide">
             {currentOption.label}
@@ -116,11 +121,10 @@ export function FormSelect({
         <div
           role="listbox"
           aria-label="Available form types"
-          className="absolute right-0 top-full mt-1.5 w-72 bg-prime-white border border-prime-blue/30 shadow-xl z-50 py-1 divide-y divide-prime-rule/60 animate-in fade-in zoom-in-95 duration-150"
+          className="absolute right-0 top-full mt-1.5 w-80 bg-prime-white border border-prime-blue/30 shadow-xl z-50 py-1 divide-y divide-prime-rule/60 animate-in fade-in zoom-in-95 duration-150"
         >
           {FORM_OPTIONS.map((option) => {
             const isSelected = option.value === value;
-            const Icon = option.icon;
 
             return (
               <button
@@ -139,11 +143,13 @@ export function FormSelect({
                     : "hover:bg-prime-warm-white text-prime-ink border-l-2 border-transparent"
                 }`}
               >
-                <Icon
-                  size={16}
-                  className={`mt-0.5 shrink-0 ${
-                    isSelected ? "text-prime-gold" : "text-prime-ink/70"
-                  }`}
+                <Image
+                  src="/prime-icon.png"
+                  alt="PRIME Logo"
+                  width={20}
+                  height={20}
+                  unoptimized
+                  className="w-5 h-5 object-contain shrink-0 mt-0.5"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
