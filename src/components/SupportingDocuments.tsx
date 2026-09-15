@@ -137,7 +137,7 @@ export function SupportingDocuments({
           Click to upload or drag & drop supporting files here
         </p>
         <p className="text-xs text-prime-ink mt-1">
-          Supports PDF, PNG, JPG, and DOCX (up to 25MB each)
+          Supports PDF, PNG, JPG, and DOCX (up to 3MB each; 4MB total submission limit)
         </p>
         <input
           ref={fileInputRef}

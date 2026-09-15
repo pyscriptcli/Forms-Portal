@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import { toJpeg, toPng } from "html-to-image";
+import { toJpeg } from "html-to-image";
 
 export interface GeneratedPdfResult {
   blob: Blob;
@@ -8,7 +8,8 @@ export interface GeneratedPdfResult {
 
 /**
  * Generates an official high-resolution US Letter PDF from the printable RFP DOM element.
- * Uses html-to-image with optimized JPEG compression to produce a crisp document under 500KB.
+ * Uses the same printable DOM as the virtual form, captured as a compressed JPEG
+ * so the PDF remains safely below serverless request limits in normal use.
  */
 export async function generateRfpPdf(elementId: string = "rfp-printable-sheet"): Promise<GeneratedPdfResult> {
   const element = document.getElementById(elementId);
@@ -21,8 +22,9 @@ export async function generateRfpPdf(elementId: string = "rfp-printable-sheet"):
   // Capture the same fixed-width document the user sees. Do not let a narrow
   // viewport or responsive parent change the exported form's proportions.
   const captureWidth = Math.max(element.scrollWidth, Math.ceil(element.getBoundingClientRect().width));
-  const imgData = await toPng(element, {
-    pixelRatio: 2,
+  const imgData = await toJpeg(element, {
+    quality: 0.82,
+    pixelRatio: 1.35,
     width: captureWidth,
     backgroundColor: "#ffffff",
     style: {
@@ -67,13 +69,13 @@ export async function generateRfpPdf(elementId: string = "rfp-printable-sheet"):
   let heightLeft = imgHeight;
   let position = 0;
 
-  pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+  pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, "FAST");
   heightLeft -= pdfHeight;
 
   while (heightLeft > 0) {
     position = -(imgHeight - heightLeft);
     pdf.addPage();
-    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, "FAST");
     heightLeft -= pdfHeight;
   }
 

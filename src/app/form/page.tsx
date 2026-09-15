@@ -20,7 +20,7 @@ import { SupportingDocuments } from "@/components/SupportingDocuments";
 import { SubmissionModal } from "@/components/SubmissionModal";
 import { SubmissionLoadingModal, SubmissionStage } from "@/components/SubmissionLoadingModal";
 import { ValidationAlertBanner } from "@/components/ValidationAlertBanner";
-import { generateRfpPdf, downloadPdfBlob, generateRfpImageBlob } from "@/lib/pdfGenerator";
+import { generateRfpPdf, downloadPdfBlob } from "@/lib/pdfGenerator";
 import {
   validateRfpForm,
   ValidationResult,
@@ -513,11 +513,11 @@ function RfpAppContent() {
       const dateStr = formData.date;
       const sanitizedEntity = entity.replace(/[^a-zA-Z0-9_-]/g, "_");
 
-      // 1. Generate official high-resolution PDF Blob & visual preview image Blob
+      // 1. Generate the official PDF from the exact printable virtual-form DOM.
+      // The generator uses a compressed JPEG internally to avoid exceeding the
+      // serverless multipart request limit while preserving the form layout.
       const { blob: pdfBlob } = await generateRfpPdf(elementId);
       setLastGeneratedPdf(pdfBlob);
-
-      const previewImageBlob = await generateRfpImageBlob(elementId);
 
       // Advance stage to packaging attachments
       setSubmissionStage("packaging_attachments");
@@ -537,14 +537,21 @@ function RfpAppContent() {
 
       const submissionData = new FormData();
       submissionData.append("formType", selectedForm);
-      submissionData.append("data", JSON.stringify(sanitizedFormData));
+      const dataPayload = JSON.stringify(sanitizedFormData);
+      submissionData.append("data", dataPayload);
 
       submissionData.append("pdf", pdfBlob, `RFP_${sanitizedEntity}_${dateStr || "document"}.pdf`);
-      submissionData.append("previewImage", previewImageBlob, `RFP_${sanitizedEntity}_Preview.jpg`);
 
       rawSupportingFiles.forEach((file) => {
         submissionData.append("supportingFiles", file);
       });
+
+      const requestBytes = pdfBlob.size + rawSupportingFiles.reduce((total, file) => total + file.size, 0) + new Blob([dataPayload]).size;
+      const maxRequestBytes = 4 * 1024 * 1024;
+      if (requestBytes > maxRequestBytes) {
+        const requestSizeMb = (requestBytes / (1024 * 1024)).toFixed(1);
+        throw new Error(`The submission is ${requestSizeMb} MB. Remove or compress supporting files so the total stays below 4 MB.`);
+      }
 
       // Advance stage to ClickUp upload
       setSubmissionStage("uploading_clickup");
