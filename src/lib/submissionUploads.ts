@@ -38,14 +38,16 @@ async function uploadSupportingFile(file: File, taskId: string) {
     body: JSON.stringify({ filename: file.name, mimeType: file.type, fileSize: file.size }),
   });
   const signed = await parseUploadResponse(signResponse, file.name);
-  const uploadUrl = `${signed.signedUrl}${signed.signedUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(signed.token)}`;
+  const uploadUrl = new URL(signed.signedUrl);
+  if (!uploadUrl.searchParams.has("token")) uploadUrl.searchParams.set("token", signed.token);
   const storageResponse = await fetch(uploadUrl, {
-    method: "POST",
+    method: "PUT",
     headers: { "Content-Type": file.type || "application/octet-stream", "x-upsert": "false" },
     body: file,
   });
   if (!storageResponse.ok) {
-    throw new Error(`Secure staging upload failed for ${file.name}. Retry to continue the existing request.`);
+    const storageMessage = await storageResponse.text().catch(() => "");
+    throw new Error("Secure staging upload failed for " + file.name + (storageMessage ? ": " + storageMessage.slice(0, 180) : "") + ". Retry to continue the existing request.");
   }
 
   const relayResponse = await fetch("/api/rfp/relay-attachment", {

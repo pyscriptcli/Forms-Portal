@@ -50,9 +50,11 @@ export async function createStagingUpload(filename: string) {
   const response = await storageRequest(`/object/upload/sign/${STAGING_BUCKET}/${objectPath}`, { method: "POST", body: JSON.stringify({ expiresIn: 3600 }) });
   if (!response.ok) throw new Error(`Supabase signed upload creation failed (${response.status}).`);
   const data = await response.json() as { url?: string; token?: string; path?: string };
-  if (!data.url || !data.token) throw new Error("Supabase did not return a signed upload URL.");
+  if (!data.url) throw new Error("Supabase did not return a signed upload URL.");
   const signedUrl = data.url.startsWith("http") ? data.url : `${getStorageConfig().url}/storage/v1${data.url.startsWith("/") ? data.url : `/${data.url}`}`;
-  return { signedUrl, token: data.token, path: data.path || objectPath };
+  const token = data.token || new URL(signedUrl).searchParams.get("token") || "";
+  if (!token) throw new Error("Supabase did not return a signed upload token.");
+  return { signedUrl, token, path: data.path || objectPath };
 }
 
 export async function downloadStagedFile(objectPath: string) {

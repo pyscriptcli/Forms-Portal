@@ -64,7 +64,8 @@ describe("split ClickUp attachment uploads", () => {
     await uploadSubmissionFiles("task-123", [{ key: "large", file }], new Set(), vi.fn());
 
     expect(fetchMock.mock.calls[0][0]).toBe("/api/rfp/upload-sign");
-    expect(fetchMock.mock.calls[1][0]).toContain("token=signed-token");
+    expect(fetchMock.mock.calls[1][1].method).toBe("PUT");
+    expect(fetchMock.mock.calls[1][0].toString()).toContain("token=signed-token");
     expect(fetchMock.mock.calls[2][0]).toBe("/api/rfp/relay-attachment");
   });
 });
