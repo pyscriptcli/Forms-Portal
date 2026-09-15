@@ -7,7 +7,7 @@ export interface GeneratedPdfResult {
 }
 
 /**
- * Generates an official high-resolution A4 PDF from the printable RFP DOM element.
+ * Generates an official high-resolution US Letter PDF from the printable RFP DOM element.
  * Uses html-to-image which natively supports modern CSS (oklch, CSS variables, flexbox, SVGs).
  */
 export async function generateRfpPdf(elementId: string = "rfp-printable-sheet"): Promise<GeneratedPdfResult> {
@@ -40,7 +40,7 @@ export async function generateRfpPdf(elementId: string = "rfp-printable-sheet"):
   const pdf = new jsPDF({
     orientation: "portrait",
     unit: "mm",
-    format: "a4",
+    format: "letter",
   });
 
   const pdfWidth = pdf.internal.pageSize.getWidth();

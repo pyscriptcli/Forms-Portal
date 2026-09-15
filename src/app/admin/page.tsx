@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { PrimeLogo } from "@/components/PrimeLogo";
 
 import React, { useState, useEffect } from "react";
-import { ToggleLeft, ToggleRight, LogOut, Shield } from "lucide-react";
+import { ToggleLeft, ToggleRight, LogOut, Shield, Users, UserCheck, Plus, Trash2, Save, CheckCircle2 } from "lucide-react";
 import {
   validateAdminCredentials,
   isAdminAuthenticated,
@@ -14,6 +14,14 @@ import {
   ADMIN_TOKEN,
   type AdminSettings,
 } from "@/lib/adminSettings";
+import {
+  ROLE_DEFINITIONS,
+  DEFAULT_USERS,
+  getLocalRbacUsers,
+  saveLocalRbacUsers,
+  type UserAccessRecord,
+  type UserRole,
+} from "@/lib/rbac";
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
@@ -27,14 +35,40 @@ export default function AdminPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
+  // RBAC State
+  const [users, setUsers] = useState<UserAccessRecord[]>(DEFAULT_USERS);
+  const [isSavingRbac, setIsSavingRbac] = useState(false);
+  const [rbacSaveMsg, setRbacSaveMsg] = useState("");
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserDept, setNewUserDept] = useState("ISD");
+  const [newUserRole, setNewUserRole] = useState<UserRole>("requestor");
+
   useEffect(() => {
     if (isAdminAuthenticated()) {
       setAuthed(true);
       // Load latest flags from server
       fetch("/api/admin/settings")
         .then((r) => r.json())
-        .then((flags) => setSettings(flags))
+        .then((flags) => {
+          if (flags && typeof flags === "object") setSettings(flags);
+        })
         .catch(() => setSettings(getAdminSettings()));
+
+      // Load RBAC users from server or fallback
+      fetch("/api/admin/rbac")
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && Array.isArray(data.users)) {
+            setUsers(data.users);
+            saveLocalRbacUsers(data.users);
+          } else {
+            setUsers(getLocalRbacUsers());
+          }
+        })
+        .catch(() => {
+          setUsers(getLocalRbacUsers());
+        });
     }
   }, []);
 
@@ -81,6 +115,75 @@ export default function AdminPage() {
     }
   }
 
+  const handleRoleChange = (userId: string, newRole: UserRole) => {
+    setUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+    );
+  };
+
+  const handleStatusToggle = (userId: string) => {
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === userId
+          ? { ...u, status: u.status === "active" ? "inactive" : "active" }
+          : u
+      )
+    );
+  };
+
+  const handleDeleteUser = (userId: string) => {
+    if (users.length <= 1) {
+      alert("At least one user must remain in the directory.");
+      return;
+    }
+    setUsers((prev) => prev.filter((u) => u.id !== userId));
+  };
+
+  const handleAddUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserName.trim() || !newUserEmail.trim()) return;
+
+    const newUser: UserAccessRecord = {
+      id: `usr-${Date.now()}`,
+      name: newUserName.trim(),
+      email: newUserEmail.trim(),
+      department: newUserDept.trim() || "Operations",
+      role: newUserRole,
+      status: "active",
+      updatedAt: new Date().toISOString(),
+    };
+
+    setUsers((prev) => [...prev, newUser]);
+    setNewUserName("");
+    setNewUserEmail("");
+    setNewUserDept("ISD");
+    setNewUserRole("requestor");
+  };
+
+  const handleSaveRbac = async () => {
+    setIsSavingRbac(true);
+    setRbacSaveMsg("");
+    saveLocalRbacUsers(users);
+
+    try {
+      const res = await fetch("/api/admin/rbac", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-token": ADMIN_TOKEN,
+        },
+        body: JSON.stringify({ users }),
+      });
+      if (!res.ok) throw new Error("Failed to save RBAC settings");
+      setRbacSaveMsg("User roles and access permissions saved successfully.");
+    } catch {
+      setRbacSaveMsg("Saved to local storage only.");
+    } finally {
+      setIsSavingRbac(false);
+      setTimeout(() => setRbacSaveMsg(""), 3500);
+    }
+  };
+
   if (!authed) {
     return (
       <div className="prime-page">
@@ -120,24 +223,253 @@ export default function AdminPage() {
     },
   ];
 
+  const roleEntries = Object.values(ROLE_DEFINITIONS);
+
   return (
-    <div className="prime-page">
-      <PageHeader title="Settings" description="Manage the tools available to your team." actions={
-        <button className="prime-button secondary" onClick={handleLogout}>Sign out of admin</button>
-      } />
-      <div className="max-w-3xl">
-        <h2 className="prime-heading text-4xl mb-6">Feature controls</h2>
-        <div className="border-t border-prime-rule">
-          {toggles.map(({ key, label, description }) => (
-            <div key={key} className="flex justify-between items-center gap-6 border-b border-prime-rule py-7">
-              <div><h3 className="prime-label text-prime-blue">{label}</h3><p className="text-sm mt-2">{description}</p></div>
-              <button type="button" role="switch" aria-checked={settings[key]} aria-label={`Toggle ${label}`} disabled={isSaving} onClick={() => handleToggle(key)} className={`prime-button ${settings[key] ? "" : "secondary"}`}>
-                {settings[key] ? "ON" : "OFF"}
-              </button>
+    <div className="prime-page pb-20">
+      <PageHeader
+        title="Settings"
+        description="Manage portal features, user roles, and access control."
+        actions={
+          <button className="prime-button secondary" onClick={handleLogout}>
+            Sign out of admin
+          </button>
+        }
+      />
+
+      <div className="max-w-4xl space-y-12">
+        {/* ========================================================================= */}
+        {/* FEATURE CONTROLS */}
+        {/* ========================================================================= */}
+        <section>
+          <h2 className="prime-heading text-4xl mb-6">Feature controls</h2>
+          <div className="border-t border-prime-rule">
+            {toggles.map(({ key, label, description }) => (
+              <div key={key} className="flex justify-between items-center gap-6 border-b border-prime-rule py-7">
+                <div>
+                  <h3 className="prime-label text-prime-blue">{label}</h3>
+                  <p className="text-sm mt-2 text-prime-ink/80">{description}</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={settings[key]}
+                  aria-label={`Toggle ${label}`}
+                  disabled={isSaving}
+                  onClick={() => handleToggle(key)}
+                  className={`prime-button ${settings[key] ? "" : "secondary"}`}
+                >
+                  {settings[key] ? "ON" : "OFF"}
+                </button>
+              </div>
+            ))}
+          </div>
+          {saveMsg && <p role="status" className="prime-notice mt-6">{saveMsg}</p>}
+        </section>
+
+        {/* ========================================================================= */}
+        {/* ROLE-BASED ACCESS CONTROL (RBAC) */}
+        {/* ========================================================================= */}
+        <section className="pt-6 border-t border-prime-rule">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <div className="flex items-center gap-2">
+                <Shield className="w-6 h-6 text-prime-blue" />
+                <h2 className="prime-heading text-3xl">Role-Based Access Control (RBAC)</h2>
+              </div>
+              <p className="text-sm text-prime-ink/80 mt-1">
+                Define user permissions and control access to approvals, sign-offs, and payment releases.
+              </p>
             </div>
-          ))}
-        </div>
-        {saveMsg && <p role="status" className="prime-notice mt-6">{saveMsg}</p>}
+            <button
+              type="button"
+              onClick={handleSaveRbac}
+              disabled={isSavingRbac}
+              className="prime-button flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+            >
+              <Save className="w-4 h-4" />
+              {isSavingRbac ? "Saving Roles..." : "Save Role Assignments"}
+            </button>
+          </div>
+
+          {rbacSaveMsg && (
+            <div role="status" className="prime-notice mb-6 flex items-center gap-2 bg-emerald-50 text-emerald-800 border-emerald-300">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>{rbacSaveMsg}</span>
+            </div>
+          )}
+
+          {/* Role Definitions Matrix */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {roleEntries.map((role) => (
+              <div
+                key={role.id}
+                className="bg-white border border-prime-rule p-4 rounded-none shadow-sm flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span
+                      className="text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider text-white"
+                      style={{ backgroundColor: role.badgeBg, color: role.badgeText }}
+                    >
+                      {role.name}
+                    </span>
+                  </div>
+                  <p className="text-xs text-prime-ink/80 mb-3">{role.description}</p>
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-bold text-prime-blue uppercase tracking-wider mb-1.5 border-t border-prime-rule/50 pt-2">
+                    Permissions:
+                  </h4>
+                  <ul className="space-y-1">
+                    {role.permissions.map((p, idx) => (
+                      <li key={idx} className="text-[11px] text-prime-ink/75 flex items-start gap-1">
+                        <span className="text-prime-blue shrink-0">•</span>
+                        <span>{p}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* User Access Management Table */}
+          <div className="bg-white border border-prime-rule shadow-sm mb-6">
+            <div className="p-4 border-b border-prime-rule bg-prime-surface/40 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-prime-blue" />
+                <h3 className="font-bold text-sm text-prime-ink">Team Access & Assigned Roles</h3>
+              </div>
+              <span className="text-xs text-prime-ink/60">{users.length} configured members</span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-prime-rule bg-prime-surface/20 text-prime-blue font-bold uppercase text-[10px] tracking-wider">
+                    <th className="p-3">Member</th>
+                    <th className="p-3">Department</th>
+                    <th className="p-3">Assigned Role</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-prime-rule/60">
+                  {users.map((u) => {
+                    return (
+                      <tr key={u.id} className="hover:bg-prime-surface/10 transition-colors">
+                        <td className="p-3">
+                          <div className="font-semibold text-prime-ink">{u.name}</div>
+                          <div className="text-[11px] text-prime-ink/60 font-mono">{u.email}</div>
+                        </td>
+                        <td className="p-3 font-medium text-prime-ink/80">{u.department}</td>
+                        <td className="p-3">
+                          <select
+                            value={u.role}
+                            onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
+                            className="text-xs font-semibold py-1 px-2 border border-prime-rule bg-white focus:outline-none focus:border-prime-blue cursor-pointer"
+                          >
+                            <option value="admin">Administrator</option>
+                            <option value="approver">Approver / TL</option>
+                            <option value="finance">Finance & Accounting</option>
+                            <option value="requestor">Requestor / Staff</option>
+                          </select>
+                        </td>
+                        <td className="p-3">
+                          <button
+                            type="button"
+                            onClick={() => handleStatusToggle(u.id)}
+                            className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-none cursor-pointer ${
+                              u.status === "active"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {u.status}
+                          </button>
+                        </td>
+                        <td className="p-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteUser(u.id)}
+                            title="Remove user"
+                            className="text-prime-ink/40 hover:text-red-600 p-1 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4 inline" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Quick Add Team Member */}
+          <div className="bg-prime-surface/30 border border-dashed border-prime-rule p-4">
+            <h4 className="text-xs font-bold text-prime-blue uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <Plus className="w-3.5 h-3.5" /> Add Team Member
+            </h4>
+            <form onSubmit={handleAddUser} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+              <div>
+                <label className="block text-[10px] font-semibold text-prime-ink/70 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Maria Santos"
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                  className="w-full text-xs p-2 border border-prime-rule bg-white focus:outline-none focus:border-prime-blue"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-prime-ink/70 mb-1">Email</label>
+                <input
+                  type="email"
+                  placeholder="maria@primephilippines.com"
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  className="w-full text-xs p-2 border border-prime-rule bg-white focus:outline-none focus:border-prime-blue"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-prime-ink/70 mb-1">Department</label>
+                <input
+                  type="text"
+                  placeholder="e.g. CRD, ISD, Finance"
+                  value={newUserDept}
+                  onChange={(e) => setNewUserDept(e.target.value)}
+                  className="w-full text-xs p-2 border border-prime-rule bg-white focus:outline-none focus:border-prime-blue"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-prime-ink/70 mb-1">Role</label>
+                <select
+                  value={newUserRole}
+                  onChange={(e) => setNewUserRole(e.target.value as UserRole)}
+                  className="w-full text-xs p-2 border border-prime-rule bg-white focus:outline-none focus:border-prime-blue cursor-pointer"
+                >
+                  <option value="requestor">Requestor / Staff</option>
+                  <option value="approver">Approver / TL</option>
+                  <option value="finance">Finance & Accounting</option>
+                  <option value="admin">Administrator</option>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button
+                  type="submit"
+                  className="prime-button w-full h-[35px] text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add Member
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
       </div>
     </div>
   );

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tina Balajadia — PRIME Philippines Digital Business Card</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --prime-blue: #003366;
+      --prime-gold: #C9A84C;
+      --prime-yellow: #FFBF00;
+      --prime-warm-white: #FFFCFB;
+      --prime-white: #FFFFFF;
+      --prime-gray: #181D1E;
+      --prime-slate: #5A6B7C;
+      --prime-border: #E2E8F0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F1F5F9;
+      color: var(--prime-gray);
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+      max-width: 600px;
+    }
+
+    .brand-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--prime-gold);
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--prime-blue);
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--prime-slate);
+      letter-spacing: 1px;
+    }
+
+    /* Format Selector Tabs */
+    .tabs-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 20px;
+      max-width: 640px;
+    }
+
+    .tab-btn {
+      background: var(--prime-white);
+      border: 1.5px solid var(--prime-border);
+      color: var(--prime-blue);
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border-radius: 0;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tab-btn:hover {
+      border-color: var(--prime-gold);
+      background: #F8FAFC;
+    }
+
+    .tab-btn.active {
+      background: var(--prime-blue);
+      color: var(--prime-white);
+      border-color: var(--prime-blue);
+      box-shadow: 0 4px 12px rgba(0, 51, 102, 0.15);
+    }
+
+    /* Preview Stage */
+    .stage {
+      background: var(--prime-white);
+      box-shadow: 0 16px 40px -8px rgba(0, 51, 102, 0.12), 0 0 0 1px rgba(0, 51, 102, 0.05);
+      border-radius: 0;
+      max-width: 100%;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    .stage img {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: 75vh;
+      object-fit: contain;
+    }
+
+    /* Controls Bar */
+    .action-panel {
+      margin-top: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      max-width: 680px;
+      width: 100%;
+    }
+
+    .btn-primary {
+      background: var(--prime-blue);
+      color: var(--prime-white);
+      border: none;
+      padding: 14px 24px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(0, 51, 102, 0.2);
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+
+    .btn-primary:hover {
+      background: #00254D;
+      transform: translateY(-1px);
+    }
+
+    .btn-gold {
+      background: var(--prime-gold);
+      color: var(--prime-white);
+      border: none;
+      padding: 14px 24px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: opacity 0.15s ease, transform 0.1s ease;
+    }
+
+    .btn-gold:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--prime-white);
+      color: var(--prime-blue);
+      border: 1.5px solid var(--prime-border);
+      padding: 13px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--prime-gold);
+      background: #F8FAFC;
+    }
+
+    /* Quick Info Card */
+    .quick-info {
+      margin-top: 32px;
+      background: var(--prime-white);
+      border: 1px solid var(--prime-border);
+      border-top: 4px solid var(--prime-blue);
+      padding: 24px;
+      max-width: 580px;
+      width: 100%;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #F1F5F9;
+      font-size: 14px;
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      color: var(--prime-slate);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .info-val {
+      font-weight: 700;
+      color: var(--prime-blue);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .copy-chip {
+      background: #F1F5F9;
+      border: none;
+      padding: 4px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--prime-slate);
+      transition: background 0.15s ease;
+    }
+
+    .copy-chip:hover {
+      background: var(--prime-gold);
+      color: #fff;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      background: var(--prime-blue);
+      color: #fff;
+      padding: 12px 24px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      border-left: 4px solid var(--prime-gold);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(12px);
+      transition: all 0.25s ease;
+      z-index: 100;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand-badge">PRIME Philippines • Digital Business Card</div>
+    <h1>Tina Balajadia</h1>
+    <div class="subtitle">Scannable vCard &amp; Photo-Ready Digital Identity</div>
+  </header>
+
+  <div class="tabs-container">
+    <button class="tab-btn active" onclick="switchCard('mobile')">📱 Mobile Story (1080×1920)</button>
+    <button class="tab-btn" onclick="switchCard('square')">⏹️ Chat Square (1200×1200)</button>
+    <button class="tab-btn" onclick="switchCard('portrait')">📄 Executive Portrait (1080×1440)</button>
+    <button class="tab-btn" onclick="switchCard('wallet')">💳 Classic Card (1200×750)</button>
+  </div>
+
+  <div class="stage">
+    <img id="cardImage" src="tina-balajadia-card-mobile.png" alt="Tina Balajadia Digital Business Card" />
+  </div>
+
+  <div class="action-panel">
+    <a id="downloadBtn" class="btn-primary" href="tina-balajadia-card-mobile.png" download="tina-balajadia-card-mobile.png">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+      Download High-Res PNG
+    </a>
+    
+    <a class="btn-gold" href="tina-balajadia.vcf" download="Tina-Balajadia.vcf">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+      Save Contact (.VCF)
+    </a>
+
+    <button class="btn-secondary" onclick="shareCard()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+      Share via Photo
+    </button>
+  </div>
+
+  <div class="quick-info">
+    <div class="info-row">
+      <span class="info-label">Full Name</span>
+      <span class="info-val">Tina Balajadia</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Mobile Number</span>
+      <span class="info-val">
+        0920 970 1465
+        <button class="copy-chip" onclick="copyText('09209701465', 'Mobile copied!')">Copy</button>
+      </span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Email</span>
+      <span class="info-val">
+        kristina.balajadia@primephilippines.com
+        <button class="copy-chip" onclick="copyText('kristina.balajadia@primephilippines.com', 'Email copied!')">Copy</button>
+      </span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Organization</span>
+      <span class="info-val">PRIME Philippines</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Website</span>
+      <span class="info-val">
+        primephilippines.com
+        <button class="copy-chip" onclick="copyText('https://primephilippines.com', 'Link copied!')">Copy</button>
+      </span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">QR Redundancy</span>
+      <span class="info-val" style="color: var(--prime-gold);">High Contrast • Instant Camera Scan</span>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">Copied to clipboard!</div>
+
+  <script>
+    const cardFiles = {
+      mobile: 'tina-balajadia-card-mobile.png',
+      square: 'tina-balajadia-card-square.png',
+      portrait: 'tina-balajadia-card-portrait.png',
+      wallet: 'tina-balajadia-card-wallet.png'
+    };
+
+    let currentFormat = 'mobile';
+
+    function switchCard(format) {
+      currentFormat = format;
+      const img = document.getElementById('cardImage');
+      const dlBtn = document.getElementById('downloadBtn');
+      const filename = cardFiles[format];
+
+      img.src = filename;
+      dlBtn.href = filename;
+      dlBtn.download = filename;
+
+      document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2400);
+    }
+
+    function copyText(text, msg) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(msg || 'Copied to clipboard!');
+      });
+    }
+
+    async function shareCard() {
+      const filename = cardFiles[currentFormat];
+      if (navigator.share) {
+        try {
+          const response = await fetch(filename);
+          const blob = await response.blob();
+          const file = new File([blob], filename, { type: 'image/png' });
+          await navigator.share({
+            title: 'Tina Balajadia — PRIME Philippines',
+            text: 'Here is the digital business card for Tina Balajadia (PRIME Philippines). Scan the QR code to save to contacts!',
+            files: [file]
+          });
+        } catch (err) {
+          copyText(window.location.href, 'Link copied to share!');
+        }
+      } else {
+        copyText(window.location.href, 'Page link copied to clipboard!');
+      }
+    }
+  </script>
+</body>
+</html>

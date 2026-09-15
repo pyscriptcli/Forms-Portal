@@ -30,7 +30,13 @@ import { AlertCircle } from "lucide-react";
 import { getAdminSettings } from "@/lib/adminSettings";
 
 const getInitialFormData = (): RfpFormData => {
-  const today = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const yyyy = String(now.getFullYear());
+  const today = `${mm}/${dd}/${yyyy}`;
+  const currentTime = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
   const initialItems: RfpLineItem[] = [
     { id: "row-1", description: "", qty: "", unit: "pcs", unitPrice: "", amount: 0 },
     { id: "row-2", description: "", qty: "", unit: "pcs", unitPrice: "", amount: 0 },
@@ -40,10 +46,11 @@ const getInitialFormData = (): RfpFormData => {
   ];
 
   return {
+    rfpCodeSuffix: "0000001",
     date: today,
     dateAccomplished: today,
     dueDate: "",
-    time: "",
+    time: currentTime,
     isUrgentPayment: "no",
     budgetStatus: "within_budget",
     requiredPaymentDate: "",

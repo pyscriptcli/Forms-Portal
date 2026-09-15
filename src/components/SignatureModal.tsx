@@ -9,6 +9,7 @@ interface SignatureModalProps {
   onClose: () => void;
   onSave: (dataUrl: string, type: "draw" | "upload") => void;
   currentSignature?: string;
+  title?: string;
 }
 
 export function SignatureModal({
@@ -16,6 +17,7 @@ export function SignatureModal({
   onClose,
   onSave,
   currentSignature,
+  title = "Add your signature",
 }: SignatureModalProps) {
   const [activeTab, setActiveTab] = useState<"draw" | "upload">("draw");
   const [hasDrawing, setHasDrawing] = useState(false);
@@ -134,7 +136,7 @@ export function SignatureModal({
   };
 
   return (
-    <PrimeDialog open={isOpen} title="Add your signature" onClose={onClose}>
+    <PrimeDialog open={isOpen} title={title} onClose={onClose}>
         {/* Tab Selection */}
         <div className="flex border-b border-prime-rule bg-prime-white">
           <button

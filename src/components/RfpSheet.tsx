@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { RfpFormData, RfpLineItem } from "@/types/rfp";
-import { PrimeLogo } from "./PrimeLogo";
 import { PrimeCheckbox } from "./PrimeCheckbox";
 import { AutoResizeTextarea } from "./AutoResizeTextarea";
 import { SignatureModal } from "./SignatureModal";
+import { PrimeDatePicker } from "./PrimeDatePicker";
 import { PenTool, Trash2, Plus, Check } from "lucide-react";
 
 interface RfpSheetProps {
@@ -18,6 +18,15 @@ interface RfpSheetProps {
 export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [isTlSignatureModalOpen, setIsTlSignatureModalOpen] = useState(false);
+
+  // Auto-fill time on load if not set
+  useEffect(() => {
+    if (!data.time) {
+      const now = new Date();
+      const defaultTime = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      onChange({ ...data, time: defaultTime });
+    }
+  }, []);
 
   const hasError = (key: string) => Boolean(validationErrors?.[key]);
 
@@ -93,7 +102,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
   return (
     <div
       id="rfp-printable-sheet"
-      className="bg-white text-[#0f172a] w-full max-w-[850px] mx-auto p-5 sm:p-7 border border-[#cbd5e1] shadow-md font-sans text-xs select-text print:p-0 print:border-none print:shadow-none"
+      className="bg-white text-[#111111] w-full max-w-[850px] mx-auto p-5 sm:p-7 border border-[#d7d7d7] shadow-md font-serif text-xs select-text print:p-0 print:border-none print:shadow-none"
     >
       {/* ========================================================================= */}
       {/* HEADER AREA */}
@@ -101,28 +110,28 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-2">
         {/* Left: PRIME Logo */}
         <div className="shrink-0 flex items-center">
-          <PrimeLogo className="h-10 sm:h-11 w-auto" />
+          <Image src="/greatwork-logo.png" alt="GreatWork" width={205} height={55} unoptimized className="h-11 w-auto object-contain" />
         </div>
 
         {/* Center: Official Title Box with soft blue background */}
-        <div className="flex-1 w-full sm:w-auto bg-[#D8E6F3] border border-[#B0C8DE] py-2 px-3 text-center">
-          <h1 className="font-bold text-xs sm:text-sm tracking-wide text-[#002B49] uppercase">
+        <div className="flex-1 w-full sm:w-auto bg-[#f9eded] py-2 px-3 text-center">
+          <h1 className="font-bold text-base sm:text-lg tracking-wide text-[#b44155] uppercase">
             REQUEST FOR PAYMENT (RFP)
           </h1>
           <p className="font-bold text-[9px] sm:text-[10px] tracking-wider text-[#002B49] uppercase mt-0.5">
-            PROPERTY INTERACTIVE MARKETING ENTERPRISE REALTY CORPORATION
+            MY GREATWORK SPACES INC.
           </p>
         </div>
       </div>
 
       {/* Right-aligned RFP Document Code */}
       <div className="flex justify-end items-baseline gap-1 mb-2.5 text-xs font-bold text-[#002B49]">
-        <span>RFP-COD-</span>
+        <span>RFP-</span>
         <input
           type="text"
-          value={data.rfpCodeSuffix ?? (data.taskId ? String(data.taskId).replace(/^#/, "") : "")}
+          value={data.rfpCodeSuffix ?? "0000001"}
           onChange={(e) => updateField("rfpCodeSuffix", e.target.value)}
-          placeholder="____________"
+          placeholder="0000001"
           className="border-b border-[#002B49] bg-transparent focus:outline-none w-28 text-xs font-bold text-[#002B49]"
         />
       </div>
@@ -131,7 +140,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       {/* SECTION 1: TIMING OF SUBMISSION */}
       {/* ========================================================================= */}
       <div className="mb-3">
-        <div className="bg-[#D8E6F3] px-2.5 py-1 text-[11px] font-bold text-[#002B49] uppercase tracking-wide">
+        <div className="bg-[#f9eded] px-2.5 py-1 text-[11px] font-bold text-[#b44155] uppercase tracking-wide">
           TIMING OF SUBMISSION
         </div>
         <div className="py-2 px-1">
@@ -139,34 +148,30 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-2">
             <div className="flex items-baseline gap-1">
               <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
-                Date Accomplished (MM/DD/YY):
+                Date Accomplished (MM/DD/YYYY):
               </span>
-              <input
-                type="text"
+              <PrimeDatePicker
                 value={data.dateAccomplished ?? data.date}
-                onChange={(e) => {
-                  updateField("dateAccomplished", e.target.value);
-                  updateField("date", e.target.value);
+                onChange={(val) => {
+                  updateField("dateAccomplished", val);
+                  updateField("date", val);
                 }}
-                className={`border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 min-w-[70px] text-xs px-1 ${
-                  hasError("date") ? "border-red-500 bg-red-50/50" : ""
-                }`}
+                hasError={hasError("date")}
+                className="flex-1 min-w-[70px]"
               />
             </div>
 
             <div className="flex items-baseline gap-1">
               <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
-                Due Date (MM/DD/YY):
+                Due Date (MM/DD/YYYY):
               </span>
-              <input
-                type="text"
+              <PrimeDatePicker
                 value={data.dueDate ?? data.dateNeeded ?? ""}
-                onChange={(e) => {
-                  updateField("dueDate", e.target.value);
-                  updateField("dateNeeded", e.target.value);
+                onChange={(val) => {
+                  updateField("dueDate", val);
+                  updateField("dateNeeded", val);
                 }}
-                placeholder=""
-                className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 min-w-[70px] text-xs px-1"
+                className="flex-1 min-w-[70px]"
               />
             </div>
 
@@ -229,7 +234,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       {/* SECTION 2: URGENT REQUEST DETAILS */}
       {/* ========================================================================= */}
       <div className="mb-3">
-        <div className="bg-[#D8E6F3] px-2.5 py-1 text-[11px] font-bold text-[#002B49] tracking-wide">
+        <div className="bg-[#f9eded] px-2.5 py-1 text-[11px] font-bold text-[#b44155] tracking-wide">
           <span className="uppercase">URGENT REQUEST DETAILS</span>{" "}
           <span className="italic font-normal text-[10px] text-[#002B49]">
             (complete only if Urgent for Payment)
@@ -239,13 +244,12 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
           {/* Required Payment Date line */}
           <div className="flex items-baseline gap-1.5 mb-2.5">
             <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
-              Required Payment Date (MM/DD/YY):
+              Required Payment Date (MM/DD/YYYY):
             </span>
-            <input
-              type="text"
+            <PrimeDatePicker
               value={data.requiredPaymentDate ?? ""}
-              onChange={(e) => updateField("requiredPaymentDate", e.target.value)}
-              className="border-b border-[#0f172a] bg-transparent focus:outline-none w-44 text-xs px-1"
+              onChange={(val) => updateField("requiredPaymentDate", val)}
+              className="w-44"
             />
           </div>
 
@@ -286,7 +290,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       {/* SECTION 3: VENDOR */}
       {/* ========================================================================= */}
       <div className="mb-3">
-        <div className="bg-[#D8E6F3] px-2.5 py-1 text-[11px] font-bold text-[#002B49] uppercase tracking-wide">
+        <div className="bg-[#f9eded] px-2.5 py-1 text-[11px] font-bold text-[#b44155] uppercase tracking-wide">
           VENDOR
         </div>
         <div className="py-2 px-1 flex items-baseline gap-2">
@@ -316,7 +320,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
         <div className="overflow-x-auto">
           <table className="w-full border-collapse border border-[#334155] text-xs">
             <thead>
-              <tr className="bg-[#D8E6F3] text-[#002B49] font-bold text-[11px]">
+              <tr className="bg-[#f9eded] text-[#333333] font-bold text-[11px]">
                 <th className="border border-[#334155] px-2 py-1 text-center font-bold">
                   Item / Description
                 </th>
@@ -437,7 +441,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       {/* SECTION 5: PURPOSE OF REQUEST / BUSINESS JUSTIFICATION */}
       {/* ========================================================================= */}
       <div className="mb-3">
-        <div className="bg-[#D8E6F3] px-2.5 py-1 text-[11px] font-bold text-[#002B49] uppercase tracking-wide">
+        <div className="bg-[#f9eded] px-2.5 py-1 text-[11px] font-bold text-[#b44155] uppercase tracking-wide">
           PURPOSE OF REQUEST / BUSINESS JUSTIFICATION
         </div>
         <div className="py-2 px-1">
@@ -459,7 +463,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       {/* SECTION 6: SUPPORTING DOCUMENTS ATTACHED */}
       {/* ========================================================================= */}
       <div className="mb-3">
-        <div className="bg-[#D8E6F3] px-2.5 py-1 text-[11px] font-bold text-[#002B49] uppercase tracking-wide">
+        <div className="bg-[#f9eded] px-2.5 py-1 text-[11px] font-bold text-[#b44155] uppercase tracking-wide">
           SUPPORTING DOCUMENTS ATTACHED
         </div>
         <div className="py-2 px-1 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
@@ -526,7 +530,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       {/* SECTION 7: PAYEE DETAILS & MODE OF PAYMENT */}
       {/* ========================================================================= */}
       <div className="mb-3">
-        <div className="bg-[#D8E6F3] px-2.5 py-1 text-[11px] font-bold text-[#002B49] uppercase tracking-wide">
+        <div className="bg-[#f9eded] px-2.5 py-1 text-[11px] font-bold text-[#b44155] uppercase tracking-wide">
           PAYEE DETAILS & MODE OF PAYMENT
         </div>
         <div className="py-2 px-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -618,7 +622,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       {/* SECTION 8: REQUESTOR & AUTHORIZED SIGNATORIES */}
       {/* ========================================================================= */}
       <div className="mb-3">
-        <div className="bg-[#D8E6F3] px-2.5 py-1 text-[11px] font-bold text-[#002B49] uppercase tracking-wide">
+        <div className="bg-[#f9eded] px-2.5 py-1 text-[11px] font-bold text-[#b44155] uppercase tracking-wide">
           REQUESTOR & AUTHORIZED SIGNATORIES
         </div>
         <div className="py-2 px-1 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
@@ -673,13 +677,12 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
 
             <div className="flex items-baseline gap-1.5">
               <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
-                Date (MM/DD/YY):
+                Date (MM/DD/YYYY):
               </span>
-              <input
-                type="text"
+              <PrimeDatePicker
                 value={data.requestorDate ?? data.date}
-                onChange={(e) => updateField("requestorDate", e.target.value)}
-                className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
+                onChange={(val) => updateField("requestorDate", val)}
+                className="flex-1"
               />
             </div>
           </div>
@@ -714,19 +717,52 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
                   updateField("tlSignatureName", e.target.value);
                   updateField("approvedByName", e.target.value);
                 }}
+                placeholder="Printed Name"
                 className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
               />
             </div>
 
+            {/* TL Signature E-Sig Pad / Draw / Upload Preview */}
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                TL Signature:
+              </span>
+              <div className="flex-1 flex items-center justify-between border-b border-[#0f172a] pb-0.5 min-h-[32px]">
+                {data.tlSignatureDataUrl ? (
+                  <div className="flex items-center gap-2">
+                    <img
+                      src={data.tlSignatureDataUrl}
+                      alt="TL Signature"
+                      className="h-8 max-w-[150px] object-contain"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setIsTlSignatureModalOpen(true)}
+                      className="text-[10px] text-[#003366] underline print:hidden"
+                    >
+                      Change
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsTlSignatureModalOpen(true)}
+                    className="text-[11px] text-[#003366] hover:underline flex items-center gap-1 py-1 font-medium print:hidden"
+                  >
+                    <PenTool size={12} /> Click to Sign / Upload
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="flex items-baseline gap-1.5">
               <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
-                Date (MM/DD/YY):
+                Date (MM/DD/YYYY):
               </span>
-              <input
-                type="text"
+              <PrimeDatePicker
                 value={data.tlSignatureDate ?? ""}
-                onChange={(e) => updateField("tlSignatureDate", e.target.value)}
-                className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
+                onChange={(val) => updateField("tlSignatureDate", val)}
+                className="flex-1"
               />
             </div>
           </div>
@@ -738,7 +774,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       {/* ========================================================================= */}
       <div className="mb-2">
         <div className="border border-[#334155]">
-          <div className="bg-[#D8E6F3] px-2.5 py-1 text-[11px] font-bold text-[#002B49] uppercase tracking-wide border-b border-[#334155]">
+          <div className="bg-[#f9eded] px-2.5 py-1 text-[11px] font-bold text-[#b44155] uppercase tracking-wide border-b border-[#334155]">
             TO BE FILLED OUT BY FINANCE / ACCOUNTING ONLY
           </div>
 
@@ -803,20 +839,18 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
             {/* Row: Received Date | Payment Release Date */}
             <div className="p-1.5 border-b sm:border-r border-[#334155] flex items-baseline gap-1.5">
               <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">Received Date:</span>
-              <input
-                type="text"
+              <PrimeDatePicker
                 value={data.financeReceivedDate ?? ""}
-                onChange={(e) => updateField("financeReceivedDate", e.target.value)}
-                className="border-b border-[#cbd5e1] bg-transparent focus:outline-none flex-1 text-xs px-1"
+                onChange={(val) => updateField("financeReceivedDate", val)}
+                className="flex-1"
               />
             </div>
             <div className="p-1.5 border-b border-[#334155] flex items-baseline gap-1.5">
               <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">Payment Release Date (Urgent Request):</span>
-              <input
-                type="text"
+              <PrimeDatePicker
                 value={data.financePaymentReleaseDateUrgent ?? ""}
-                onChange={(e) => updateField("financePaymentReleaseDateUrgent", e.target.value)}
-                className="border-b border-[#cbd5e1] bg-transparent focus:outline-none flex-1 text-xs px-1"
+                onChange={(val) => updateField("financePaymentReleaseDateUrgent", val)}
+                className="flex-1"
               />
             </div>
 
@@ -843,11 +877,10 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
             {/* Row: Date Reviewed | Approved By */}
             <div className="p-1.5 border-b sm:border-r border-[#334155] flex items-baseline gap-1.5">
               <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">Date Reviewed:</span>
-              <input
-                type="text"
+              <PrimeDatePicker
                 value={data.financeDateReviewed ?? ""}
-                onChange={(e) => updateField("financeDateReviewed", e.target.value)}
-                className="border-b border-[#cbd5e1] bg-transparent focus:outline-none flex-1 text-xs px-1"
+                onChange={(val) => updateField("financeDateReviewed", val)}
+                className="flex-1"
               />
             </div>
             <div className="p-1.5 border-b border-[#334155] flex items-baseline gap-1.5">
@@ -863,7 +896,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
               />
             </div>
 
-            {/* Row: Remarks | Date (MM/DD/YY) */}
+            {/* Row: Remarks | Date (MM/DD/YYYY) */}
             <div className="p-1.5 sm:border-r border-[#334155] flex items-baseline gap-1.5">
               <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">Remarks:</span>
               <input
@@ -877,12 +910,11 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
               />
             </div>
             <div className="p-1.5 flex items-baseline gap-1.5">
-              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">Date (MM/DD/YY):</span>
-              <input
-                type="text"
+              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">Date (MM/DD/YYYY):</span>
+              <PrimeDatePicker
                 value={data.financeDate ?? ""}
-                onChange={(e) => updateField("financeDate", e.target.value)}
-                className="border-b border-[#cbd5e1] bg-transparent focus:outline-none flex-1 text-xs px-1"
+                onChange={(val) => updateField("financeDate", val)}
+                className="flex-1"
               />
             </div>
           </div>
@@ -894,7 +926,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
         </p>
       </div>
 
-      {/* Signature Modal */}
+      {/* Requestor Signature Modal */}
       <SignatureModal
         isOpen={isSignatureModalOpen}
         onClose={() => setIsSignatureModalOpen(false)}
@@ -903,6 +935,19 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
           updateField("signatureType", type);
         }}
         currentSignature={data.signatureDataUrl}
+        title="Requestor Electronic Signature"
+      />
+
+      {/* Approver / TL Signature Modal */}
+      <SignatureModal
+        isOpen={isTlSignatureModalOpen}
+        onClose={() => setIsTlSignatureModalOpen(false)}
+        onSave={(dataUrl) => {
+          updateField("tlSignatureDataUrl", dataUrl);
+          updateField("approvedBySignature", dataUrl);
+        }}
+        currentSignature={data.tlSignatureDataUrl}
+        title="Approver / Team Leader Electronic Signature"
       />
     </div>
   );

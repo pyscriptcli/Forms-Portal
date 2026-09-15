@@ -22,6 +22,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Local visual QA can use /form?preview=1 without requiring ClickUp OAuth.
+    const isLocalPreview = new URLSearchParams(window.location.search).get("preview") === "1";
+    if (isLocalPreview && process.env.NODE_ENV !== "production") {
+      setUser({ id: "local-preview", username: "Local Preview", email: "preview@local.test" });
+      setIsLoading(false);
+      return;
+    }
+
     // 1. Fast check client-side cookie
     const getCookie = (name: string) => {
       const value = `; ${document.cookie}`;
