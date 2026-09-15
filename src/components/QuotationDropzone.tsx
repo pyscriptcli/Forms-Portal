@@ -4,7 +4,7 @@ import React, { useRef, useState } from "react";
 import { Sparkles, UploadCloud, AlertCircle, X } from "lucide-react";
 import { RfpFormData } from "@/types/rfp";
 import { convertPdfToImage } from "@/lib/pdfToImage";
-import { MAX_UPLOAD_FILE_BYTES } from "@/lib/submissionUploads";
+import { MAX_DIRECT_UPLOAD_FILE_BYTES } from "@/lib/submissionUploads";
 
 interface QuotationDropzoneProps {
   onDataExtracted: (extractedData: Partial<RfpFormData>, file: File) => void;
@@ -28,7 +28,7 @@ export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
     let fileToUpload: File = file;
 
     try {
-      if (file.size > MAX_UPLOAD_FILE_BYTES) {
+      if (file.size > MAX_DIRECT_UPLOAD_FILE_BYTES) {
         throw new Error(`${file.name} exceeds the 4 MB supporting-file upload limit. Choose a smaller quotation to scan and attach.`);
       }
       if (isPdf) {

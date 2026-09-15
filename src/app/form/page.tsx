@@ -21,7 +21,7 @@ import { SubmissionModal } from "@/components/SubmissionModal";
 import { SubmissionLoadingModal, SubmissionStage } from "@/components/SubmissionLoadingModal";
 import { ValidationAlertBanner } from "@/components/ValidationAlertBanner";
 import { generateRfpPdf, downloadPdfBlob } from "@/lib/pdfGenerator";
-import { assertUploadSizes, uploadSubmissionFiles, type UploadEntry, MAX_UPLOAD_FILE_BYTES } from "@/lib/submissionUploads";
+import { assertUploadSizes, uploadSubmissionFiles, type UploadEntry, MAX_DIRECT_UPLOAD_FILE_BYTES } from "@/lib/submissionUploads";
 import {
   validateRfpForm,
   ValidationResult,
@@ -545,7 +545,7 @@ function RfpAppContent() {
       // The generator uses a compressed JPEG internally to avoid exceeding the
       // serverless multipart request limit while preserving the form layout.
       let { blob: pdfBlob } = await generateRfpPdf(elementId);
-      if (pdfBlob.size > MAX_UPLOAD_FILE_BYTES) {
+      if (pdfBlob.size > MAX_DIRECT_UPLOAD_FILE_BYTES) {
         ({ blob: pdfBlob } = await generateRfpPdf(elementId, { quality: 0.68, pixelRatio: 1.1 }));
       }
       setLastGeneratedPdf(pdfBlob);
@@ -577,7 +577,7 @@ function RfpAppContent() {
       submissionData.append("formType", selectedForm);
       const dataPayload = JSON.stringify(sanitizedFormData);
       submissionData.append("data", dataPayload);
-      if (new Blob([dataPayload]).size > MAX_UPLOAD_FILE_BYTES) {
+      if (new Blob([dataPayload]).size > MAX_DIRECT_UPLOAD_FILE_BYTES) {
         throw new Error("The form data is too large to submit. Reduce embedded signature image size.");
       }
 

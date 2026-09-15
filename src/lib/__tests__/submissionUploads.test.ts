@@ -46,7 +46,25 @@ describe("split ClickUp attachment uploads", () => {
     vi.stubGlobal("fetch", fetchMock);
     const file = new File([new Uint8Array(MAX_UPLOAD_FILE_BYTES + 1)], "large.pdf");
     await expect(uploadSubmissionFiles("task-123", [{ key: "large", file }], new Set(), vi.fn()))
-      .rejects.toThrow("large.pdf exceeds the 4 MB");
+      .rejects.toThrow("large.pdf exceeds the 50 MB");
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("stages a large file in Supabase before relaying it to ClickUp", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ success: true, signedUrl: "https://storage.test/upload", token: "signed-token", path: "staging/file.pdf" }),
+      })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({}) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ success: true }) });
+    vi.stubGlobal("fetch", fetchMock);
+    const file = new File([new Uint8Array(5 * 1024 * 1024)], "large.pdf", { type: "application/pdf" });
+    await uploadSubmissionFiles("task-123", [{ key: "large", file }], new Set(), vi.fn());
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/rfp/upload-sign");
+    expect(fetchMock.mock.calls[1][0]).toContain("token=signed-token");
+    expect(fetchMock.mock.calls[2][0]).toBe("/api/rfp/relay-attachment");
   });
 });

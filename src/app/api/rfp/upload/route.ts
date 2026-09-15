@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchClickUpUser, getServerAuthSession } from "@/lib/auth";
 import { getClickUpTask, uploadAttachmentToTask } from "@/lib/clickup";
+import { MAX_DIRECT_UPLOAD_FILE_BYTES } from "@/lib/submissionUploads";
 
 export const maxDuration = 60;
-
-const MAX_FILE_BYTES = 4 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
   const { accessToken } = await getServerAuthSession();
@@ -13,7 +12,7 @@ export async function POST(req: NextRequest) {
   }
 
   const contentLength = Number(req.headers.get("content-length") || 0);
-  if (contentLength > MAX_FILE_BYTES + 128 * 1024) {
+  if (contentLength > MAX_DIRECT_UPLOAD_FILE_BYTES + 128 * 1024) {
     return NextResponse.json({ success: false, message: "This file exceeds the 4 MB upload limit." }, { status: 413 });
   }
 
@@ -25,7 +24,7 @@ export async function POST(req: NextRequest) {
     if (!taskId || !(file instanceof File) || file.size === 0) {
       return NextResponse.json({ success: false, message: "A task ID and nonempty file are required." }, { status: 400 });
     }
-    if (file.size > MAX_FILE_BYTES) {
+    if (file.size > MAX_DIRECT_UPLOAD_FILE_BYTES) {
       return NextResponse.json({ success: false, message: "This file exceeds the 4 MB upload limit." }, { status: 413 });
     }
 

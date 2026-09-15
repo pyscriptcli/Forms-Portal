@@ -3,7 +3,7 @@
 import React, { useRef, useState } from "react";
 import { Paperclip, UploadCloud, Trash2, FileText, Image as ImageIcon, Eye } from "lucide-react";
 import { SupportingFile } from "@/types/rfp";
-import { MAX_UPLOAD_FILE_BYTES } from "@/lib/submissionUploads";
+import { MAX_DIRECT_UPLOAD_FILE_BYTES, MAX_UPLOAD_FILE_BYTES } from "@/lib/submissionUploads";
 
 interface SupportingDocumentsProps {
   files: SupportingFile[];
@@ -29,7 +29,7 @@ export function SupportingDocuments({
     const selected = Array.from(selectedFiles);
     const oversized = selected.find((file) => file.size > MAX_UPLOAD_FILE_BYTES);
     if (oversized) {
-      setSelectionError(`${oversized.name} exceeds the 4 MB per-file upload limit.`);
+      setSelectionError(`${oversized.name} exceeds the 50 MB per-file upload limit.`);
       return;
     }
     setSelectionError(null);
@@ -146,7 +146,7 @@ export function SupportingDocuments({
           Click to upload or drag & drop supporting files here
         </p>
         <p className="text-xs text-prime-ink mt-1">
-          Supports PDF, PNG, JPG, and DOCX (up to 4 MB per file)
+          Supports PDF, PNG, JPG, and DOCX (up to 50 MB per file). Large files use secure cloud staging.
         </p>
         {selectionError && <p role="alert" className="mt-2 text-xs text-red-700">{selectionError}</p>}
         <input
@@ -181,6 +181,7 @@ export function SupportingDocuments({
                   </p>
                   <p className="text-[11px] text-prime-ink font-sans tabular-nums">
                     {formatFileSize(file.size)}
+                    {file.size > MAX_DIRECT_UPLOAD_FILE_BYTES && <span className="ml-2 text-prime-blue">Cloud staging</span>}
                   </p>
                 </div>
               </div>
