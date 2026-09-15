@@ -15,6 +15,7 @@ import { RfpSheet } from "@/components/RfpSheet";
 import { PoSheet } from "@/components/PoSheet";
 import { PcvSheet } from "@/components/PcvSheet";
 import { PageHeader } from "@/components/PageHeader";
+import { FormSelect } from "@/components/FormSelect";
 import { Toolbar } from "@/components/Toolbar";
 import { QuotationDropzone } from "@/components/QuotationDropzone";
 import { ExtractionBanner } from "@/components/ExtractionBanner";
@@ -690,22 +691,16 @@ function RfpAppContent() {
           title="Forms"
           description="Complete your form, attach supporting documents, and submit for review."
           actions={
-            <select
+            <FormSelect
               id="active-form-selector"
               value={selectedForm}
-              onChange={(e) => {
-                setSelectedForm(e.target.value as "rfp" | "po" | "pcv");
+              onChange={(newForm) => {
+                setSelectedForm(newForm);
                 setValidationErrors({});
                 setMissingFieldsList([]);
                 setErrorMessage(null);
               }}
-              className="prime-field"
-              aria-label="Select form type"
-            >
-              <option value="rfp">Request for Payment</option>
-              <option value="po">Purchase Order</option>
-              <option value="pcv">Petty Cash Voucher</option>
-            </select>
+            />
           }
         />
         {/* Form controls */}

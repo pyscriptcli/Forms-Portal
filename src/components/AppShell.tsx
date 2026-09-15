@@ -2,42 +2,38 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ClipboardList,
   Inbox,
   CheckSquare,
-  ChevronRight,
-  ChevronLeft,
-  LogOut,
   Menu,
-  X,
   Plus,
+  X,
 } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import { GlobalSearch } from "./GlobalSearch";
+import { Sidebar, NavItem } from "./Sidebar";
+import { isAdminAuthenticated } from "@/lib/adminSettings";
 
-interface SidebarItem {
-  key: string;
-  label: string;
-  href: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-}
-
-const SIDEBAR_ITEMS: SidebarItem[] = [
-  { key: "forms", label: "Forms", href: "/form", icon: ClipboardList },
-  { key: "requests", label: "Requests", href: "/requests", icon: Inbox },
-  { key: "approvals", label: "Approvals", href: "/approvals", icon: CheckSquare },
+const NAV_ITEMS: NavItem[] = [
+  { id: "forms", label: "Forms", icon: ClipboardList },
+  { id: "requests", label: "Requests", icon: Inbox },
+  { id: "approvals", label: "Approvals", icon: CheckSquare },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isLoading, signOut } = useAuth();
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const isAuthRoute = pathname.startsWith("/auth/");
+
+  useEffect(() => {
+    setIsAdmin(isAdminAuthenticated());
+  }, [pathname]);
 
   useEffect(() => {
     if (!isLoading && !user && !isAuthRoute) {
@@ -67,9 +63,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const getActiveKey = () => {
     if (pathname.startsWith("/form")) return "forms";
     if (pathname.startsWith("/approvals")) return "approvals";
+    if (pathname.startsWith("/admin")) return "settings";
     return "requests";
   };
   const activeKey = getActiveKey();
+
+  const handleSelectView = (view: string) => {
+    setMobileOpen(false);
+    if (view === "forms") router.push("/form");
+    else if (view === "approvals") router.push("/approvals");
+    else if (view === "settings") router.push("/admin");
+    else router.push("/requests");
+  };
 
   const userName = user.username || "Dave Policarpio";
   const userEmail = user.email || "dave.policarpio@primephilippines.com";
@@ -77,182 +82,73 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div>
       <a href="#workspace" className="prime-button prime-skip-link">Skip to content</a>
+
+      {/* Mobile Drawer Overlay */}
       {mobileOpen && (
-        <button
-          className="prime-dialog-backdrop md:hidden"
-          aria-label="Close navigation overlay"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      {/* Collapsible Sidebar Matching Screenshot */}
-      <aside
-        id="portal-navigation"
-        className="prime-sidebar"
-        data-open={mobileOpen}
-        data-expanded={!collapsed}
-      >
-        {/* Mobile close button */}
-        <button
-          className="prime-mobile-close prime-icon-button md:hidden"
-          aria-label="Close navigation"
-          onClick={() => setMobileOpen(false)}
-        >
-          <X size={18} />
-        </button>
-
-        {/* Top Header: Logo + Collapse Button */}
-        <div className="h-12 border-b border-prime-rule flex items-center justify-between px-3">
-          {!collapsed ? (
-            <>
-              <Link href="/requests" className="flex items-center pl-1">
-                <Image
-                  src="/prime-white-logo.png"
-                  alt="PRIME Philippines"
-                  width={110}
-                  height={24}
-                  className="h-6 w-auto object-contain"
-                  priority
-                />
-              </Link>
-              <button
-                type="button"
-                onClick={() => setCollapsed(true)}
-                className="w-7 h-7 flex items-center justify-center text-prime-white/70 hover:text-prime-white rounded-none cursor-pointer transition-colors"
-                title="Collapse sidebar"
-                aria-label="Collapse sidebar"
-              >
-                <ChevronLeft size={16} />
-              </button>
-            </>
-          ) : (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <button
+            type="button"
+            className="fixed inset-0 bg-[#0B2545]/70 backdrop-blur-xs cursor-pointer border-none"
+            aria-label="Close navigation overlay"
+            onClick={() => setMobileOpen(false)}
+          />
+          <div className="relative z-10 w-64 h-full">
+            <Sidebar
+              currentView={activeKey}
+              onSelectView={handleSelectView}
+              user={{
+                username: userName,
+                email: userEmail,
+                profilePicture: user.profilePicture || "/dave-avatar.png",
+                workspaceName: "COLLABORATE@PRIME",
+              }}
+              isAdmin={isAdmin}
+              onSignOut={signOut}
+              items={NAV_ITEMS}
+              isPinned={true}
+              className="!w-64"
+            />
             <button
               type="button"
-              onClick={() => setCollapsed(false)}
-              className="w-full h-full flex items-center justify-center text-prime-white/70 hover:text-prime-white rounded-none cursor-pointer transition-colors"
-              title="Expand sidebar"
-              aria-label="Expand sidebar"
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close navigation menu"
+              className="absolute top-3 right-3 text-white/80 hover:text-white p-1"
             >
-              <ChevronRight size={18} />
+              <X size={18} />
             </button>
-          )}
-        </div>
-
-        {/* Navigation Items List */}
-        <nav className="py-2 px-1.5 space-y-1 overflow-y-auto flex-1 flex flex-col justify-start" aria-label="Main navigation">
-          {SIDEBAR_ITEMS.map(({ key, label, href, icon: Icon }) => {
-            const isActive = activeKey === key;
-            return (
-              <Link
-                key={key}
-                href={href}
-                onClick={() => setMobileOpen(false)}
-                title={label}
-                aria-current={isActive ? "page" : undefined}
-                className={`flex items-center gap-3 transition-colors shrink-0 h-10 ${
-                  collapsed
-                    ? `w-10 mx-auto justify-center ${
-                        isActive
-                          ? "border-l-2 border-prime-gold bg-[#0B3C68] text-prime-gold"
-                          : "border-l-2 border-transparent text-prime-white/80 hover:text-prime-white hover:bg-prime-white/5"
-                      }`
-                    : `px-3 text-xs font-normal ${
-                        isActive
-                          ? "border-l-2 border-prime-gold bg-[#0B3C68] text-prime-gold font-medium"
-                          : "border-l-2 border-transparent text-prime-white/85 hover:text-prime-white hover:bg-prime-white/5"
-                      }`
-                }`}
-              >
-                <Icon size={18} aria-hidden="true" className={isActive ? "text-prime-gold" : "text-prime-white/80"} />
-                {!collapsed && <span className="truncate">{label}</span>}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Bottom Section Matching Screenshot */}
-        <div className="mt-auto border-t border-prime-rule flex flex-col">
-          {/* Workspace label or ClickUp badge */}
-          {!collapsed ? (
-            <div className="px-3 py-2 flex items-center justify-between text-[10px] tracking-wider font-bold">
-              <span className="text-prime-gold flex items-center gap-1">
-                <span>■</span> COLLABORATE@PRIME
-              </span>
-              <span className="text-prime-white/40 text-[9px] uppercase font-normal">WORKSPACE</span>
-            </div>
-          ) : (
-            <div className="py-2 flex items-center justify-center">
-              <div
-                className="w-7 h-7 border border-prime-gold text-prime-gold text-[11px] font-bold flex items-center justify-center"
-                title="ClickUp Connected"
-              >
-                C
-              </div>
-            </div>
-          )}
-
-          {/* Divider */}
-          <div className="border-t border-prime-rule" />
-
-          {/* User Profile Tile with Avatar and Signout */}
-          <div className="p-2">
-            {!collapsed ? (
-              <div className="flex items-center justify-between gap-2 px-1">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Image
-                    src="/dave-avatar.png"
-                    alt={userName}
-                    width={32}
-                    height={32}
-                    className="w-8 h-8 rounded-none border border-prime-white/20 object-cover shrink-0"
-                  />
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-prime-white truncate">{userName}</p>
-                    <p className="text-[10px] text-prime-white/50 truncate">{userEmail}</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={signOut}
-                  title="Sign out"
-                  className="text-prime-white/60 hover:text-prime-white p-1 shrink-0 cursor-pointer"
-                >
-                  <LogOut size={15} />
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-1.5 py-1">
-                <Image
-                  src="/dave-avatar.png"
-                  alt={userName}
-                  width={28}
-                  height={28}
-                  className="w-7 h-7 rounded-none border border-prime-white/20 object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={signOut}
-                  title={`Sign out (${userName})`}
-                  className="text-prime-white/60 hover:text-prime-white p-1 cursor-pointer"
-                >
-                  <LogOut size={14} />
-                </button>
-              </div>
-            )}
           </div>
         </div>
-      </aside>
+      )}
 
-      {/* Main app workspace container */}
+      {/* Desktop Reusable Sidebar */}
+      <div className="hidden md:block">
+        <Sidebar
+          currentView={activeKey}
+          onSelectView={handleSelectView}
+          user={{
+            username: userName,
+            email: userEmail,
+            profilePicture: user.profilePicture || "/dave-avatar.png",
+            workspaceName: "COLLABORATE@PRIME",
+          }}
+          isAdmin={isAdmin}
+          onSignOut={signOut}
+          items={NAV_ITEMS}
+          onExpandedChange={(expanded) => setIsSidebarExpanded(expanded)}
+        />
+      </div>
+
+      {/* Main app workspace container - Resizes smoothly beside sidebar without clipping */}
       <div
         className="prime-app-content"
-        data-sidebar-expanded={!collapsed}
+        data-sidebar-expanded={isSidebarExpanded}
       >
         {/* Compact 44px Topbar */}
         <header className="prime-topbar">
           <div className="flex items-center gap-3">
             <button
-              className="prime-mobile-toggle prime-icon-button md:hidden h-8 w-8 min-h-0 min-w-0"
+              type="button"
+              className="prime-mobile-toggle prime-icon-button md:hidden h-8 w-8 min-h-0 min-w-0 flex items-center justify-center cursor-pointer"
               onClick={() => setMobileOpen(true)}
               aria-label="Open navigation"
               aria-expanded={mobileOpen}
@@ -288,5 +184,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
-

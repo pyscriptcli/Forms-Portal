@@ -26,21 +26,20 @@ vi.mock("@/components/GlobalSearch", () => ({
 import { AppShell } from "@/components/AppShell";
 
 describe("AppShell", () => {
-  it("renders only Forms, Requests, and Approvals nav links in the sidebar", () => {
+  it("renders only Forms, Requests, and Approvals nav items in the sidebar", () => {
     render(<AppShell><div>content</div></AppShell>);
-    expect(screen.getByRole("link", { name: /^forms$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^requests$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^approvals$/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /^forms$/i })[0]).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /^requests$/i })[0]).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /^approvals$/i })[0]).toBeInTheDocument();
 
     // Verify removed mock navigation links
-    expect(screen.queryByRole("link", { name: /^dashboard$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /^tasks$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /^notebook$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /^meetings$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /^notetaker$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /^market insights$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /^demands$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /^settings$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^dashboard$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^tasks$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^notebook$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^meetings$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^notetaker$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^market insights$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^demands$/i })).not.toBeInTheDocument();
   });
 
   it("renders New Request action link in topbar", () => {
@@ -54,8 +53,8 @@ describe("AppShell", () => {
     expect(screen.queryByRole("button", { name: /refresh page/i })).not.toBeInTheDocument();
   });
 
-  it("renders the collapsible sidebar toggle button", () => {
+  it("renders the sidebar pin/unpin toggle button", () => {
     render(<AppShell><div>content</div></AppShell>);
-    expect(screen.getByRole("button", { name: /expand sidebar|collapse sidebar/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /pin sidebar|unpin sidebar/i })[0]).toBeInTheDocument();
   });
 });
