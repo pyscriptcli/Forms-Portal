@@ -44,6 +44,16 @@ describe("QuotationDropzone", () => {
     expect(screen.queryByText(/Quotation file is too large/i)).not.toBeInTheDocument();
   });
 
+  it("shows only percentage progress while scanning", async () => {
+    global.fetch = vi.fn().mockReturnValue(new Promise(() => {})) as any;
+    render(<QuotationDropzone onDataExtracted={vi.fn()} />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(["dummy"], "quote.jpg", { type: "image/jpeg" })] } });
+    await waitFor(() => expect(screen.getAllByRole("progressbar").length).toBeGreaterThan(0));
+    expect(screen.queryByText(/Analyzing quotation layout/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Analyzing Quote/i)).not.toBeInTheDocument();
+  });
+
   it("populates extracted data when API returns success", async () => {
     const mockOnExtracted = vi.fn();
     const mockData = {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { Sparkles, UploadCloud, Loader2, AlertCircle, X } from "lucide-react";
+import { Sparkles, UploadCloud, AlertCircle, X } from "lucide-react";
 import { RfpFormData } from "@/types/rfp";
 import { convertPdfToImage } from "@/lib/pdfToImage";
 
@@ -11,12 +11,13 @@ interface QuotationDropzoneProps {
 
 export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
   const [isScanning, setIsScanning] = useState(false);
-  const [scanStatus, setScanStatus] = useState<string | null>(null);
+  const [scanProgress, setScanProgress] = useState(0);
   const [scanError, setScanError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const processFile = async (file: File) => {
     setIsScanning(true);
+    setScanProgress(8);
     setScanError(null);
 
     const isPdf =
@@ -27,15 +28,12 @@ export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
 
     try {
       if (isPdf) {
-        setScanStatus("Converting PDF pages to high-resolution image (up to 3 pages)...");
         try {
           fileToUpload = await convertPdfToImage(file, {
             maxPages: 3,
             maxWidth: 1600,
             quality: 0.85,
-            onProgress: (p) => {
-              setScanStatus(p.status);
-            },
+            onProgress: (p) => setScanProgress(p.totalPages ? Math.min(55, 10 + Math.round((p.currentPage / p.totalPages) * 45)) : 12),
           });
         } catch (pdfErr: any) {
           console.warn("Client-side PDF conversion error, falling back to direct PDF upload:", pdfErr);
@@ -44,7 +42,7 @@ export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
         }
       }
 
-      setScanStatus("Analyzing quotation layout (Free Parser & Vision AI)...");
+      setScanProgress(65);
 
       const formData = new FormData();
       formData.append("file", fileToUpload);
@@ -74,27 +72,18 @@ export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
         throw new Error(json.message || "Failed to extract quotation data.");
       }
 
-      const sourceLabel =
-        json.source === "free_parser"
-          ? "via Free Local Parser"
-          : json.source === "deepseek_vision"
-          ? "via DeepSeek Vision"
-          : json.source === "gemini_vision"
-          ? "via Gemini Vision"
-          : "";
+      setScanProgress(100);
 
-      setScanStatus(`Quotation data extracted ${sourceLabel} successfully!`);
       setTimeout(() => {
         // Keep original PDF file as the form's supporting attachment
         onDataExtracted(json.data, file);
         setIsScanning(false);
-        setScanStatus(null);
       }, 400);
     } catch (err: any) {
       console.error("Extraction error:", err);
       setScanError(err.message || "Error scanning quotation document.");
       setIsScanning(false);
-      setScanStatus(null);
+      setScanProgress(0);
     }
   };
 
@@ -141,10 +130,7 @@ export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
             className="h-8 px-4 text-xs font-medium text-prime-blue bg-prime-white hover:bg-prime-blue hover:text-prime-white border border-prime-blue flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
           >
             {isScanning ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-prime-blue" />
-                <span>Analyzing Quote...</span>
-              </>
+              <ProgressCircle percent={scanProgress} size={20} />
             ) : (
               <>
                 <UploadCloud className="w-3.5 h-3.5 text-prime-blue" />
@@ -168,9 +154,8 @@ export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
 
       {/* Live Scan Status Banner */}
       {isScanning && (
-        <div className="mt-2 p-2 bg-prime-white border border-prime-rule flex items-center justify-center gap-2 text-xs font-medium text-prime-blue animate-pulse">
-          <Loader2 className="w-3.5 h-3.5 animate-spin text-prime-blue" />
-          <span>{scanStatus}</span>
+        <div className="mt-2 p-2 bg-prime-white border border-prime-rule flex items-center justify-center text-xs font-medium text-prime-blue" aria-label={`Scanning quotation ${scanProgress}%`}>
+          <ProgressCircle percent={scanProgress} size={42} />
         </div>
       )}
 
@@ -193,4 +178,17 @@ export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
       )}
     </div>
   );
+}
+
+function ProgressCircle({ percent, size }: { percent: number; size: number }) {
+  const radius = 16;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (Math.max(0, Math.min(100, percent)) / 100) * circumference;
+  return <span className="relative inline-flex items-center justify-center" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-label={`${percent}%`} style={{ width: size, height: size }}>
+    <svg viewBox="0 0 40 40" className="absolute inset-0 -rotate-90" aria-hidden="true">
+      <circle cx="20" cy="20" r={radius} fill="none" stroke="currentColor" strokeOpacity=".18" strokeWidth="3" />
+      <circle cx="20" cy="20" r={radius} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset} />
+    </svg>
+    <span className="relative text-[9px] font-semibold leading-none">{percent}%</span>
+  </span>;
 }
