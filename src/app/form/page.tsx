@@ -29,6 +29,16 @@ import {
 import { AlertCircle } from "lucide-react";
 import { getAdminSettings } from "@/lib/adminSettings";
 
+const RFP_SEQUENCE_STORAGE_KEY = "prime_rfp_sequence";
+
+function getNextRfpSequence() {
+  if (typeof window === "undefined") return "0000001";
+  const current = Number(window.localStorage.getItem(RFP_SEQUENCE_STORAGE_KEY) || "0");
+  const next = current + 1;
+  window.localStorage.setItem(RFP_SEQUENCE_STORAGE_KEY, String(next));
+  return String(next).padStart(7, "0");
+}
+
 const getInitialFormData = (): RfpFormData => {
   const now = new Date();
   const mm = String(now.getMonth() + 1).padStart(2, "0");
@@ -115,6 +125,12 @@ function RfpAppContent() {
     itemsCount: number;
     totalAmount: number;
   } | null>(null);
+
+  useEffect(() => {
+    if (!taskIdParam) {
+      setFormData((current) => ({ ...current, rfpCodeSuffix: getNextRfpSequence() }));
+    }
+  }, [taskIdParam]);
 
   // Sync ClickUp user data into forms if empty
   useEffect(() => {

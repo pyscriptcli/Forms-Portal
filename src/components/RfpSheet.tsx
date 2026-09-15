@@ -143,13 +143,9 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
       {/* Right-aligned RFP Document Code */}
       <div className="flex justify-end items-baseline gap-1 mb-2.5 text-xs font-bold text-[#002B49]">
         <span>{variant === "gw" ? "RFP-ADM-" : "RFP-"}</span>
-        <input
-          type="text"
-          value={data.rfpCodeSuffix ?? "0000001"}
-          onChange={(e) => updateField("rfpCodeSuffix", e.target.value)}
-          placeholder="0000001"
-          className="border-b border-[#002B49] bg-transparent focus:outline-none w-28 text-xs font-bold text-[#002B49]"
-        />
+          <span className="border-b border-[#002B49] min-w-28 text-right text-xs font-bold text-[#002B49]">
+            {data.rfpCodeSuffix ?? "0000001"}
+          </span>
       </div>
 
       {/* ========================================================================= */}
@@ -407,7 +403,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
                 <td colSpan={3} className="border border-[#334155] px-3 py-1.5 text-right font-bold text-xs text-[#002B49]">
                   Total Price for Payment:
                 </td>
-                <td className="border border-[#334155] px-2 py-1.5 text-right font-bold text-xs text-[#002B49]">
+                <td className="border border-[#334155] px-2 py-1.5 text-right font-bold text-sm text-[#002B49]">
                   {formatCurrency(data.totalAmount)}
                 </td>
                 <td className="border border-[#334155] print:hidden"></td>
@@ -790,7 +786,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
       {/* SECTION 9: TO BE FILLED OUT BY FINANCE / ACCOUNTING ONLY */}
       {/* ========================================================================= */}
       <div className="mb-2">
-        <div className="border border-[#334155]">
+        <div className="relative border border-[#334155]">
           <div className="bg-[#e6ecfe] px-2.5 py-1 text-[11px] font-bold text-[#003366] uppercase tracking-wide border-b border-[#334155]">
             TO BE FILLED OUT BY FINANCE / ACCOUNTING ONLY
           </div>
@@ -935,6 +931,11 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
               />
             </div>
           </fieldset>
+          <div className="no-print absolute inset-0 z-10 flex items-center justify-center bg-white/45 pointer-events-none" data-pdf-ignore="true">
+            <span className="border-2 border-dashed border-[#003366]/45 bg-white/80 px-4 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-[#003366] shadow-sm">
+              Finance / Accounting Only
+            </span>
+          </div>
         </div>
 
         {/* Disclaimer Footer Note */}
