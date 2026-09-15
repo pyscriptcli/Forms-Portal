@@ -8,6 +8,11 @@ import {
   DEFAULT_WORKFLOW_STATUSES,
   normalizeWorkflowStatuses,
 } from "@/lib/adminSettings";
+import {
+  isSupabaseAdminConfigured,
+  readWorkflowStatusesFromSupabase,
+  saveWorkflowStatusesToSupabase,
+} from "@/lib/supabaseAdmin";
 
 const FLAGS_PATH = path.join(process.cwd(), "src", "lib", "featureFlags.json");
 
@@ -31,6 +36,14 @@ async function writeFlags(flags: object) {
 
 export async function GET() {
   const flags = await readFlags();
+  if (isSupabaseAdminConfigured()) {
+    try {
+      const workflowStatuses = await readWorkflowStatusesFromSupabase();
+      if (workflowStatuses) flags.workflowStatuses = workflowStatuses;
+    } catch (error) {
+      console.error("Failed to read workflow statuses from Supabase:", error);
+    }
+  }
   return NextResponse.json(flags);
 }
 
@@ -48,6 +61,11 @@ export async function POST(req: NextRequest) {
   }
 
   const current = await readFlags();
+  const hasWorkflowStatuses = Boolean(body.workflowStatuses && typeof body.workflowStatuses === "object");
+  if (hasWorkflowStatuses && isSupabaseAdminConfigured()) {
+    await saveWorkflowStatusesToSupabase(normalizeWorkflowStatuses(body.workflowStatuses));
+  }
+
   const updated = {
     ...current,
     ...(typeof body.portalGuideEnabled === "boolean"
@@ -64,6 +82,10 @@ export async function POST(req: NextRequest) {
       : {}),
   };
 
-  await writeFlags(updated);
+  // Vercel has a read-only deployment filesystem. Supabase is authoritative
+  // for workflow statuses in production; JSON remains the local-dev fallback.
+  if (!hasWorkflowStatuses || !isSupabaseAdminConfigured()) {
+    await writeFlags(updated);
+  }
   return NextResponse.json({ success: true, flags: updated });
 }
