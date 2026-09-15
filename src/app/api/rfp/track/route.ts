@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getListTasks, getClickUpTask } from "@/lib/clickup";
+import { getServerAuthSession } from "@/lib/auth";
+import { readFormDestinationFromSupabase } from "@/lib/supabaseAdmin";
+import type { FormDestinationKey } from "@/lib/adminSettings";
 
 export interface TrackedRfp {
   taskId: string;
   taskName: string;
   taskUrl: string;
-  formType: "rfp" | "po" | "pcv";
+  formType: "rfp" | "gw-rfp" | "travel-budget" | "po" | "pcv";
   payee: string;
   department: string;
   totalAmount: number;
@@ -199,6 +202,14 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
 
 export async function GET(req: NextRequest) {
   try {
+    const { accessToken } = await getServerAuthSession();
+    if (!accessToken) {
+      return NextResponse.json(
+        { success: false, message: "Sign in with ClickUp to view submitted requests." },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     const query = (searchParams.get("query") || "").toLowerCase().trim();
@@ -207,7 +218,7 @@ export async function GET(req: NextRequest) {
 
     // 1. Direct ID lookup
     if (id) {
-      const task = await getClickUpTask(id);
+      const task = await getClickUpTask(id, accessToken);
       if (!task) {
         return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
       }
@@ -217,8 +228,18 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 2. Fetch list of tasks
-    const allTasks = await getListTasks(true);
+    // 2. Fetch tasks from every configured form destination.
+    const formTypes: FormDestinationKey[] = ["rfp", "gw-rfp", "travel-budget", "po", "pcv"];
+    const taskGroups = await Promise.all(
+      formTypes.map(async (formType) => {
+        const destination = await readFormDestinationFromSupabase(formType);
+        if (!destination?.enabled || !destination.listId) return [];
+        return getListTasks(true, formType, accessToken, destination.listId);
+      })
+    );
+    const allTasks = Array.from(
+      new Map(taskGroups.flat().map((task) => [task.id, task])).values()
+    );
     let parsed = allTasks.map(parseTaskToTrackedRfp);
 
     // Apply filters

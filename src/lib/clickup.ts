@@ -569,15 +569,15 @@ export async function updateClickUpTaskDescription(
 /**
  * Retrieves a ClickUp task for revision pre-population.
  */
-export async function getClickUpTask(taskId: string): Promise<any> {
-  const { token, isConfigured } = getClickUpConfig();
+export async function getClickUpTask(taskId: string, oauthToken?: string): Promise<any> {
+  const { token, isConfigured, isOAuth } = getClickUpConfig("rfp", oauthToken);
 
   if (!isConfigured || taskId.startsWith("MOCK-")) {
     return null;
   }
 
   const res = await fetch(`${CLICKUP_API_BASE}/task/${taskId}?include_markdown_description=true`, {
-    headers: { Authorization: token },
+    headers: { Authorization: authorizationHeader(token, isOAuth) },
   });
 
   if (!res.ok) {
@@ -592,9 +592,11 @@ export async function getClickUpTask(taskId: string): Promise<any> {
  */
 export async function getListTasks(
   includeClosed: boolean = true,
-  formType: FormType = "rfp"
+  formType: FormType = "rfp",
+  oauthToken?: string,
+  listIdOverride?: string
 ): Promise<any[]> {
-  const { token, listId, isConfigured } = getClickUpConfig(formType);
+  const { token, listId, isConfigured, isOAuth } = getClickUpConfig(formType, oauthToken, listIdOverride);
 
   if (!isConfigured) {
     return [];
@@ -603,7 +605,7 @@ export async function getListTasks(
   try {
     const url = `${CLICKUP_API_BASE}/list/${listId}/task?include_closed=${includeClosed}&subtasks=true&include_markdown_description=true`;
     const res = await fetch(url, {
-      headers: { Authorization: token },
+      headers: { Authorization: authorizationHeader(token, isOAuth) },
       cache: "no-store",
     });
 
