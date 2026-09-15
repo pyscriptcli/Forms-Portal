@@ -18,11 +18,17 @@ export async function generateRfpPdf(elementId: string = "rfp-printable-sheet"):
 
   await document.fonts.ready;
 
-  // Capture high-DPI image via browser's native SVG rendering with optimized JPEG compression
-  const imgData = await toJpeg(element, {
-    quality: 0.92,
-    pixelRatio: 1.5,
+  // Capture the same fixed-width document the user sees. Do not let a narrow
+  // viewport or responsive parent change the exported form's proportions.
+  const captureWidth = Math.max(element.scrollWidth, Math.ceil(element.getBoundingClientRect().width));
+  const imgData = await toPng(element, {
+    pixelRatio: 2,
+    width: captureWidth,
     backgroundColor: "#ffffff",
+    style: {
+      width: `${captureWidth}px`,
+      maxWidth: `${captureWidth}px`,
+    },
     filter: (node) => {
       if (node instanceof HTMLElement) {
         if (
@@ -46,7 +52,8 @@ export async function generateRfpPdf(elementId: string = "rfp-printable-sheet"):
   const pdfWidth = pdf.internal.pageSize.getWidth();
   const pdfHeight = pdf.internal.pageSize.getHeight();
 
-  // Scale image to fit page width
+  // Scale only by width. Preserve the virtual form's proportions and paginate
+  // vertically when it is taller than the PDF page.
   const img = new Image();
   img.src = imgData;
   await new Promise<void>((resolve, reject) => {
@@ -57,28 +64,17 @@ export async function generateRfpPdf(elementId: string = "rfp-printable-sheet"):
   const imgWidth = pdfWidth;
   const imgHeight = (img.height * pdfWidth) / img.width;
 
-  // Smart single-page fit: if the sheet slightly exceeds 1 page (up to 15%),
-  // scale it proportionally to fit 1 crisp page without awkward page breaks.
-  if (imgHeight <= pdfHeight * 1.15) {
-    const scale = Math.min(1, pdfHeight / imgHeight);
-    const renderWidth = imgWidth * scale;
-    const renderHeight = imgHeight * scale;
-    const xOffset = (pdfWidth - renderWidth) / 2;
-    pdf.addImage(imgData, "JPEG", xOffset, 0, renderWidth, renderHeight);
-  } else {
-    // Multi-page pagination: paginate across sequential pages
-    let heightLeft = imgHeight;
-    let position = 0;
+  let heightLeft = imgHeight;
+  let position = 0;
 
-    pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
+  pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+  heightLeft -= pdfHeight;
+
+  while (heightLeft > 0) {
+    position = -(imgHeight - heightLeft);
+    pdf.addPage();
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
     heightLeft -= pdfHeight;
-
-    while (heightLeft > 0) {
-      position = -(imgHeight - heightLeft);
-      pdf.addPage();
-      pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pdfHeight;
-    }
   }
 
   const blob = pdf.output("blob");
