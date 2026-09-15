@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { getClickUpConfig } from "@/lib/clickup";
+import { createClickUpTask, getClickUpConfig } from "@/lib/clickup";
 
 describe("ClickUp Configuration Multi-List Resolution", () => {
   const originalEnv = { ...process.env };
@@ -40,6 +40,13 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
 
     const config = getClickUpConfig("rfp");
     expect(config.listId).toBe("901420772915");
+  });
+
+  it("does not report a mock task as a successful ClickUp submission", async () => {
+    delete process.env.CLICKUP_API_TOKEN;
+    await expect(
+      createClickUpTask({ payee: "Test Payee", totalAmount: 100 }, "http://localhost:3000", "rfp")
+    ).rejects.toThrow(/CLICKUP_API_TOKEN/);
   });
 
   it("resolves PO_LIST_ID for PO forms", () => {

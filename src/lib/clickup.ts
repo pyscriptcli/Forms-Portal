@@ -312,14 +312,9 @@ export async function createClickUpTask(
   }
 
   if (!isConfigured) {
-    const mockId = "MOCK-" + Math.floor(100000 + Math.random() * 900000);
-    return {
-      id: mockId,
-      name: taskName,
-      url: `https://app.clickup.com/t/${mockId}`,
-      isMock: true,
-      status: { status: "for approval", color: "#f59e0b" },
-    };
+    throw new Error(
+      "ClickUp is not configured. Add a valid CLICKUP_API_TOKEN and destination List ID in Vercel, then redeploy."
+    );
   }
 
   const priority = isUrgent ? 1 : 3;

@@ -38,6 +38,10 @@ export async function POST(req: NextRequest) {
       taskResult = await createClickUpTask(data, appUrl, formType);
     }
 
+    if (taskResult.isMock || taskResult.id.startsWith("MOCK-")) {
+      throw new Error("ClickUp did not create a real task. Check the ClickUp token and destination List ID.");
+    }
+
     const taskId = taskResult.id;
 
     if (taskId) {
