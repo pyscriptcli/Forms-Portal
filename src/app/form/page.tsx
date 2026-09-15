@@ -10,6 +10,7 @@ import {
   SupportingFile,
 } from "@/types/rfp";
 import { RfpSheet } from "@/components/RfpSheet";
+import { TravelBudgetSheet } from "@/components/TravelBudgetSheet";
 import { PageHeader } from "@/components/PageHeader";
 import { FormSelect } from "@/components/FormSelect";
 import { Toolbar } from "@/components/Toolbar";
@@ -342,6 +343,7 @@ function RfpAppContent() {
   }, []);
 
   const getValidationResult = () => {
+    if (selectedForm === "travel-budget") return { isValid: true, errors: {}, items: [] } as ValidationResult;
     const result: ValidationResult = validateRfpForm(formData);
 
     // Require attachments across form submission
@@ -390,7 +392,7 @@ function RfpAppContent() {
     setErrorMessage(null);
 
     // Validate form fields before PDF generation (attachments only required for ClickUp submission)
-    const validation = validateRfpForm(formData);
+    const validation = selectedForm === "travel-budget" ? ({ isValid: true, errors: {}, items: [] } as ValidationResult) : validateRfpForm(formData);
 
     if (!validation.isValid) {
       setValidationErrors(validation.errors);
@@ -671,12 +673,7 @@ function RfpAppContent() {
 
         {/* Document First Paper Sheet */}
         <section id="rfp-sheet-container" className="prime-form-scroll mb-8" aria-label="Form document">
-          <RfpSheet
-            data={formData}
-            onChange={setFormData}
-            validationErrors={validationErrors}
-            variant={selectedForm === "gw-rfp" ? "gw" : "prime"}
-          />
+          {selectedForm === "travel-budget" ? <TravelBudgetSheet data={formData as any} onChange={setFormData as any} /> : <RfpSheet data={formData} onChange={setFormData} validationErrors={validationErrors} variant={selectedForm === "gw-rfp" ? "gw" : "prime"} />}
         </section>
 
         {/* Supporting Documents Section */}

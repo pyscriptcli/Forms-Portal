@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const docName = formType === "po" ? "Purchase Order (PO)" : formType === "pcv" ? "Petty Cash Voucher (PCV)" : formType === "gw-rfp" ? "GW Request for Payment (RFP)" : "Request for Payment (RFP)";
+    const docName = formType === "po" ? "Purchase Order (PO)" : formType === "pcv" ? "Petty Cash Voucher (PCV)" : formType === "gw-rfp" ? "GW Request for Payment (RFP)" : formType === "travel-budget" ? "Travel Budget Request Form" : "Request for Payment (RFP)";
 
     return NextResponse.json({
       success: true,

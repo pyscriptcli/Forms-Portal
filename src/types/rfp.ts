@@ -137,7 +137,7 @@ export interface RfpFormData {
   dateNeeded: string;
 }
 
-export type FormType = "rfp" | "gw-rfp" | "po" | "pcv";
+export type FormType = "rfp" | "gw-rfp" | "travel-budget" | "po" | "pcv";
 
 export interface PoLineItem {
   id: string;
