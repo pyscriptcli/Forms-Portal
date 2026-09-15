@@ -117,7 +117,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
   return (
     <div
       id="rfp-printable-sheet"
-      className="bg-white text-[#111111] w-full max-w-[850px] mx-auto p-5 sm:p-7 border border-[#d7d7d7] shadow-md rfp-sheet text-xs select-text print:p-0 print:border-none print:shadow-none"
+      className={`bg-white text-[#111111] w-full max-w-[850px] mx-auto p-5 sm:p-7 border border-[#d7d7d7] shadow-md rfp-sheet text-xs select-text print:p-0 print:border-none print:shadow-none ${variant === "gw" ? "gw-rfp-sheet" : ""}`}
       style={{ fontFamily: '"Times New Roman", Times, Georgia, serif' }}
     >
       {/* ========================================================================= */}

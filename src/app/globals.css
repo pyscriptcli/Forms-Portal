@@ -163,3 +163,8 @@ input::placeholder, textarea::placeholder { color: var(--prime-gray); opacity: 0
   font-family: "Times New Roman", Times, Georgia, serif !important;
 }
 
+/* GreatWork RFP clone: pink section bands and rose headings from the supplied template. */
+.gw-rfp-sheet [class*="bg-[#e6ecfe]"] { background-color: #f9eded !important; }
+.gw-rfp-sheet [class*="text-[#003366]"] { color: #a33f55 !important; }
+.gw-rfp-sheet [class*="border-[#c7d8ea]"] { border-color: #efd0d0 !important; }
+
