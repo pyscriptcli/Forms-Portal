@@ -17,18 +17,6 @@ const FORM_OPTIONS: FormOption[] = [
     description: "Standard reimbursement or supplier invoice payment",
     icon: Receipt,
   },
-  {
-    value: "po",
-    label: "Purchase Order",
-    description: "Official commercial document for ordered goods/services",
-    icon: FileSpreadsheet,
-  },
-  {
-    value: "pcv",
-    label: "Petty Cash Voucher",
-    description: "Small immediate business expense disbursements",
-    icon: Banknote,
-  },
 ];
 
 interface FormSelectProps {

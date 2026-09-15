@@ -23,11 +23,7 @@ export function Toolbar({
     <div className="prime-toolbar">
       <div className="flex flex-wrap items-center gap-3 min-w-0">
         <span className="text-xs font-semibold uppercase tracking-wider text-prime-blue">
-          {selectedForm === "po"
-            ? "Purchase Order"
-            : selectedForm === "pcv"
-            ? "Petty Cash Voucher"
-            : "Request for Payment"}
+          {selectedForm === "rfp" ? "Request for Payment" : selectedForm.toUpperCase()}
         </span>
         {isRevision && <span className="text-xs text-prime-blue">Revision · #{taskId}</span>}
       </div>

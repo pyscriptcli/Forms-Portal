@@ -6,14 +6,10 @@ import confetti from "canvas-confetti";
 import {
   RfpFormData,
   RfpLineItem,
-  PoFormData,
-  PcvFormData,
   SubmissionResponse,
   SupportingFile,
 } from "@/types/rfp";
 import { RfpSheet } from "@/components/RfpSheet";
-import { PoSheet } from "@/components/PoSheet";
-import { PcvSheet } from "@/components/PcvSheet";
 import { PageHeader } from "@/components/PageHeader";
 import { FormSelect } from "@/components/FormSelect";
 import { Toolbar } from "@/components/Toolbar";
@@ -26,8 +22,6 @@ import { ValidationAlertBanner } from "@/components/ValidationAlertBanner";
 import { generateRfpPdf, downloadPdfBlob, generateRfpImageBlob } from "@/lib/pdfGenerator";
 import {
   validateRfpForm,
-  validatePoForm,
-  validatePcvForm,
   ValidationResult,
   ValidationErrorItem,
   scrollToFormField,
@@ -68,66 +62,6 @@ const getInitialFormData = (): RfpFormData => {
   };
 };
 
-const getInitialPoData = (): PoFormData => {
-  const today = new Date().toISOString().split("T")[0];
-  return {
-    date: today,
-    poNumber: `PO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-    vendorName: "",
-    address: "",
-    tin: "",
-    contactNo: "",
-    emailAddress: "",
-    accountManager: "",
-    items: [
-      { id: "po-row-1", itemNo: 1, details: "", unit: "pcs", quantity: 1, unitPrice: "", total: 0 },
-      { id: "po-row-2", itemNo: 2, details: "", unit: "pcs", quantity: 1, unitPrice: "", total: 0 },
-      { id: "po-row-3", itemNo: 3, details: "", unit: "pcs", quantity: 1, unitPrice: "", total: 0 },
-    ],
-    subtotal: 0,
-    vatRate: 12,
-    vatAmount: 0,
-    netOfVat: 0,
-    withholdingTaxRate: 2,
-    withholdingTaxAmount: 0,
-    totalAmountDue: 0,
-    additionalNotes: "",
-    department: "Procurement",
-    dateNeeded: "",
-    urgency: "not_urgent",
-    preparedByName: "",
-    preparedByDate: today,
-    notedByName: "",
-    notedByDate: "",
-    approvedByName: "",
-    approvedByDate: "",
-    conformeName: "",
-    conformeDate: "",
-  };
-};
-
-const getInitialPcvData = (): PcvFormData => {
-  const today = new Date().toISOString().split("T")[0];
-  return {
-    voucherNo: `PCV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-    date: today,
-    payee: "",
-    department: "",
-    amount: 0,
-    dateNeeded: "",
-    urgency: "not_urgent",
-    particulars: [
-      { id: "pcv-row-1", description: "", amount: "" },
-      { id: "pcv-row-2", description: "", amount: "" },
-      { id: "pcv-row-3", description: "", amount: "" },
-    ],
-    requestedByName: "",
-    notedByName: "",
-    approvedByName: "",
-    receivedByName: "",
-  };
-};
-
 import { useAuth } from "@/components/AuthProvider";
 
 function RfpAppContent() {
@@ -139,8 +73,6 @@ function RfpAppContent() {
   const formParam = searchParams.get("form");
 
   const [formData, setFormData] = useState<RfpFormData>(getInitialFormData);
-  const [poData, setPoData] = useState<PoFormData>(getInitialPoData);
-  const [pcvData, setPcvData] = useState<PcvFormData>(getInitialPcvData);
   const [selectedForm, setSelectedForm] = useState<string>(formParam ?? "rfp");
   const [previousDraft, setPreviousDraft] = useState<RfpFormData | null>(null);
   const [extractedBanner, setExtractedBanner] = useState<{
@@ -159,16 +91,6 @@ function RfpAppContent() {
         ...prev,
         requestedByName: prev.requestedByName || name,
         requestedByEmail: prev.requestedByEmail || email,
-      }));
-
-      setPoData((prev) => ({
-        ...prev,
-        preparedByName: prev.preparedByName || name,
-      }));
-
-      setPcvData((prev) => ({
-        ...prev,
-        requestedByName: prev.requestedByName || name,
       }));
     }
   }, [user]);
@@ -213,13 +135,7 @@ function RfpAppContent() {
         const json = await res.json();
         if (json.task) {
           console.log("Loaded existing ClickUp task for revision:", json.task);
-          if (json.task.name?.includes("[PO]")) {
-            setSelectedForm("po");
-          } else if (json.task.name?.includes("[PCV]")) {
-            setSelectedForm("pcv");
-          } else {
-            setSelectedForm("rfp");
-          }
+          setSelectedForm("rfp");
         }
       }
     } catch (e) {
@@ -306,8 +222,6 @@ function RfpAppContent() {
   useEffect(() => {
     if (taskIdParam) {
       setFormData((prev) => ({ ...prev, taskId: taskIdParam }));
-      setPoData((prev) => ({ ...prev, taskId: taskIdParam }));
-      setPcvData((prev) => ({ ...prev, taskId: taskIdParam }));
       fetchTaskData(taskIdParam);
     } else {
       // Try restoring local draft if present
@@ -320,24 +234,6 @@ function RfpAppContent() {
           console.error("Failed to parse saved RFP draft:", e);
         }
       }
-      const savedPo = localStorage.getItem("prime_po_draft");
-      if (savedPo) {
-        try {
-          const parsed = JSON.parse(savedPo);
-          if (parsed && !parsed.taskId) setPoData(parsed);
-        } catch (e) {
-          console.error("Failed to parse saved PO draft:", e);
-        }
-      }
-      const savedPcv = localStorage.getItem("prime_pcv_draft");
-      if (savedPcv) {
-        try {
-          const parsed = JSON.parse(savedPcv);
-          if (parsed && !parsed.taskId) setPcvData(parsed);
-        } catch (e) {
-          console.error("Failed to parse saved PCV draft:", e);
-        }
-      }
     }
   }, [taskIdParam]);
 
@@ -347,18 +243,6 @@ function RfpAppContent() {
       localStorage.setItem("prime_rfp_draft", JSON.stringify(formData));
     }
   }, [formData]);
-
-  useEffect(() => {
-    if (!poData.taskId && poData.vendorName) {
-      localStorage.setItem("prime_po_draft", JSON.stringify(poData));
-    }
-  }, [poData]);
-
-  useEffect(() => {
-    if (!pcvData.taskId && pcvData.payee) {
-      localStorage.setItem("prime_pcv_draft", JSON.stringify(pcvData));
-    }
-  }, [pcvData]);
 
   // Handle prefill query parameter (when triggered from other pages)
   useEffect(() => {
@@ -376,12 +260,9 @@ function RfpAppContent() {
   }, []);
 
   const getValidationResult = () => {
-    let result: ValidationResult;
-    if (selectedForm === "po") result = validatePoForm(poData);
-    else if (selectedForm === "pcv") result = validatePcvForm(pcvData);
-    else result = validateRfpForm(formData);
+    const result: ValidationResult = validateRfpForm(formData);
 
-    // Require attachments across all form types
+    // Require attachments across form submission
     const totalAttached = rawSupportingFiles.length + supportingFilesList.length;
     if (totalAttached === 0) {
       const attachError: ValidationErrorItem = {
@@ -407,29 +288,14 @@ function RfpAppContent() {
       setValidationErrors(res.errors);
       setMissingFieldsList(res.items);
     }
-  }, [formData, poData, pcvData, selectedForm, rawSupportingFiles, supportingFilesList]);
+  }, [formData, rawSupportingFiles, supportingFilesList]);
 
   const handleReset = () => {
-    const docName =
-      selectedForm === "po"
-        ? "Purchase Order"
-        : selectedForm === "pcv"
-        ? "Petty Cash Voucher"
-        : "Request for Payment";
-
-    if (confirm(`Are you sure you want to reset this ${docName}? All unsaved inputs will be cleared.`)) {
-      if (selectedForm === "po") {
-        localStorage.removeItem("prime_po_draft");
-        setPoData(getInitialPoData());
-      } else if (selectedForm === "pcv") {
-        localStorage.removeItem("prime_pcv_draft");
-        setPcvData(getInitialPcvData());
-      } else {
-        localStorage.removeItem("prime_rfp_draft");
-        setFormData(getInitialFormData());
-        setPreviousDraft(null);
-        setExtractedBanner(null);
-      }
+    if (confirm("Are you sure you want to reset this Request for Payment? All unsaved inputs will be cleared.")) {
+      localStorage.removeItem("prime_rfp_draft");
+      setFormData(getInitialFormData());
+      setPreviousDraft(null);
+      setExtractedBanner(null);
       setRawSupportingFiles([]);
       setSupportingFilesList([]);
       setErrorMessage(null);
@@ -442,12 +308,7 @@ function RfpAppContent() {
     setErrorMessage(null);
 
     // Validate form fields before PDF generation (attachments only required for ClickUp submission)
-    const validation =
-      selectedForm === "po"
-        ? validatePoForm(poData)
-        : selectedForm === "pcv"
-        ? validatePcvForm(pcvData)
-        : validateRfpForm(formData);
+    const validation = validateRfpForm(formData);
 
     if (!validation.isValid) {
       setValidationErrors(validation.errors);
@@ -460,31 +321,13 @@ function RfpAppContent() {
 
     setIsGeneratingPdf(true);
     try {
-      const elementId =
-        selectedForm === "po"
-          ? "po-printable-sheet"
-          : selectedForm === "pcv"
-          ? "pcv-printable-sheet"
-          : "rfp-printable-sheet";
-
+      const elementId = "rfp-printable-sheet";
       const { blob } = await generateRfpPdf(elementId);
 
-      const prefix = selectedForm.toUpperCase();
-      const entity =
-        selectedForm === "po"
-          ? poData.vendorName || "Vendor"
-          : selectedForm === "pcv"
-          ? pcvData.payee || "Payee"
-          : formData.payee || "Payee";
-      const dateStr =
-        selectedForm === "po"
-          ? poData.date
-          : selectedForm === "pcv"
-          ? pcvData.date
-          : formData.date;
-
+      const entity = formData.payee || "Payee";
+      const dateStr = formData.date;
       const sanitizedEntity = entity.replace(/[^a-zA-Z0-9_-]/g, "_");
-      downloadPdfBlob(blob, `${prefix}_${sanitizedEntity}_${dateStr || "document"}.pdf`);
+      downloadPdfBlob(blob, `RFP_${sanitizedEntity}_${dateStr || "document"}.pdf`);
     } catch (err: any) {
       console.error("PDF generation failed:", err);
       setErrorMessage("Failed to generate PDF. Please ensure all fields are properly formatted.");
@@ -571,33 +414,9 @@ function RfpAppContent() {
     setSubmissionStage("rendering_pdf");
 
     try {
-      const elementId =
-        selectedForm === "po"
-          ? "po-printable-sheet"
-          : selectedForm === "pcv"
-          ? "pcv-printable-sheet"
-          : "rfp-printable-sheet";
-
-      const activeData =
-        selectedForm === "po"
-          ? poData
-          : selectedForm === "pcv"
-          ? pcvData
-          : formData;
-
-      const prefix = selectedForm.toUpperCase();
-      const entity =
-        selectedForm === "po"
-          ? poData.vendorName || "Vendor"
-          : selectedForm === "pcv"
-          ? pcvData.payee || "Payee"
-          : formData.payee || "Payee";
-      const dateStr =
-        selectedForm === "po"
-          ? poData.date
-          : selectedForm === "pcv"
-          ? pcvData.date
-          : formData.date;
+      const elementId = "rfp-printable-sheet";
+      const entity = formData.payee || "Payee";
+      const dateStr = formData.date;
       const sanitizedEntity = entity.replace(/[^a-zA-Z0-9_-]/g, "_");
 
       // 1. Generate official high-resolution PDF Blob & visual preview image Blob
@@ -612,11 +431,11 @@ function RfpAppContent() {
 
       // 2. Prepare multipart FormData payload
       const submissionData = new FormData();
-      submissionData.append("formType", selectedForm);
-      submissionData.append("data", JSON.stringify(activeData));
+      submissionData.append("formType", "rfp");
+      submissionData.append("data", JSON.stringify(formData));
 
-      submissionData.append("pdf", pdfBlob, `${prefix}_${sanitizedEntity}_${dateStr || "document"}.pdf`);
-      submissionData.append("previewImage", previewImageBlob, `${prefix}_${sanitizedEntity}_Preview.png`);
+      submissionData.append("pdf", pdfBlob, `RFP_${sanitizedEntity}_${dateStr || "document"}.pdf`);
+      submissionData.append("previewImage", previewImageBlob, `RFP_${sanitizedEntity}_Preview.png`);
 
       rawSupportingFiles.forEach((file) => {
         submissionData.append("supportingFiles", file);
@@ -634,7 +453,7 @@ function RfpAppContent() {
       const json: SubmissionResponse = await res.json();
 
       if (!res.ok || !json.success) {
-        throw new Error(json.message || `Failed to submit ${prefix} to ClickUp`);
+        throw new Error(json.message || "Failed to submit Request for Payment to ClickUp");
       }
 
       setSubmissionStage("finalizing");
@@ -651,9 +470,7 @@ function RfpAppContent() {
       });
 
       // Clear draft
-      if (selectedForm === "rfp") localStorage.removeItem("prime_rfp_draft");
-      if (selectedForm === "po") localStorage.removeItem("prime_po_draft");
-      if (selectedForm === "pcv") localStorage.removeItem("prime_pcv_draft");
+      localStorage.removeItem("prime_rfp_draft");
     } catch (err: any) {
       console.error("Submission failed:", err);
       setErrorMessage(err.message || "Failed to complete submission. Please try again.");
@@ -662,26 +479,9 @@ function RfpAppContent() {
     }
   };
 
-  const activeTaskId =
-    selectedForm === "po"
-      ? poData.taskId
-      : selectedForm === "pcv"
-      ? pcvData.taskId
-      : formData.taskId;
-
-  const activeTotalAmount =
-    selectedForm === "po"
-      ? poData.totalAmountDue
-      : selectedForm === "pcv"
-      ? pcvData.amount
-      : formData.totalAmount;
-
-  const activePayeeName =
-    selectedForm === "po"
-      ? poData.vendorName
-      : selectedForm === "pcv"
-      ? pcvData.payee
-      : formData.payee;
+  const activeTaskId = formData.taskId;
+  const activeTotalAmount = formData.totalAmount;
+  const activePayeeName = formData.payee;
 
   return (
     <div className="prime-page">
@@ -756,27 +556,11 @@ function RfpAppContent() {
 
         {/* Document First Paper Sheet */}
         <section id="rfp-sheet-container" className="prime-form-scroll mb-8" aria-label="Form document">
-          {selectedForm === "rfp" && (
-            <RfpSheet
-              data={formData}
-              onChange={setFormData}
-              validationErrors={validationErrors}
-            />
-          )}
-          {selectedForm === "po" && (
-            <PoSheet
-              data={poData}
-              onChange={setPoData}
-              validationErrors={validationErrors}
-            />
-          )}
-          {selectedForm === "pcv" && (
-            <PcvSheet
-              data={pcvData}
-              onChange={setPcvData}
-              validationErrors={validationErrors}
-            />
-          )}
+          <RfpSheet
+            data={formData}
+            onChange={setFormData}
+            validationErrors={validationErrors}
+          />
         </section>
 
         {/* Supporting Documents Section */}
