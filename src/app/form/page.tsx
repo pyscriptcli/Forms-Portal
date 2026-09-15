@@ -384,12 +384,13 @@ function RfpAppContent() {
   }, [formData, rawSupportingFiles, supportingFilesList]);
 
   const handleReset = () => {
-    if (pendingUpload) {
-      setErrorMessage(`Request ${pendingUpload.response.requestId || pendingUpload.response.taskId} already exists in ClickUp. Press Submit to finish its remaining uploads before resetting.`);
-      return;
-    }
-    if (confirm("Are you sure you want to reset this Request for Payment? All unsaved inputs will be cleared.")) {
+    const pendingWarning = pendingUpload
+      ? " A ClickUp request already exists; resetting will discard the local retry state."
+      : "";
+    if (confirm(`Are you sure you want to reset this form? All entered data, attachments, signatures, and local draft data will be cleared.${pendingWarning}`)) {
       localStorage.removeItem("prime_rfp_draft");
+      window.history.replaceState(null, "", "/form");
+      setSelectedForm("rfp");
       setFormData(getInitialFormData());
       setPreviousDraft(null);
       setExtractedBanner(null);
@@ -397,6 +398,9 @@ function RfpAppContent() {
       setSupportingFilesList([]);
       setErrorMessage(null);
       setPendingUpload(null);
+      setSubmissionResponse(null);
+      setLastGeneratedPdf(null);
+      setIsModalOpen(false);
       setValidationErrors({});
       setMissingFieldsList([]);
     }

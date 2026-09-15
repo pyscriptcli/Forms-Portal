@@ -243,10 +243,20 @@ function RequestsContent() {
             return (
               <div
                 key={req.taskId}
-                className={`bg-prime-white border-l-4 ${stageColor(req.currentStage, req.isRevisionRequested)} border border-prime-rule p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-none`}
+                role="button"
+                tabIndex={0}
+                onClick={() => openRequest(req)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openRequest(req);
+                  }
+                }}
+                aria-label={`View status for ${req.payee || req.requestId}`}
+                className={`group bg-prime-white border-l-4 ${stageColor(req.currentStage, req.isRevisionRequested)} border border-prime-rule px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-none cursor-pointer transition-all hover:border-prime-blue hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-prime-blue/30`}
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <div className="flex items-center gap-2 flex-wrap mb-2">
                     <span className="font-sans tabular-nums text-[11px] font-medium text-prime-blue bg-prime-white px-1.5 py-0.5 border border-prime-rule">
                       {req.requestId}
                     </span>
@@ -272,27 +282,27 @@ function RequestsContent() {
                       </span>
                     )}
                   </div>
-                  <p className="text-sm font-medium text-prime-ink truncate">{req.payee}</p>
-                  <p className="text-xs text-prime-ink mt-0.5 line-clamp-1">{req.purpose}</p>
+                  <p className="text-base sm:text-lg font-semibold text-prime-blue truncate group-hover:underline">{req.payee || "Unnamed request"}</p>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-[11px] text-prime-ink">
+                    <span>{req.department || "No department"}</span>
+                    <span className="text-prime-ink/40">•</span>
+                    <span className="line-clamp-1">{req.purpose || "No purpose provided"}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="font-bebas text-xl text-prime-blue tracking-wider">₱{total}</span>
+                <div className="flex items-center justify-between sm:justify-end gap-5 shrink-0 sm:min-w-[190px]">
+                  <div className="text-left sm:text-right">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-prime-ink">Total amount</p>
+                    <p className="font-bebas text-2xl text-prime-blue tracking-wider">₱{total}</p>
+                  </div>
                   {req.isRevisionRequested ? (
                     <Link
                       href={`/form?taskId=${req.taskId}`}
+                      onClick={(event) => event.stopPropagation()}
                       className="h-8 px-3 bg-prime-blue hover:bg-prime-blue text-prime-white text-xs font-medium flex items-center gap-1.5 transition-colors"
                     >
                       <Edit3 className="w-3 h-3" /> Edit
                     </Link>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => openRequest(req)}
-                      className="h-8 px-3 bg-prime-white hover:bg-prime-white text-prime-ink text-xs font-medium flex items-center gap-1.5 transition-colors"
-                    >
-                      View
-                    </button>
-                  )}
+                  ) : <span className="text-[10px] uppercase tracking-[0.16em] text-prime-blue opacity-0 transition-opacity group-hover:opacity-100">View status →</span>}
                 </div>
               </div>
             );
