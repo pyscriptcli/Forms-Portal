@@ -110,16 +110,16 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-2">
         {/* Left: PRIME Logo */}
         <div className="shrink-0 flex items-center">
-          <Image src="/greatwork-logo.png" alt="GreatWork" width={205} height={55} unoptimized className="h-11 w-auto object-contain" />
+          <Image src="/prime-blue-logo.png" alt="PRIME Philippines" width={220} height={60} unoptimized className="h-11 w-auto object-contain" priority />
         </div>
 
-        {/* Center: Official Title Box with soft blue background */}
-        <div className="flex-1 w-full sm:w-auto bg-[#f9eded] py-2 px-3 text-center">
-          <h1 className="font-bold text-base sm:text-lg tracking-wide text-[#b44155] uppercase">
+        {/* Center: Official Title Box with soft PRIME blue background */}
+        <div className="flex-1 w-full sm:w-auto bg-[#e6ecfe] py-2 px-3 text-center border border-[#c7d8ea]">
+          <h1 className="font-bold text-base sm:text-lg tracking-wide text-[#003366] uppercase">
             REQUEST FOR PAYMENT (RFP)
           </h1>
           <p className="font-bold text-[9px] sm:text-[10px] tracking-wider text-[#002B49] uppercase mt-0.5">
-            MY GREATWORK SPACES INC.
+            PROPERTY INTERACTIVE MARKETING ENTERPRISE REALTY CORP.
           </p>
         </div>
       </div>
@@ -140,7 +140,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       {/* SECTION 1: TIMING OF SUBMISSION */}
       {/* ========================================================================= */}
       <div className="mb-3">
-        <div className="bg-[#f9eded] px-2.5 py-1 text-[11px] font-bold text-[#b44155] uppercase tracking-wide">
+        <div className="bg-[#e6ecfe] px-2.5 py-1 text-[11px] font-bold text-[#003366] uppercase tracking-wide">
           TIMING OF SUBMISSION
         </div>
         <div className="py-2 px-1">
@@ -234,7 +234,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       {/* SECTION 2: URGENT REQUEST DETAILS */}
       {/* ========================================================================= */}
       <div className="mb-3">
-        <div className="bg-[#f9eded] px-2.5 py-1 text-[11px] font-bold text-[#b44155] tracking-wide">
+        <div className="bg-[#e6ecfe] px-2.5 py-1 text-[11px] font-bold text-[#003366] tracking-wide">
           <span className="uppercase">URGENT REQUEST DETAILS</span>{" "}
           <span className="italic font-normal text-[10px] text-[#002B49]">
             (complete only if Urgent for Payment)
@@ -290,7 +290,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       {/* SECTION 3: VENDOR */}
       {/* ========================================================================= */}
       <div className="mb-3">
-        <div className="bg-[#f9eded] px-2.5 py-1 text-[11px] font-bold text-[#b44155] uppercase tracking-wide">
+        <div className="bg-[#e6ecfe] px-2.5 py-1 text-[11px] font-bold text-[#003366] uppercase tracking-wide">
           VENDOR
         </div>
         <div className="py-2 px-1 flex items-baseline gap-2">
@@ -320,7 +320,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
         <div className="overflow-x-auto">
           <table className="w-full border-collapse border border-[#334155] text-xs">
             <thead>
-              <tr className="bg-[#f9eded] text-[#333333] font-bold text-[11px]">
+              <tr className="bg-[#e6ecfe] text-[#333333] font-bold text-[11px]">
                 <th className="border border-[#334155] px-2 py-1 text-center font-bold">
                   Item / Description
                 </th>
@@ -441,7 +441,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       {/* SECTION 5: PURPOSE OF REQUEST / BUSINESS JUSTIFICATION */}
       {/* ========================================================================= */}
       <div className="mb-3">
-        <div className="bg-[#f9eded] px-2.5 py-1 text-[11px] font-bold text-[#b44155] uppercase tracking-wide">
+        <div className="bg-[#e6ecfe] px-2.5 py-1 text-[11px] font-bold text-[#003366] uppercase tracking-wide">
           PURPOSE OF REQUEST / BUSINESS JUSTIFICATION
         </div>
         <div className="py-2 px-1">
@@ -463,7 +463,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       {/* SECTION 6: SUPPORTING DOCUMENTS ATTACHED */}
       {/* ========================================================================= */}
       <div className="mb-3">
-        <div className="bg-[#f9eded] px-2.5 py-1 text-[11px] font-bold text-[#b44155] uppercase tracking-wide">
+        <div className="bg-[#e6ecfe] px-2.5 py-1 text-[11px] font-bold text-[#003366] uppercase tracking-wide">
           SUPPORTING DOCUMENTS ATTACHED
         </div>
         <div className="py-2 px-1 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
@@ -530,7 +530,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       {/* SECTION 7: PAYEE DETAILS & MODE OF PAYMENT */}
       {/* ========================================================================= */}
       <div className="mb-3">
-        <div className="bg-[#f9eded] px-2.5 py-1 text-[11px] font-bold text-[#b44155] uppercase tracking-wide">
+        <div className="bg-[#e6ecfe] px-2.5 py-1 text-[11px] font-bold text-[#003366] uppercase tracking-wide">
           PAYEE DETAILS & MODE OF PAYMENT
         </div>
         <div className="py-2 px-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -622,7 +622,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       {/* SECTION 8: REQUESTOR & AUTHORIZED SIGNATORIES */}
       {/* ========================================================================= */}
       <div className="mb-3">
-        <div className="bg-[#f9eded] px-2.5 py-1 text-[11px] font-bold text-[#b44155] uppercase tracking-wide">
+        <div className="bg-[#e6ecfe] px-2.5 py-1 text-[11px] font-bold text-[#003366] uppercase tracking-wide">
           REQUESTOR & AUTHORIZED SIGNATORIES
         </div>
         <div className="py-2 px-1 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
@@ -774,7 +774,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
       {/* ========================================================================= */}
       <div className="mb-2">
         <div className="border border-[#334155]">
-          <div className="bg-[#f9eded] px-2.5 py-1 text-[11px] font-bold text-[#b44155] uppercase tracking-wide border-b border-[#334155]">
+          <div className="bg-[#e6ecfe] px-2.5 py-1 text-[11px] font-bold text-[#003366] uppercase tracking-wide border-b border-[#334155]">
             TO BE FILLED OUT BY FINANCE / ACCOUNTING ONLY
           </div>
 
