@@ -72,6 +72,7 @@ export interface UserAccessRecord {
   role: UserRole;
   status: "active" | "inactive";
   updatedAt?: string;
+  clickUpTaskId?: string;
 }
 
 export const DEFAULT_USERS: UserAccessRecord[] = [

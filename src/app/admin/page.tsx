@@ -3,7 +3,21 @@ import { PageHeader } from "@/components/PageHeader";
 import { PrimeLogo } from "@/components/PrimeLogo";
 
 import React, { useState, useEffect } from "react";
-import { ToggleLeft, ToggleRight, LogOut, Shield, Users, UserCheck, Plus, Trash2, Save, CheckCircle2 } from "lucide-react";
+import {
+  ToggleLeft,
+  ToggleRight,
+  LogOut,
+  Shield,
+  Users,
+  UserCheck,
+  Plus,
+  Trash2,
+  Save,
+  CheckCircle2,
+  ExternalLink,
+  RefreshCw,
+  Database,
+} from "lucide-react";
 import {
   validateAdminCredentials,
   isAdminAuthenticated,
@@ -22,6 +36,7 @@ import {
   type UserAccessRecord,
   type UserRole,
 } from "@/lib/rbac";
+import { DEFAULT_RBAC_LIST_ID } from "@/lib/clickupRbac";
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
@@ -37,12 +52,40 @@ export default function AdminPage() {
 
   // RBAC State
   const [users, setUsers] = useState<UserAccessRecord[]>(DEFAULT_USERS);
+  const [dbSource, setDbSource] = useState<"clickup" | "fallback">("clickup");
+  const [clickUpListId, setClickUpListId] = useState<string>(DEFAULT_RBAC_LIST_ID);
+  const [clickUpUrl, setClickUpUrl] = useState<string>(
+    `https://app.clickup.com/9014981136/v/li/${DEFAULT_RBAC_LIST_ID}`
+  );
   const [isSavingRbac, setIsSavingRbac] = useState(false);
+  const [isRefreshingRbac, setIsRefreshingRbac] = useState(false);
   const [rbacSaveMsg, setRbacSaveMsg] = useState("");
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserDept, setNewUserDept] = useState("ISD");
   const [newUserRole, setNewUserRole] = useState<UserRole>("requestor");
+
+  const loadRbacData = async () => {
+    setIsRefreshingRbac(true);
+    try {
+      const res = await fetch("/api/admin/rbac");
+      const data = await res.json();
+      if (data && Array.isArray(data.users)) {
+        setUsers(data.users);
+        saveLocalRbacUsers(data.users);
+        if (data.source) setDbSource(data.source);
+        if (data.listId) setClickUpListId(data.listId);
+        if (data.clickUpUrl) setClickUpUrl(data.clickUpUrl);
+      } else {
+        setUsers(getLocalRbacUsers());
+      }
+    } catch {
+      setUsers(getLocalRbacUsers());
+      setDbSource("fallback");
+    } finally {
+      setIsRefreshingRbac(false);
+    }
+  };
 
   useEffect(() => {
     if (isAdminAuthenticated()) {
@@ -55,20 +98,8 @@ export default function AdminPage() {
         })
         .catch(() => setSettings(getAdminSettings()));
 
-      // Load RBAC users from server or fallback
-      fetch("/api/admin/rbac")
-        .then((r) => r.json())
-        .then((data) => {
-          if (data && Array.isArray(data.users)) {
-            setUsers(data.users);
-            saveLocalRbacUsers(data.users);
-          } else {
-            setUsers(getLocalRbacUsers());
-          }
-        })
-        .catch(() => {
-          setUsers(getLocalRbacUsers());
-        });
+      // Load RBAC users from ClickUp DB / fallback
+      loadRbacData();
     }
   }, []);
 
@@ -174,13 +205,26 @@ export default function AdminPage() {
         },
         body: JSON.stringify({ users }),
       });
-      if (!res.ok) throw new Error("Failed to save RBAC settings");
-      setRbacSaveMsg("User roles and access permissions saved successfully.");
-    } catch {
-      setRbacSaveMsg("Saved to local storage only.");
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save RBAC settings");
+
+      if (data.users && Array.isArray(data.users)) {
+        setUsers(data.users);
+        saveLocalRbacUsers(data.users);
+      }
+
+      if (data.savedToClickUp) {
+        setRbacSaveMsg(`Successfully synchronized and saved to ClickUp List DB (#${clickUpListId})!`);
+        setDbSource("clickup");
+      } else {
+        setRbacSaveMsg("Saved locally (ClickUp token not configured in this environment).");
+      }
+    } catch (err: any) {
+      setRbacSaveMsg("Saved to local storage fallback.");
     } finally {
       setIsSavingRbac(false);
-      setTimeout(() => setRbacSaveMsg(""), 3500);
+      setTimeout(() => setRbacSaveMsg(""), 4500);
     }
   };
 
@@ -271,7 +315,7 @@ export default function AdminPage() {
         {/* ROLE-BASED ACCESS CONTROL (RBAC) */}
         {/* ========================================================================= */}
         <section className="pt-6 border-t border-prime-rule">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div>
               <div className="flex items-center gap-2">
                 <Shield className="w-6 h-6 text-prime-blue" />
@@ -281,20 +325,55 @@ export default function AdminPage() {
                 Define user permissions and control access to approvals, sign-offs, and payment releases.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleSaveRbac}
-              disabled={isSavingRbac}
-              className="prime-button flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={loadRbacData}
+                disabled={isRefreshingRbac}
+                title="Refresh users from ClickUp List"
+                className="prime-button secondary flex items-center justify-center gap-1.5 h-[38px] px-3 text-xs cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingRbac ? "animate-spin" : ""}`} />
+                {isRefreshingRbac ? "Syncing..." : "Sync"}
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveRbac}
+                disabled={isSavingRbac}
+                className="prime-button flex items-center justify-center gap-2 shrink-0 h-[38px] cursor-pointer"
+              >
+                <Save className="w-4 h-4" />
+                {isSavingRbac ? "Saving to ClickUp..." : "Save Role Assignments"}
+              </button>
+            </div>
+          </div>
+
+          {/* ClickUp Database Indicator Banner */}
+          <div className="mb-6 p-3 bg-prime-surface/40 border border-prime-rule flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5">
+              <Database className="w-4 h-4 text-prime-blue shrink-0" />
+              <div>
+                <span className="font-bold text-prime-blue">RBAC Database:</span>{" "}
+                <span className="font-mono text-prime-ink/80">ClickUp List #{clickUpListId}</span>
+                <span className="ml-2 inline-flex items-center px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800">
+                  {dbSource === "clickup" ? "ClickUp Cloud DB" : "Local Sync Ready"}
+                </span>
+              </div>
+            </div>
+            <a
+              href={clickUpUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-semibold text-prime-blue hover:text-prime-gold transition-colors underline"
             >
-              <Save className="w-4 h-4" />
-              {isSavingRbac ? "Saving Roles..." : "Save Role Assignments"}
-            </button>
+              <span>View Database in ClickUp</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
           </div>
 
           {rbacSaveMsg && (
             <div role="status" className="prime-notice mb-6 flex items-center gap-2 bg-emerald-50 text-emerald-800 border-emerald-300">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>{rbacSaveMsg}</span>
             </div>
           )}
@@ -360,7 +439,14 @@ export default function AdminPage() {
                     return (
                       <tr key={u.id} className="hover:bg-prime-surface/10 transition-colors">
                         <td className="p-3">
-                          <div className="font-semibold text-prime-ink">{u.name}</div>
+                          <div className="font-semibold text-prime-ink flex items-center gap-1.5">
+                            <span>{u.name}</span>
+                            {u.clickUpTaskId && (
+                              <span className="text-[9px] font-mono px-1 py-0.2 bg-prime-surface text-prime-blue border border-prime-rule/60">
+                                ClickUp #{u.clickUpTaskId}
+                              </span>
+                            )}
+                          </div>
                           <div className="text-[11px] text-prime-ink/60 font-mono">{u.email}</div>
                         </td>
                         <td className="p-3 font-medium text-prime-ink/80">{u.department}</td>
