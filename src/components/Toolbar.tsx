@@ -22,11 +22,13 @@ export function Toolbar({
   return (
     <div className="prime-toolbar">
       <div className="flex flex-wrap items-center gap-3 min-w-0">
-        <select id="active-form-selector" value={selectedForm} onChange={(e) => onSelectForm?.(e.target.value)} className="prime-field" aria-label="Form type">
-          <option value="rfp">Request for Payment</option>
-          <option value="po">Purchase Order</option>
-          <option value="pcv">Petty Cash Voucher</option>
-        </select>
+        <span className="text-xs font-semibold uppercase tracking-wider text-prime-blue">
+          {selectedForm === "po"
+            ? "Purchase Order"
+            : selectedForm === "pcv"
+            ? "Petty Cash Voucher"
+            : "Request for Payment"}
+        </span>
         {isRevision && <span className="text-xs text-prime-blue">Revision · #{taskId}</span>}
       </div>
       <div className="prime-toolbar-actions">

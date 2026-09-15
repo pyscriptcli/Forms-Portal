@@ -683,12 +683,30 @@ function RfpAppContent() {
       : formData.payee;
 
   return (
-    <div className="prime-form-layout">
-      {/* Container - Aligned to exact 850px document width */}
+    <div className="prime-page">
+      {/* Container */}
       <div className="w-full">
         <PageHeader
-          title={selectedForm === "po" ? "Purchase order" : selectedForm === "pcv" ? "Petty cash voucher" : "Request for payment"}
+          title="Forms"
           description="Complete your form, attach supporting documents, and submit for review."
+          actions={
+            <select
+              id="active-form-selector"
+              value={selectedForm}
+              onChange={(e) => {
+                setSelectedForm(e.target.value as "rfp" | "po" | "pcv");
+                setValidationErrors({});
+                setMissingFieldsList([]);
+                setErrorMessage(null);
+              }}
+              className="prime-field"
+              aria-label="Select form type"
+            >
+              <option value="rfp">Request for Payment</option>
+              <option value="po">Purchase Order</option>
+              <option value="pcv">Petty Cash Voucher</option>
+            </select>
+          }
         />
         {/* Form controls */}
         <Toolbar

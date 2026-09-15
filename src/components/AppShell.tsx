@@ -139,7 +139,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Navigation Items List */}
-        <nav className="py-2 px-1.5 space-y-0.5 overflow-y-auto flex-1" aria-label="Main navigation">
+        <nav className="py-2 px-1.5 space-y-1 overflow-y-auto flex-1 flex flex-col justify-start" aria-label="Main navigation">
           {SIDEBAR_ITEMS.map(({ key, label, href, icon: Icon }) => {
             const isActive = activeKey === key;
             return (
@@ -149,14 +149,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 onClick={() => setMobileOpen(false)}
                 title={label}
                 aria-current={isActive ? "page" : undefined}
-                className={`flex items-center gap-3 transition-colors ${
+                className={`flex items-center gap-3 transition-colors shrink-0 h-10 ${
                   collapsed
-                    ? `w-10 h-10 mx-auto justify-center ${
+                    ? `w-10 mx-auto justify-center ${
                         isActive
                           ? "border-l-2 border-prime-gold bg-[#0B3C68] text-prime-gold"
                           : "border-l-2 border-transparent text-prime-white/80 hover:text-prime-white hover:bg-prime-white/5"
                       }`
-                    : `px-3 py-2 text-xs font-normal ${
+                    : `px-3 text-xs font-normal ${
                         isActive
                           ? "border-l-2 border-prime-gold bg-[#0B3C68] text-prime-gold font-medium"
                           : "border-l-2 border-transparent text-prime-white/85 hover:text-prime-white hover:bg-prime-white/5"
