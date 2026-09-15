@@ -138,3 +138,28 @@ input::placeholder, textarea::placeholder { color: var(--prime-gray); opacity: 0
 .prime-dialog-content { padding: 0 28px 28px; }
 .prime-dialog-actions { display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--color-prime-rule); padding: 20px 28px; }
 @media(max-width: 767px) { .prime-dialog-header { padding: 24px 20px 20px; } .prime-dialog-header h2 { font-size: 40px; } .prime-dialog-content { padding: 0 20px 24px; } .prime-dialog-actions { padding: 20px; } }
+
+/* Official Request for Payment (RFP) Document Typography - Times New Roman Standard */
+.rfp-sheet,
+#rfp-printable-sheet,
+.rfp-sheet *,
+#rfp-printable-sheet * {
+  font-family: "Times New Roman", Times, Georgia, serif !important;
+}
+
+.rfp-sheet,
+#rfp-printable-sheet {
+  font-style: normal;
+}
+
+.rfp-sheet input,
+#rfp-printable-sheet input,
+.rfp-sheet textarea,
+#rfp-printable-sheet textarea,
+.rfp-sheet select,
+#rfp-printable-sheet select,
+.rfp-sheet button,
+#rfp-printable-sheet button {
+  font-family: "Times New Roman", Times, Georgia, serif !important;
+}
+

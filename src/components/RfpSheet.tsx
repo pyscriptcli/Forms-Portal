@@ -102,7 +102,8 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
   return (
     <div
       id="rfp-printable-sheet"
-      className="bg-white text-[#111111] w-full max-w-[850px] mx-auto p-5 sm:p-7 border border-[#d7d7d7] shadow-md font-serif text-xs select-text print:p-0 print:border-none print:shadow-none"
+      className="bg-white text-[#111111] w-full max-w-[850px] mx-auto p-5 sm:p-7 border border-[#d7d7d7] shadow-md rfp-sheet text-xs select-text print:p-0 print:border-none print:shadow-none"
+      style={{ fontFamily: '"Times New Roman", Times, Georgia, serif' }}
     >
       {/* ========================================================================= */}
       {/* HEADER AREA */}
@@ -790,7 +791,7 @@ export function RfpSheet({ data, onChange, validationErrors }: RfpSheetProps) {
                   value={data.clickUpQueueNumber ?? (data.taskId ? `#${data.taskId}` : "")}
                   onChange={(e) => updateField("clickUpQueueNumber", e.target.value)}
                   placeholder="Task ID"
-                  className="border-b border-[#334155] bg-transparent focus:outline-none flex-1 text-xs px-1 font-mono font-medium"
+                  className="border-b border-[#334155] bg-transparent focus:outline-none flex-1 text-xs px-1 font-medium"
                 />
               </div>
             </div>
