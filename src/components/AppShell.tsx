@@ -1,24 +1,15 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutGrid,
-  CheckSquare,
-  BookOpen,
-  Folder,
-  FilePenLine,
   ClipboardList,
-  Newspaper,
-  ClipboardCheck,
-  Settings,
+  Inbox,
+  CheckSquare,
   ChevronRight,
   ChevronLeft,
-  ChevronDown,
-  RefreshCw,
-  Sparkles,
   LogOut,
   Menu,
   X,
@@ -35,14 +26,9 @@ interface SidebarItem {
 }
 
 const SIDEBAR_ITEMS: SidebarItem[] = [
-  { key: "dashboard", label: "Dashboard", href: "/requests", icon: LayoutGrid },
-  { key: "tasks", label: "Tasks", href: "/approvals", icon: CheckSquare },
-  { key: "notebook", label: "Notebook", href: "/requests", icon: BookOpen },
-  { key: "meetings", label: "Meetings", href: "/requests", icon: Folder },
-  { key: "notetaker", label: "Notetaker", href: "/requests", icon: FilePenLine },
   { key: "forms", label: "Forms", href: "/form", icon: ClipboardList },
-  { key: "market-insights", label: "Market Insights", href: "/requests", icon: Newspaper },
-  { key: "demands", label: "Demands", href: "/requests", icon: ClipboardCheck },
+  { key: "requests", label: "Requests", href: "/requests", icon: Inbox },
+  { key: "approvals", label: "Approvals", href: "/approvals", icon: CheckSquare },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -51,8 +37,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, isLoading, signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
   const isAuthRoute = pathname.startsWith("/auth/");
 
   useEffect(() => {
@@ -71,17 +55,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", close);
   }, [mobileOpen]);
 
-  useEffect(() => {
-    if (!userMenuOpen) return;
-    const close = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setUserMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, [userMenuOpen]);
-
   if (isAuthRoute) return <>{children}</>;
   if (isLoading || !user) {
     return (
@@ -91,12 +64,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Active item detection matching screenshot where Notebook is active for the workspace
   const getActiveKey = () => {
     if (pathname.startsWith("/form")) return "forms";
-    if (pathname.startsWith("/approvals")) return "tasks";
-    if (pathname.startsWith("/admin")) return "settings";
-    return "notebook";
+    if (pathname.startsWith("/approvals")) return "approvals";
+    return "requests";
   };
   const activeKey = getActiveKey();
 
@@ -201,28 +172,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Bottom Section Matching Screenshot */}
         <div className="mt-auto border-t border-prime-rule flex flex-col">
-          {/* Settings Link */}
-          <Link
-            href="/admin"
-            onClick={() => setMobileOpen(false)}
-            title="Settings"
-            className={`flex items-center gap-3 py-2.5 transition-colors ${
-              collapsed
-                ? `w-10 h-10 mx-auto justify-center ${
-                    activeKey === "settings" ? "text-prime-gold" : "text-prime-white/80 hover:text-prime-white"
-                  }`
-                : `px-3 text-xs font-normal ${
-                    activeKey === "settings" ? "text-prime-gold font-medium" : "text-prime-white/85 hover:text-prime-white hover:bg-prime-white/5"
-                  }`
-            }`}
-          >
-            <Settings size={18} />
-            {!collapsed && <span>Settings</span>}
-          </Link>
-
-          {/* Divider */}
-          <div className="border-t border-prime-rule" />
-
           {/* Workspace label or ClickUp badge */}
           {!collapsed ? (
             <div className="px-3 py-2 flex items-center justify-between text-[10px] tracking-wider font-bold">
@@ -328,52 +277,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Plus size={13} className="text-prime-blue" />
               <span>NEW REQUEST</span>
             </Link>
-
-            <div className="hidden sm:flex h-8 px-3 bg-prime-blue text-prime-white text-xs font-medium items-center gap-1.5 cursor-default whitespace-nowrap">
-              <Sparkles size={12} className="text-prime-gold" />
-              <span>Forms Portal</span>
-            </div>
-
-            {/* User dropdown pill */}
-            <div className="relative" ref={userMenuRef}>
-              <button
-                type="button"
-                onClick={() => setUserMenuOpen((prev) => !prev)}
-                className="h-8 px-2.5 sm:px-3 border border-prime-rule hover:border-prime-blue text-xs text-prime-blue font-medium flex items-center gap-1.5 bg-prime-white transition-colors cursor-pointer"
-                aria-expanded={userMenuOpen}
-              >
-                <span className="truncate max-w-[120px]">{userName}</span>
-                <ChevronDown size={13} className="text-prime-ink/60 shrink-0" />
-              </button>
-
-              {userMenuOpen && (
-                <div className="absolute right-0 top-full mt-1 w-52 bg-prime-white border border-prime-blue z-50 p-2 text-left">
-                  <div className="px-2 py-1.5 border-b border-prime-rule">
-                    <p className="text-xs font-semibold text-prime-blue truncate">{userName}</p>
-                    <p className="text-[11px] text-prime-ink/60 truncate">{userEmail}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={signOut}
-                    className="w-full mt-1 px-2 py-1.5 text-xs text-left text-prime-blue hover:bg-prime-blue hover:text-prime-white flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <LogOut size={13} />
-                    <span>Sign out</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Refresh button */}
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="h-8 px-2.5 border border-prime-rule hover:border-prime-blue text-xs text-prime-ink flex items-center gap-1.5 bg-prime-white hover:text-prime-blue transition-colors cursor-pointer"
-              title="Refresh page"
-            >
-              <RefreshCw size={13} />
-              <span className="hidden sm:inline">Refresh</span>
-            </button>
           </div>
         </header>
 

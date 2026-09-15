@@ -13,12 +13,11 @@ interface ToolbarProps {
   totalAmount: number;
   selectedForm?: string;
   onSelectForm?: (formKey: string) => void;
-  onPreFillDemo?: () => void;
 }
 
 export function Toolbar({
   onPreviewPdf, onReset, onSubmit, isSubmitting, isGeneratingPdf,
-  isRevision, taskId, selectedForm = "rfp", onSelectForm, onPreFillDemo,
+  isRevision, taskId, selectedForm = "rfp", onSelectForm,
 }: ToolbarProps) {
   return (
     <div className="prime-toolbar">
@@ -29,7 +28,6 @@ export function Toolbar({
           <option value="pcv">Petty Cash Voucher</option>
         </select>
         {isRevision && <span className="text-xs text-prime-blue">Revision · #{taskId}</span>}
-        {onPreFillDemo && <button type="button" onClick={onPreFillDemo} className="text-xs underline underline-offset-4 text-prime-blue min-h-11">Fill sample</button>}
       </div>
       <div className="prime-toolbar-actions">
         <button type="button" onClick={onPreviewPdf} disabled={isGeneratingPdf} className="prime-button secondary">

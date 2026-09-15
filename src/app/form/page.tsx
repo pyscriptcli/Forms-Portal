@@ -707,7 +707,6 @@ function RfpAppContent() {
             setMissingFieldsList([]);
             setErrorMessage(null);
           }}
-          onPreFillDemo={handlePreFillDemo}
         />
 
         {/* Error banner */}

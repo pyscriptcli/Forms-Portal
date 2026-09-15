@@ -168,7 +168,7 @@ function RequestsContent() {
                     </Link>
                   ) : (
                     <Link
-                      href={`/track?id=${req.taskId}`}
+                      href={`/requests?id=${req.taskId}`}
                       className="h-8 px-3 bg-prime-white hover:bg-prime-white text-prime-ink text-xs font-medium flex items-center gap-1.5 transition-colors"
                     >
                       View

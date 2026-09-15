@@ -26,19 +26,32 @@ vi.mock("@/components/GlobalSearch", () => ({
 import { AppShell } from "@/components/AppShell";
 
 describe("AppShell", () => {
-  it("renders Forms nav link", () => {
+  it("renders only Forms, Requests, and Approvals nav links in the sidebar", () => {
     render(<AppShell><div>content</div></AppShell>);
-    expect(screen.getByRole("link", { name: /forms/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^forms$/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^requests$/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^approvals$/i })).toBeInTheDocument();
+
+    // Verify removed mock navigation links
+    expect(screen.queryByRole("link", { name: /^dashboard$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^tasks$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^notebook$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^meetings$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^notetaker$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^market insights$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^demands$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^settings$/i })).not.toBeInTheDocument();
   });
 
-  it("renders Tasks nav link", () => {
-    render(<AppShell><div>content</div></AppShell>);
-    expect(screen.getByRole("link", { name: /tasks/i })).toBeInTheDocument();
-  });
-
-  it("renders New Request action link", () => {
+  it("renders New Request action link in topbar", () => {
     render(<AppShell><div>content</div></AppShell>);
     expect(screen.getByRole("link", { name: /new request/i })).toBeInTheDocument();
+  });
+
+  it("does not render redundant topbar badge or refresh button", () => {
+    render(<AppShell><div>content</div></AppShell>);
+    expect(screen.queryByText(/forms portal/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /refresh page/i })).not.toBeInTheDocument();
   });
 
   it("renders the collapsible sidebar toggle button", () => {
