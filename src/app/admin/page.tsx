@@ -47,6 +47,7 @@ const DEFAULT_FORM_DESTINATIONS: FormDestinations = {
 };
 
 export default function AdminPage() {
+  const [activeTab, setActiveTab] = useState<"features" | "destinations" | "rbac">("features");
   const [authed, setAuthed] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -316,7 +317,32 @@ export default function AdminPage() {
         }
       />
 
-      <div className="max-w-4xl space-y-12">
+      <div className="max-w-4xl">
+        <div role="tablist" aria-label="Admin settings sections" className="mb-8 flex flex-wrap gap-2 border-b border-prime-rule">
+          {([
+            ["features", "Features"],
+            ["destinations", "Form destinations"],
+            ["rbac", "Role-Based Access Control (RBAC)"],
+          ] as [typeof activeTab, string][]).map(([tab, label]) => (
+            <button
+              key={tab}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab}
+              aria-controls={`admin-tabpanel-${tab}`}
+              onClick={() => setActiveTab(tab)}
+              className={`border-b-2 px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] transition-colors ${
+                activeTab === tab
+                  ? "border-prime-blue text-prime-blue"
+                  : "border-transparent text-prime-ink/60 hover:border-prime-rule hover:text-prime-blue"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === "features" && <div id="admin-tabpanel-features" role="tabpanel" aria-label="Feature controls">
         {/* ========================================================================= */}
         {/* FEATURE CONTROLS */}
         {/* ========================================================================= */}
@@ -345,7 +371,9 @@ export default function AdminPage() {
           </div>
           {saveMsg && <p role="status" className="prime-notice mt-6">{saveMsg}</p>}
         </section>
+        </div>}
 
+        {activeTab === "destinations" && <div id="admin-tabpanel-destinations" role="tabpanel" aria-label="Form destinations">
         {/* ========================================================================= */}
         {/* FORM DESTINATIONS */}
         {/* ========================================================================= */}
@@ -421,7 +449,9 @@ export default function AdminPage() {
             </table>
           </div>
         </section>
+        </div>}
 
+        {activeTab === "rbac" && <div id="admin-tabpanel-rbac" role="tabpanel" aria-label="Role-Based Access Control">
         {/* ========================================================================= */}
         {/* ROLE-BASED ACCESS CONTROL (RBAC) */}
         {/* ========================================================================= */}
@@ -651,6 +681,7 @@ export default function AdminPage() {
             </form>
           </div>
         </section>
+        </div>}
       </div>
     </div>
   );
