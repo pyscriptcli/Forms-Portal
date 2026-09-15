@@ -48,8 +48,10 @@ Before clicking **Deploy**, expand the **Environment Variables** section and add
 | Key | Example Value | Description |
 | :--- | :--- | :--- |
 | `CLICKUP_API_TOKEN` | `pk_88451246_...` | ClickUp Personal API Token |
-| `CLICKUP_LIST_ID` | `901611126291` | Target ClickUp List ID for RFP tasks |
-| `GEMINI_API_KEY` | `AQ.Ab8RN6...` | Google AI Studio Gemini API Key |
+| `RFP_LIST_ID` | `901611126291` | Target ClickUp List ID for RFP tasks (recommended) |
+| `CLICKUP_LIST_ID` | `901611126291` | Default fallback List ID |
+| `DEEPSEEK_API` | `sk-...` | DeepSeek API key for AI document extraction |
+| `GEMINI_API_KEY` | `AQ.Ab8RN6...` | Google AI Studio Gemini API Key (Vision fallback) |
 | `NEXT_PUBLIC_APP_URL` | `https://your-project.vercel.app` | Your Vercel deployment URL or custom domain |
 
 ### Optional (Outlook Email Alerts):

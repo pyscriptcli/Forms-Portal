@@ -8,9 +8,31 @@ import {
 
 const CLICKUP_API_BASE = "https://api.clickup.com/api/v2";
 
-export function getClickUpConfig() {
+export function getClickUpConfig(formType: FormType = "rfp") {
   const token = process.env.CLICKUP_API_TOKEN || "";
-  const listId = process.env.CLICKUP_LIST_ID || "";
+  let listId = "";
+
+  if (formType === "po") {
+    listId =
+      process.env.PO_LIST_ID ||
+      process.env.CLICKUP_PO_LIST_ID ||
+      process.env.CLICKUP_LIST_ID ||
+      "";
+  } else if (formType === "pcv") {
+    listId =
+      process.env.PCV_LIST_ID ||
+      process.env.CLICKUP_PCV_LIST_ID ||
+      process.env.CLICKUP_LIST_ID ||
+      "";
+  } else {
+    // Default RFP list ID
+    listId =
+      process.env.RFP_LIST_ID ||
+      process.env.CLICKUP_RFP_LIST_ID ||
+      process.env.CLICKUP_LIST_ID ||
+      "";
+  }
+
   const isConfigured = Boolean(token && listId && token !== "mock" && !token.startsWith("pk_your"));
   return { token, listId, isConfigured };
 }
@@ -227,7 +249,8 @@ export async function createClickUpTask(
   appUrl: string,
   formType: FormType = "rfp"
 ): Promise<ClickUpTaskResponse> {
-  const { token, listId, isConfigured } = getClickUpConfig();
+  const actualFormType = formType || data.formType || "rfp";
+  const { token, listId, isConfigured } = getClickUpConfig(actualFormType);
 
   const isUrgent =
     data.urgency === "urgent" || (data.urgencyOptions && data.urgencyOptions.includes("urgent"));
@@ -327,7 +350,8 @@ export async function updateClickUpTask(
   appUrl: string,
   formType: FormType = "rfp"
 ): Promise<ClickUpTaskResponse> {
-  const { token, listId, isConfigured } = getClickUpConfig();
+  const actualFormType = formType || data.formType || "rfp";
+  const { token, listId, isConfigured } = getClickUpConfig(actualFormType);
 
   const isUrgent =
     data.urgency === "urgent" || (data.urgencyOptions && data.urgencyOptions.includes("urgent"));
@@ -514,8 +538,11 @@ export async function getClickUpTask(taskId: string): Promise<any> {
 /**
  * Fetches all tasks from the configured ClickUp list.
  */
-export async function getListTasks(includeClosed: boolean = true): Promise<any[]> {
-  const { token, listId, isConfigured } = getClickUpConfig();
+export async function getListTasks(
+  includeClosed: boolean = true,
+  formType: FormType = "rfp"
+): Promise<any[]> {
+  const { token, listId, isConfigured } = getClickUpConfig(formType);
 
   if (!isConfigured) {
     return [];

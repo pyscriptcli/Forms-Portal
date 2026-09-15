@@ -42,6 +42,12 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    if (buffer.length > 4.5 * 1024 * 1024) {
+      return NextResponse.json(
+        { success: false, message: "File exceeds 4.5MB upload limit. Please upload a compressed document or image." },
+        { status: 413 }
+      );
+    }
     const base64Data = buffer.toString("base64");
 
     // Strictly normalize MIME type
@@ -91,23 +97,26 @@ export async function POST(req: NextRequest) {
     const deepseekKey = process.env.DEEPSEEK_API || process.env.DEEPSEEK_API_KEY;
 
     if (deepseekKey && deepseekKey !== "mock" && !deepseekKey.startsWith("your_")) {
-      try {
-        const dsResult = await extractWithDeepSeek({
-          base64Data,
-          mimeType,
-          extractedText: extractedText || undefined,
-          apiKey: deepseekKey,
-        });
-
-        if (dsResult && dsResult.items.length > 0) {
-          return NextResponse.json({
-            success: true,
-            source: "deepseek_vision",
-            data: dsResult,
+      // Only invoke DeepSeek if extracted text exists or if mimeType is a standard image
+      if (extractedText || mimeType.startsWith("image/")) {
+        try {
+          const dsResult = await extractWithDeepSeek({
+            base64Data,
+            mimeType,
+            extractedText: extractedText || undefined,
+            apiKey: deepseekKey,
           });
+
+          if (dsResult && dsResult.items.length > 0) {
+            return NextResponse.json({
+              success: true,
+              source: "deepseek_vision",
+              data: dsResult,
+            });
+          }
+        } catch (deepseekErr: any) {
+          console.warn("Tier 2 DeepSeek error (proceeding to Gemini):", deepseekErr.message || deepseekErr);
         }
-      } catch (deepseekErr: any) {
-        console.warn("Tier 2 DeepSeek error (proceeding to Gemini):", deepseekErr.message || deepseekErr);
       }
     }
 

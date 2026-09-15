@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { Sparkles, UploadCloud, Loader2 } from "lucide-react";
+import { Sparkles, UploadCloud, Loader2, AlertCircle, X } from "lucide-react";
 import { RfpFormData } from "@/types/rfp";
+import { convertPdfToImage } from "@/lib/pdfToImage";
 
 interface QuotationDropzoneProps {
   onDataExtracted: (extractedData: Partial<RfpFormData>, file: File) => void;
@@ -11,22 +12,64 @@ interface QuotationDropzoneProps {
 export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState<string | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const processFile = async (file: File) => {
     setIsScanning(true);
-    setScanStatus("Analyzing quotation document layout (Free Parser & DeepSeek Vision)...");
+    setScanError(null);
+
+    const isPdf =
+      file.type === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf");
+
+    let fileToUpload: File = file;
 
     try {
+      if (isPdf) {
+        setScanStatus("Converting PDF pages to high-resolution image (up to 3 pages)...");
+        try {
+          fileToUpload = await convertPdfToImage(file, {
+            maxPages: 3,
+            maxWidth: 1600,
+            quality: 0.85,
+            onProgress: (p) => {
+              setScanStatus(p.status);
+            },
+          });
+        } catch (pdfErr: any) {
+          console.warn("Client-side PDF conversion error, falling back to direct PDF upload:", pdfErr);
+          // Fall back to original PDF if canvas conversion fails
+          fileToUpload = file;
+        }
+      }
+
+      setScanStatus("Analyzing quotation layout (Free Parser & Vision AI)...");
+
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", fileToUpload);
 
       const res = await fetch("/api/rfp/extract", {
         method: "POST",
         body: formData,
       });
 
-      const json = await res.json();
+      const responseText = await res.text();
+      let json: any = null;
+
+      try {
+        json = JSON.parse(responseText);
+      } catch {
+        if (res.status === 413 || responseText.includes("Request Entity Too Large")) {
+          throw new Error("Quotation file is too large (exceeds server limit). Please upload a smaller or compressed document.");
+        }
+        throw new Error(
+          res.status >= 500
+            ? "Extraction server encountered a temporary error. Please try again or fill fields manually."
+            : `Server returned unexpected response (${res.status}).`
+        );
+      }
+
       if (!res.ok || !json.success) {
         throw new Error(json.message || "Failed to extract quotation data.");
       }
@@ -42,13 +85,14 @@ export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
 
       setScanStatus(`Quotation data extracted ${sourceLabel} successfully!`);
       setTimeout(() => {
+        // Keep original PDF file as the form's supporting attachment
         onDataExtracted(json.data, file);
         setIsScanning(false);
         setScanStatus(null);
       }, 400);
     } catch (err: any) {
       console.error("Extraction error:", err);
-      alert(err.message || "Error scanning quotation document.");
+      setScanError(err.message || "Error scanning quotation document.");
       setIsScanning(false);
       setScanStatus(null);
     }
@@ -127,6 +171,24 @@ export function QuotationDropzone({ onDataExtracted }: QuotationDropzoneProps) {
         <div className="mt-2 p-2 bg-prime-white border border-prime-rule flex items-center justify-center gap-2 text-xs font-medium text-prime-blue animate-pulse">
           <Loader2 className="w-3.5 h-3.5 animate-spin text-prime-blue" />
           <span>{scanStatus}</span>
+        </div>
+      )}
+
+      {/* Error Alert Banner */}
+      {scanError && !isScanning && (
+        <div className="mt-2 p-2.5 bg-red-50/80 border border-red-200 flex items-center justify-between gap-2 text-xs font-medium text-red-800">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <span>{scanError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setScanError(null)}
+            className="text-red-500 hover:text-red-800 p-0.5"
+            aria-label="Dismiss error"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
     </div>
