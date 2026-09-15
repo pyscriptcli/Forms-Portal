@@ -3,6 +3,9 @@ import { getListTasks, getClickUpTask } from "@/lib/clickup";
 import { getServerAuthSession } from "@/lib/auth";
 import { readFormDestinationFromSupabase } from "@/lib/supabaseAdmin";
 import type { FormDestinationKey } from "@/lib/adminSettings";
+import { promises as fs } from "fs";
+import path from "path";
+import { DEFAULT_USERS, type UserRole } from "@/lib/rbac";
 
 export interface TrackedRfp {
   taskId: string;
@@ -34,6 +37,35 @@ export interface TrackedRfp {
   attachments: Array<{ id: string; name: string; url: string; type?: string }>;
 }
 
+interface ViewerAccess {
+  email: string;
+  username: string;
+  role: UserRole;
+  canViewAll: boolean;
+}
+
+async function getViewerAccess(user: { email?: string; username?: string } | null): Promise<ViewerAccess> {
+  const email = (user?.email || "").trim().toLowerCase();
+  const username = (user?.username || "").trim().toLowerCase();
+  let users = DEFAULT_USERS;
+  try {
+    const raw = await fs.readFile(path.join(process.cwd(), "src", "lib", "rbacData.json"), "utf8");
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) users = parsed;
+  } catch {
+    // The checked-in defaults are the safe fallback on read-only deployments.
+  }
+
+  const record = users.find((candidate) =>
+    candidate.status === "active" && (
+      candidate.email.toLowerCase() === email ||
+      candidate.name.toLowerCase() === username
+    )
+  );
+  const role = record?.role || "requestor";
+  return { email, username, role, canViewAll: role !== "requestor" };
+}
+
 function parseTaskToTrackedRfp(task: any): TrackedRfp {
   const statusStr = (task.status?.status || "").toLowerCase();
   const desc = task.markdown_description || task.description || "";
@@ -54,7 +86,7 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
   const urgency: "urgent" | "normal" = task.priority?.priority === "urgent" ? "urgent" : "normal";
   let purpose = "";
   let requestedBy = "";
-  const requestedByEmail = "";
+  let requestedByEmail = "";
 
   // Read from custom fields if available
   if (Array.isArray(task.custom_fields)) {
@@ -91,6 +123,8 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
     const reqMatch = desc.match(/\|\s*\*\*(?:Requested By|Prepared By)\*\*\s*\|\s*\*\*?(.+?)\*\*?\s*(?:\(|$)/);
     if (reqMatch) requestedBy = reqMatch[1].trim();
   }
+  const emailMatch = desc.match(/\|\s*\*\*(?:Requested By Email|Prepared By Email)\*\*\s*\|\s*([^|\n]+?)\s*\|/i);
+  if (emailMatch) requestedByEmail = emailMatch[1].replace(/[\*_`]/g, "").trim().toLowerCase();
   if (!dateNeeded) {
     const dateMatch = desc.match(/\|\s*\*\*Date Needed\*\*\s*\|\s*\*\*?(.+?)\*\*?\s*(?:\(|$)/);
     if (dateMatch) dateNeeded = dateMatch[1].trim();
@@ -202,13 +236,14 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
 
 export async function GET(req: NextRequest) {
   try {
-    const { accessToken } = await getServerAuthSession();
+    const { accessToken, user } = await getServerAuthSession();
     if (!accessToken) {
       return NextResponse.json(
         { success: false, message: "Sign in with ClickUp to view submitted requests." },
         { status: 401 }
       );
     }
+    const viewer = await getViewerAccess(user);
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
@@ -222,9 +257,14 @@ export async function GET(req: NextRequest) {
       if (!task) {
         return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
       }
+      const parsed = parseTaskToTrackedRfp(task);
+      if (!viewer.canViewAll && !taskBelongsToViewer(parsed, viewer)) {
+        return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
+      }
       return NextResponse.json({
         success: true,
-        requests: [parseTaskToTrackedRfp(task)],
+        requests: [parsed],
+        viewerCanViewAll: viewer.canViewAll,
       });
     }
 
@@ -241,6 +281,12 @@ export async function GET(req: NextRequest) {
       new Map(taskGroups.flat().map((task) => [task.id, task])).values()
     );
     let parsed = allTasks.map(parseTaskToTrackedRfp);
+
+    // Requestors are restricted server-side. Admins, approvers, and finance
+    // users retain the complete queue needed for review and processing.
+    if (!viewer.canViewAll) {
+      parsed = parsed.filter((request) => taskBelongsToViewer(request, viewer));
+    }
 
     // Apply filters
     if (query) {
@@ -275,6 +321,7 @@ export async function GET(req: NextRequest) {
       success: true,
       requests: parsed,
       count: parsed.length,
+      viewerCanViewAll: viewer.canViewAll,
     });
   } catch (error: any) {
     console.error("Error in /api/rfp/track:", error);
@@ -283,4 +330,15 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function taskBelongsToViewer(request: TrackedRfp, viewer: ViewerAccess): boolean {
+  if (viewer.canViewAll) return true;
+  const viewerEmail = viewer.email;
+  const viewerName = viewer.username.replace(/\s+/g, " ").trim();
+  if (request.requestedByEmail && viewerEmail) {
+    return request.requestedByEmail === viewerEmail;
+  }
+  if (!viewerName || viewerName.includes("@")) return false;
+  return request.requestedBy.trim().toLowerCase() === viewerName;
 }

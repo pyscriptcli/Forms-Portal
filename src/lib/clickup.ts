@@ -126,6 +126,7 @@ export function buildTaskDescription(data: RfpFormData): string {
     `| **Payment Details** | ${paymentDetails} |`,
     `| **Purpose** | ${data.purpose ? data.purpose.replace(/\n/g, " ") : "_No purpose stated._"} |`,
     `| **Requested By** | **${data.requestedByName || "N/A"}** (Date: ${data.date || "N/A"}) |`,
+    `| **Requested By Email** | ${data.requestedByEmail || "N/A"} |`,
     "",
     `---`,
     `### 🔄 Processing Checklist`,

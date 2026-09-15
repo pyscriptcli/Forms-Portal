@@ -13,6 +13,8 @@ import {
   Edit3,
   FileText,
   RefreshCw,
+  ExternalLink,
+  X,
 } from "lucide-react";
 import { TrackedRfp } from "../api/rfp/track/route";
 import { DEPARTMENT_NAMES } from "@/types/rfp";
@@ -27,6 +29,8 @@ function RequestsContent() {
   const [selectedDept, setSelectedDept] = useState("All Departments");
   const [requests, setRequests] = useState<TrackedRfp[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedRequest, setSelectedRequest] = useState<TrackedRfp | null>(null);
+  const [viewerCanViewAll, setViewerCanViewAll] = useState(false);
 
   const fetchRequests = useCallback(async () => {
     setIsLoading(true);
@@ -36,15 +40,35 @@ function RequestsContent() {
       if (selectedDept !== "All Departments") params.append("dept", selectedDept);
       const res = await fetch(`/api/rfp/track?${params.toString()}`);
       const data = await res.json();
-      if (res.ok && data.success) setRequests(data.requests ?? []);
+      if (res.ok && data.success) {
+        const nextRequests = data.requests ?? [];
+        setRequests(nextRequests);
+        setViewerCanViewAll(Boolean(data.viewerCanViewAll));
+        if (initialId) {
+          setSelectedRequest(nextRequests.find((request: TrackedRfp) => request.taskId === initialId) ?? null);
+        }
+      }
     } catch {
       // ignore
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, selectedDept]);
+  }, [searchQuery, selectedDept, initialId]);
 
   useEffect(() => { fetchRequests(); }, [fetchRequests]);
+
+  const openRequest = (request: TrackedRfp) => {
+    setSelectedRequest(request);
+    setSearchQuery(request.taskId);
+    window.history.pushState({}, "", `/requests?id=${encodeURIComponent(request.taskId)}`);
+  };
+
+  const closeRequest = () => {
+    setSelectedRequest(null);
+    setSearchQuery("");
+    window.history.pushState({}, "", "/requests");
+    void fetchRequests();
+  };
 
   const stageColor = (stage: string, revision: boolean) => {
     if (revision) return "border-prime-rule";
@@ -79,11 +103,14 @@ function RequestsContent() {
             aria-label="Search requests"
             placeholder="Search by task ID, payee, purpose…"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSelectedRequest(null);
+              setSearchQuery(e.target.value);
+            }}
             className="w-full min-h-11 pl-9 pr-3 bg-prime-white border border-prime-rule focus:border-prime-blue text-xs focus:outline-none transition-colors"
           />
         </div>
-        <div className="relative">
+        {viewerCanViewAll && <div className="relative">
           <Building2 className="w-3.5 h-3.5 text-prime-ink absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <select
             aria-label="Filter requests by department"
@@ -93,8 +120,57 @@ function RequestsContent() {
           >
             {DEPARTMENTS.map((d) => <option key={d}>{d}</option>)}
           </select>
-        </div>
+        </div>}
       </div>
+
+      {selectedRequest && (
+        <section aria-label="Request details" className="mb-6 bg-prime-white border border-prime-rule shadow-none">
+          <div className="flex items-start justify-between gap-4 border-b border-prime-rule px-5 py-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-prime-ink">Request details</p>
+              <h2 className="font-serif italic text-2xl text-prime-blue mt-1">{selectedRequest.payee}</h2>
+              <p className="text-xs text-prime-ink mt-1">#{selectedRequest.taskId} · {selectedRequest.formType.toUpperCase()}</p>
+            </div>
+            <button type="button" aria-label="Close request details" onClick={closeRequest} className="p-2 text-prime-ink hover:text-prime-blue">
+              <X size={18} />
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-prime-rule">
+            {[
+              ["Department", selectedRequest.department],
+              ["Amount", `₱${Number(selectedRequest.totalAmount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+              ["Stage", selectedRequest.stageLabel],
+              ["Requested by", selectedRequest.requestedBy],
+            ].map(([label, value]) => (
+              <div key={label} className="bg-prime-white px-5 py-4">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-prime-ink">{label}</p>
+                <p className="text-sm text-prime-ink mt-1">{value || "—"}</p>
+              </div>
+            ))}
+          </div>
+          <div className="px-5 py-4 space-y-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-prime-ink mb-1">Purpose</p>
+              <p className="text-sm text-prime-ink whitespace-pre-wrap">{selectedRequest.purpose || "No purpose provided."}</p>
+            </div>
+            {selectedRequest.attachments.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.16em] text-prime-ink mb-2">Attachments</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedRequest.attachments.map((attachment) => (
+                    <a key={attachment.id} href={attachment.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 border border-prime-rule px-3 py-2 text-xs text-prime-blue hover:bg-prime-white">
+                      {attachment.name} <ExternalLink size={12} />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+            <a href={selectedRequest.taskUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-prime-blue hover:underline">
+              Open in ClickUp <ExternalLink size={12} />
+            </a>
+          </div>
+        </section>
+      )}
 
       {/* Results */}
       {isLoading ? (
@@ -167,12 +243,13 @@ function RequestsContent() {
                       <Edit3 className="w-3 h-3" /> Edit
                     </Link>
                   ) : (
-                    <Link
-                      href={`/requests?id=${req.taskId}`}
+                    <button
+                      type="button"
+                      onClick={() => openRequest(req)}
                       className="h-8 px-3 bg-prime-white hover:bg-prime-white text-prime-ink text-xs font-medium flex items-center gap-1.5 transition-colors"
                     >
                       View
-                    </Link>
+                    </button>
                   )}
                 </div>
               </div>
