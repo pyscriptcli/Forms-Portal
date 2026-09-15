@@ -126,7 +126,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-2">
         {/* Left: PRIME Logo */}
         <div className="shrink-0 flex items-center">
-          <Image src="/prime-blue-logo.png" alt="PRIME Philippines" width={220} height={60} unoptimized className="h-11 w-auto object-contain" priority />
+          <Image src={variant === "gw" ? "/greatwork-logo.png" : "/prime-blue-logo.png"} alt={variant === "gw" ? "GreatWork" : "PRIME Philippines"} width={220} height={60} unoptimized className="h-11 w-auto object-contain" priority />
         </div>
 
         {/* Center: Official Title Box with soft PRIME blue background */}

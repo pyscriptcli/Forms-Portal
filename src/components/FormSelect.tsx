@@ -9,6 +9,7 @@ export type FormOption = {
   label: string;
   description?: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
+  logo?: string;
 };
 
 const FORM_OPTIONS: FormOption[] = [
@@ -17,12 +18,14 @@ const FORM_OPTIONS: FormOption[] = [
     label: "PRIME RFP (Request for Payment)",
     description: "Official Request for Payment document for vendor & reimbursement disbursements",
     icon: Receipt,
+    logo: "/prime-icon.png",
   },
   {
     value: "gw-rfp",
     label: "GW RFP (Request for Payment)",
     description: "GreatWork Request for Payment document based on the revised GW template",
     icon: Receipt,
+    logo: "/greatwork-logo.png",
   },
 ];
 
@@ -103,8 +106,8 @@ export function FormSelect({
       >
         <div className="flex items-center gap-2.5">
           <Image
-            src="/prime-icon.png"
-            alt="PRIME Logo"
+            src={currentOption.logo ?? "/prime-icon.png"}
+            alt={currentOption.value === "gw-rfp" ? "GreatWork Logo" : "PRIME Logo"}
             width={20}
             height={20}
             unoptimized
@@ -150,8 +153,8 @@ export function FormSelect({
                 }`}
               >
                 <Image
-                  src="/prime-icon.png"
-                  alt="PRIME Logo"
+                  src={option.logo ?? "/prime-icon.png"}
+                  alt={option.value === "gw-rfp" ? "GreatWork Logo" : "PRIME Logo"}
                   width={20}
                   height={20}
                   unoptimized
