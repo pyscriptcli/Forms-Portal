@@ -40,6 +40,12 @@ describe.each(["prime", "gw"] as const)("%s RFP", (variant) => {
     expect(state).toMatchObject({ dueDate: "10/25/2026", dateNeeded: "10/25/2026", dateAccomplished: "10/01/2026", date: "10/01/2026" });
   });
 
+  it("allows the RFP number to be edited", () => {
+    render(<RfpHarness variant={variant} />);
+    fireEvent.change(screen.getByLabelText("RFP number"), { target: { value: "0000042" } });
+    expect(JSON.parse(screen.getByTestId("state").textContent || "{}")).toMatchObject({ rfpCodeSuffix: "0000042" });
+  });
+
   it("keeps time, purpose, bank details, and supporting-document checks editable", () => {
     const { container } = render(<RfpHarness variant={variant} />);
     fireEvent.change(container.querySelector<HTMLInputElement>('input[type="time"]')!, { target: { value: "14:35" } });

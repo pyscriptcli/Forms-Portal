@@ -155,9 +155,14 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
       {/* Right-aligned RFP Document Code */}
       <div className="flex justify-end items-baseline gap-1 mb-2.5 text-xs font-bold text-[#002B49]">
         <span>{variant === "gw" ? "RFP-ADM-" : "RFP-"}</span>
-          <span className="border-b border-[#002B49] min-w-28 text-right text-xs font-bold text-[#002B49]">
-            {data.rfpCodeSuffix ?? "0000001"}
-          </span>
+        <input
+          aria-label="RFP number"
+          type="text"
+          value={data.rfpCodeSuffix ?? "0000001"}
+          onChange={(event) => updateField("rfpCodeSuffix", event.target.value.replace(/^RFP(?:-ADM)?-/i, ""))}
+          className="border-b border-[#002B49] min-w-28 w-32 text-right text-xs font-bold text-[#002B49] bg-transparent focus:outline-none"
+          maxLength={20}
+        />
       </div>
 
       {/* ========================================================================= */}
