@@ -32,5 +32,13 @@
       "label": "Petty Cash Voucher requests",
       "enabled": true
     }
+  },
+  "workflowStatuses": {
+    "submitted": "Submitted",
+    "forTlApproval": "For TL Approval",
+    "financeVerification": "Finance Verification",
+    "disbursementPrep": "Disbursement prep",
+    "executiveSignoff": "Executive Sign off",
+    "completed": "completed"
   }
 }

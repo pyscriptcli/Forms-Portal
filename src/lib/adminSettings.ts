@@ -9,6 +9,24 @@ export type FormDestination = {
 
 export type FormDestinations = Record<FormDestinationKey, FormDestination>;
 
+export type WorkflowStatuses = {
+  submitted: string;
+  forTlApproval: string;
+  financeVerification: string;
+  disbursementPrep: string;
+  executiveSignoff: string;
+  completed: string;
+};
+
+export const DEFAULT_WORKFLOW_STATUSES: WorkflowStatuses = {
+  submitted: "Submitted",
+  forTlApproval: "For TL Approval",
+  financeVerification: "Finance Verification",
+  disbursementPrep: "Disbursement prep",
+  executiveSignoff: "Executive Sign off",
+  completed: "completed",
+};
+
 export const DEFAULT_FORM_DESTINATIONS: FormDestinations = {
   rfp: {
     listId: "901420772915",
@@ -46,6 +64,7 @@ export type AdminSettings = {
   portalGuideEnabled: boolean;
   rfpAutofillEnabled: boolean;
   destinations?: FormDestinations;
+  workflowStatuses?: WorkflowStatuses;
 };
 
 export const ADMIN_SETTINGS_KEY = "prime_admin_settings";
@@ -58,6 +77,7 @@ export const DEFAULT_SETTINGS: AdminSettings = {
   portalGuideEnabled: true,
   rfpAutofillEnabled: true,
   destinations: DEFAULT_FORM_DESTINATIONS,
+  workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
 };
 
 export function getDefaultFormDestinations(): FormDestinations {
@@ -83,6 +103,16 @@ export function normalizeFormDestinations(value: unknown): FormDestinations {
   return normalized;
 }
 
+export function normalizeWorkflowStatuses(value: unknown): WorkflowStatuses {
+  const raw = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  return Object.fromEntries(
+    Object.entries(DEFAULT_WORKFLOW_STATUSES).map(([key, fallback]) => [
+      key,
+      typeof raw[key] === "string" && raw[key].trim() ? raw[key].trim() : fallback,
+    ])
+  ) as WorkflowStatuses;
+}
+
 /** Read settings from localStorage (client-side only). Falls back to defaults. */
 export function getAdminSettings(): AdminSettings {
   if (typeof window === "undefined") return { ...DEFAULT_SETTINGS };
@@ -100,6 +130,7 @@ export function getAdminSettings(): AdminSettings {
           ? parsed.rfpAutofillEnabled
           : DEFAULT_SETTINGS.rfpAutofillEnabled,
       destinations: normalizeFormDestinations(parsed.destinations),
+      workflowStatuses: normalizeWorkflowStatuses(parsed.workflowStatuses),
     };
   } catch {
     return { ...DEFAULT_SETTINGS };

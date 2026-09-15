@@ -28,6 +28,7 @@ import {
   type AdminSettings,
   type FormDestinationKey,
   type FormDestinations,
+  type WorkflowStatuses,
 } from "@/lib/adminSettings";
 import {
   ROLE_DEFINITIONS,
@@ -46,8 +47,17 @@ const DEFAULT_FORM_DESTINATIONS: FormDestinations = {
   pcv: { listId: "", workspaceId: "9014981136", label: "Petty Cash Voucher requests", enabled: true },
 };
 
+const DEFAULT_WORKFLOW_STATUSES: WorkflowStatuses = {
+  submitted: "Submitted",
+  forTlApproval: "For TL Approval",
+  financeVerification: "Finance Verification",
+  disbursementPrep: "Disbursement prep",
+  executiveSignoff: "Executive Sign off",
+  completed: "completed",
+};
+
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"features" | "destinations" | "rbac">("features");
+  const [activeTab, setActiveTab] = useState<"features" | "destinations" | "workflow" | "rbac">("features");
   const [authed, setAuthed] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -58,6 +68,7 @@ export default function AdminPage() {
     destinations: DEFAULT_FORM_DESTINATIONS,
   });
   const [destinations, setDestinations] = useState<FormDestinations>(DEFAULT_FORM_DESTINATIONS);
+  const [workflowStatuses, setWorkflowStatuses] = useState<WorkflowStatuses>(DEFAULT_WORKFLOW_STATUSES);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
@@ -99,12 +110,14 @@ export default function AdminPage() {
           if (flags && typeof flags === "object") {
             setSettings(flags);
             if (flags.destinations) setDestinations(flags.destinations);
+            if (flags.workflowStatuses) setWorkflowStatuses(flags.workflowStatuses);
           }
         })
         .catch(() => {
           const localSettings = getAdminSettings();
           setSettings(localSettings);
           if (localSettings.destinations) setDestinations(localSettings.destinations);
+          if (localSettings.workflowStatuses) setWorkflowStatuses(localSettings.workflowStatuses);
         });
 
       // Load RBAC users from the server-side RBAC database
@@ -179,6 +192,31 @@ export default function AdminPage() {
       });
       if (!res.ok) throw new Error("Save failed");
       setSaveMsg("Form destinations saved.");
+    } catch {
+      setSaveMsg("Error saving — changes applied locally only.");
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setSaveMsg(""), 3000);
+    }
+  }
+
+  async function handleSaveWorkflowStatuses() {
+    setIsSaving(true);
+    setSaveMsg("");
+    const updated = { ...settings, workflowStatuses };
+    setSettings(updated);
+    saveAdminSettings(updated);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-token": ADMIN_TOKEN,
+        },
+        body: JSON.stringify({ workflowStatuses }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      setSaveMsg("Workflow statuses saved.");
     } catch {
       setSaveMsg("Error saving — changes applied locally only.");
     } finally {
@@ -322,6 +360,7 @@ export default function AdminPage() {
           {([
             ["features", "Features"],
             ["destinations", "Form destinations"],
+            ["workflow", "Workflow statuses"],
             ["rbac", "Role-Based Access Control (RBAC)"],
           ] as [typeof activeTab, string][]).map(([tab, label]) => (
             <button
@@ -448,6 +487,54 @@ export default function AdminPage() {
               </tbody>
             </table>
           </div>
+        </section>
+        </div>}
+
+        {activeTab === "workflow" && <div id="admin-tabpanel-workflow" role="tabpanel" aria-label="Workflow statuses">
+        <section>
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-5">
+            <div>
+              <h2 className="prime-heading text-3xl">Workflow statuses</h2>
+              <p className="text-sm text-prime-ink/80 mt-1">
+                Match these values exactly to the statuses configured in the destination ClickUp List.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleSaveWorkflowStatuses}
+              disabled={isSaving}
+              className="prime-button flex items-center justify-center gap-2 shrink-0"
+            >
+              <Save className="w-4 h-4" />
+              {isSaving ? "Saving..." : "Save workflow statuses"}
+            </button>
+          </div>
+
+          <div className="border border-prime-rule divide-y divide-prime-rule">
+            {([
+              ["submitted", "Submitted", "Initial status after a requestor submits"],
+              ["forTlApproval", "For TL Approval", "Team leader review stage"],
+              ["financeVerification", "Finance Verification", "Finance and accounting review stage"],
+              ["disbursementPrep", "Disbursement prep", "Payment preparation stage"],
+              ["executiveSignoff", "Executive Sign off", "Executive approval stage"],
+              ["completed", "Completed", "Final completed stage"],
+            ] as [keyof WorkflowStatuses, string, string][]).map(([key, label, description]) => (
+              <label key={key} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8 p-4">
+                <span className="sm:w-48 shrink-0">
+                  <span className="block text-sm font-semibold text-prime-ink">{label}</span>
+                  <span className="block text-xs text-prime-ink/60 mt-1">{description}</span>
+                </span>
+                <input
+                  aria-label={`${label} ClickUp status`}
+                  value={workflowStatuses[key]}
+                  onChange={(e) => setWorkflowStatuses((current) => ({ ...current, [key]: e.target.value }))}
+                  className="prime-field flex-1 font-mono text-sm"
+                  required
+                />
+              </label>
+            ))}
+          </div>
+          {saveMsg && <p role="status" className="prime-notice mt-6">{saveMsg}</p>}
         </section>
         </div>}
 

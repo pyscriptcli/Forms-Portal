@@ -5,6 +5,8 @@ import {
   ADMIN_TOKEN,
   normalizeFormDestinations,
   getDefaultFormDestinations,
+  DEFAULT_WORKFLOW_STATUSES,
+  normalizeWorkflowStatuses,
 } from "@/lib/adminSettings";
 
 const FLAGS_PATH = path.join(process.cwd(), "src", "lib", "featureFlags.json");
@@ -18,6 +20,7 @@ async function readFlags() {
       portalGuideEnabled: true,
       rfpAutofillEnabled: true,
       destinations: getDefaultFormDestinations(),
+      workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
     };
   }
 }
@@ -55,6 +58,9 @@ export async function POST(req: NextRequest) {
       : {}),
     ...(body.destinations && typeof body.destinations === "object"
       ? { destinations: normalizeFormDestinations(body.destinations) }
+      : {}),
+    ...(body.workflowStatuses && typeof body.workflowStatuses === "object"
+      ? { workflowStatuses: normalizeWorkflowStatuses(body.workflowStatuses) }
       : {}),
   };
 

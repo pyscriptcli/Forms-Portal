@@ -10,6 +10,9 @@ import path from "path";
 import {
   DEFAULT_FORM_DESTINATIONS,
   normalizeFormDestinations,
+  DEFAULT_WORKFLOW_STATUSES,
+  normalizeWorkflowStatuses,
+  type WorkflowStatuses,
   type FormDestinationKey,
 } from "@/lib/adminSettings";
 
@@ -23,6 +26,16 @@ function getAdminDestination(formType: FormType) {
     return normalizeFormDestinations(parsed.destinations)[formType as FormDestinationKey];
   } catch {
     return DEFAULT_FORM_DESTINATIONS[formType as FormDestinationKey];
+  }
+}
+
+function getConfiguredWorkflowStatuses(): WorkflowStatuses {
+  try {
+    const settingsPath = path.join(process.cwd(), "src", "lib", "featureFlags.json");
+    const parsed = JSON.parse(readFileSync(settingsPath, "utf8")) as { workflowStatuses?: unknown };
+    return normalizeWorkflowStatuses(parsed.workflowStatuses);
+  } catch {
+    return DEFAULT_WORKFLOW_STATUSES;
   }
 }
 
@@ -286,6 +299,7 @@ export async function createClickUpTask(
 ): Promise<ClickUpTaskResponse> {
   const actualFormType = formType || data.formType || "rfp";
   const { token, listId, isConfigured, isOAuth } = getClickUpConfig(actualFormType, oauthToken);
+  const workflowStatuses = getConfiguredWorkflowStatuses();
 
   const isUrgent =
     data.urgency === "urgent" || (data.urgencyOptions && data.urgencyOptions.includes("urgent"));
@@ -329,7 +343,7 @@ export async function createClickUpTask(
     name: taskName,
     description: desc,
     markdown_description: desc,
-    status: "for approval",
+    status: workflowStatuses.submitted,
     priority,
     notify_all: true,
   };
@@ -343,7 +357,7 @@ export async function createClickUpTask(
     }
   }
 
-  // 1. Create task with initial status "for approval"
+  // 1. Create task with the administrator-configured initial status
   const createRes = await fetch(`${CLICKUP_API_BASE}/list/${listId}/task`, {
     method: "POST",
     headers: {
@@ -640,6 +654,7 @@ export async function approveTaskByApprover(
   notes?: string
 ): Promise<boolean> {
   const { token, isConfigured } = getClickUpConfig();
+  const workflowStatuses = getConfiguredWorkflowStatuses();
 
   if (!isConfigured || taskId.startsWith("MOCK-")) {
     return true;
@@ -663,7 +678,7 @@ export async function approveTaskByApprover(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        status: "on going",
+        status: workflowStatuses.financeVerification,
         description: updatedDescription,
         markdown_description: updatedDescription,
       }),
