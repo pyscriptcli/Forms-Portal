@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { Paperclip, UploadCloud, Trash2, FileText, Image as ImageIcon, Eye } from "lucide-react";
 import { SupportingFile } from "@/types/rfp";
+import { MAX_UPLOAD_FILE_BYTES } from "@/lib/submissionUploads";
 
 interface SupportingDocumentsProps {
   files: SupportingFile[];
@@ -20,11 +21,19 @@ export function SupportingDocuments({
   hasError = false,
 }: SupportingDocumentsProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
 
   const handleFileSelection = (selectedFiles: FileList | null) => {
     if (!selectedFiles || selectedFiles.length === 0) return;
 
-    const newFilesList = Array.from(selectedFiles);
+    const selected = Array.from(selectedFiles);
+    const oversized = selected.find((file) => file.size > MAX_UPLOAD_FILE_BYTES);
+    if (oversized) {
+      setSelectionError(`${oversized.name} exceeds the 4 MB per-file upload limit.`);
+      return;
+    }
+    setSelectionError(null);
+    const newFilesList = selected;
     const updatedRaw = [...rawFiles, ...newFilesList];
     onRawFilesChange(updatedRaw);
 
@@ -137,8 +146,9 @@ export function SupportingDocuments({
           Click to upload or drag & drop supporting files here
         </p>
         <p className="text-xs text-prime-ink mt-1">
-          Supports PDF, PNG, JPG, and DOCX (up to 3MB each; 4MB total submission limit)
+          Supports PDF, PNG, JPG, and DOCX (up to 4 MB per file)
         </p>
+        {selectionError && <p role="alert" className="mt-2 text-xs text-red-700">{selectionError}</p>}
         <input
           ref={fileInputRef}
           type="file"

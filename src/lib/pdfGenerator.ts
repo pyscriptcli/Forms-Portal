@@ -11,7 +11,10 @@ export interface GeneratedPdfResult {
  * Uses the same printable DOM as the virtual form, captured as a compressed JPEG
  * so the PDF remains safely below serverless request limits in normal use.
  */
-export async function generateRfpPdf(elementId: string = "rfp-printable-sheet"): Promise<GeneratedPdfResult> {
+export async function generateRfpPdf(
+  elementId: string = "rfp-printable-sheet",
+  options: { quality?: number; pixelRatio?: number } = {}
+): Promise<GeneratedPdfResult> {
   const element = document.getElementById(elementId);
   if (!element) {
     throw new Error(`Element with id "${elementId}" not found for PDF generation.`);
@@ -23,8 +26,8 @@ export async function generateRfpPdf(elementId: string = "rfp-printable-sheet"):
   // viewport or responsive parent change the exported form's proportions.
   const captureWidth = Math.max(element.scrollWidth, Math.ceil(element.getBoundingClientRect().width));
   const imgData = await toJpeg(element, {
-    quality: 0.82,
-    pixelRatio: 1.35,
+    quality: options.quality ?? 0.82,
+    pixelRatio: options.pixelRatio ?? 1.35,
     width: captureWidth,
     backgroundColor: "#ffffff",
     style: {

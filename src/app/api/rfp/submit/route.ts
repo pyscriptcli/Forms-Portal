@@ -6,7 +6,7 @@ import {
   uploadAttachmentToTask,
 } from "@/lib/clickup";
 import { sendApproverNotification } from "@/lib/email";
-import { getServerAuthSession } from "@/lib/auth";
+import { fetchClickUpUser, getServerAuthSession } from "@/lib/auth";
 import { readFormDestinationFromSupabase, readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
 
 export const maxDuration = 60;
@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
+    const user = await fetchClickUpUser(accessToken);
 
     const formData = await req.formData();
     const dataStr = formData.get("data") as string;
@@ -33,6 +34,10 @@ export async function POST(req: NextRequest) {
     }
 
     const data: any = JSON.parse(dataStr);
+    if (user?.email && (formType === "rfp" || formType === "gw-rfp")) {
+      data.requestedByEmail = user.email;
+      data.requestedByName = data.requestedByName || user.username;
+    }
     const [destination, workflowStatuses] = await Promise.all([
       readFormDestinationFromSupabase(formType as "rfp" | "gw-rfp" | "travel-budget" | "po" | "pcv"),
       readWorkflowStatusesFromSupabase(),
@@ -63,7 +68,8 @@ export async function POST(req: NextRequest) {
 
     const taskId = taskResult.id;
 
-    if (taskId) {
+    const hasLegacyAttachments = formData.has("pdf") || formData.has("previewImage") || formData.has("supportingFiles");
+    if (taskId && hasLegacyAttachments) {
       const typeLabel = formType === "gw-rfp" ? "GW-RFP" : formType.toUpperCase();
       const entityName = formType === "po" ? (data.vendorName || "Vendor") : (data.payee || "Payee");
       const sanitizedName = entityName.replace(/[^a-zA-Z0-9_-]/g, "_");

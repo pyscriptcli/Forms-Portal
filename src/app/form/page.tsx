@@ -21,6 +21,7 @@ import { SubmissionModal } from "@/components/SubmissionModal";
 import { SubmissionLoadingModal, SubmissionStage } from "@/components/SubmissionLoadingModal";
 import { ValidationAlertBanner } from "@/components/ValidationAlertBanner";
 import { generateRfpPdf, downloadPdfBlob } from "@/lib/pdfGenerator";
+import { assertUploadSizes, uploadSubmissionFiles, type UploadEntry, MAX_UPLOAD_FILE_BYTES } from "@/lib/submissionUploads";
 import {
   validateRfpForm,
   ValidationResult,
@@ -31,6 +32,13 @@ import { AlertCircle } from "lucide-react";
 import { getAdminSettings } from "@/lib/adminSettings";
 
 const RFP_SEQUENCE_STORAGE_KEY = "prime_rfp_sequence";
+
+interface PendingUpload {
+  response: SubmissionResponse;
+  entries: UploadEntry[];
+  uploaded: Set<string>;
+  pdfBlob: Blob;
+}
 
 function getNextRfpSequence() {
   if (typeof window === "undefined") return "0000001";
@@ -162,6 +170,7 @@ function RfpAppContent() {
   // Success dialog state
   const [submissionResponse, setSubmissionResponse] = useState<SubmissionResponse | null>(null);
   const [lastGeneratedPdf, setLastGeneratedPdf] = useState<Blob | null>(null);
+  const [pendingUpload, setPendingUpload] = useState<PendingUpload | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Feature flag: admin can disable RFP autofill
@@ -375,6 +384,10 @@ function RfpAppContent() {
   }, [formData, rawSupportingFiles, supportingFilesList]);
 
   const handleReset = () => {
+    if (pendingUpload) {
+      setErrorMessage(`Request ${pendingUpload.response.requestId || pendingUpload.response.taskId} already exists in ClickUp. Press Submit to finish its remaining uploads before resetting.`);
+      return;
+    }
     if (confirm("Are you sure you want to reset this Request for Payment? All unsaved inputs will be cleared.")) {
       localStorage.removeItem("prime_rfp_draft");
       setFormData(getInitialFormData());
@@ -383,6 +396,7 @@ function RfpAppContent() {
       setRawSupportingFiles([]);
       setSupportingFilesList([]);
       setErrorMessage(null);
+      setPendingUpload(null);
       setValidationErrors({});
       setMissingFieldsList([]);
     }
@@ -493,6 +507,19 @@ function RfpAppContent() {
   const handleSubmit = async () => {
     setErrorMessage(null);
 
+    if (pendingUpload) {
+      setIsSubmitting(true);
+      setSubmissionStage("uploading_clickup");
+      try {
+        await completePendingUpload(pendingUpload);
+      } catch (error: any) {
+        setErrorMessage(`${error.message} Your ClickUp request ${pendingUpload.response.requestId || pendingUpload.response.taskId} already exists; press Submit again to retry the remaining uploads.`);
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
     // Field validation for active form
     const validation = getValidationResult();
     if (!validation.isValid) {
@@ -506,6 +533,7 @@ function RfpAppContent() {
 
     setIsSubmitting(true);
     setSubmissionStage("rendering_pdf");
+    let createdResponse: SubmissionResponse | null = null;
 
     try {
       const elementId = "rfp-printable-sheet";
@@ -516,7 +544,10 @@ function RfpAppContent() {
       // 1. Generate the official PDF from the exact printable virtual-form DOM.
       // The generator uses a compressed JPEG internally to avoid exceeding the
       // serverless multipart request limit while preserving the form layout.
-      const { blob: pdfBlob } = await generateRfpPdf(elementId);
+      let { blob: pdfBlob } = await generateRfpPdf(elementId);
+      if (pdfBlob.size > MAX_UPLOAD_FILE_BYTES) {
+        ({ blob: pdfBlob } = await generateRfpPdf(elementId, { quality: 0.68, pixelRatio: 1.1 }));
+      }
       setLastGeneratedPdf(pdfBlob);
 
       // Advance stage to packaging attachments
@@ -535,22 +566,19 @@ function RfpAppContent() {
         })),
       };
 
+      const pdfFile = new File([pdfBlob], `RFP_${sanitizedEntity}_${dateStr || "document"}.pdf`, { type: "application/pdf" });
+      const entries: UploadEntry[] = [
+        { key: "form-pdf", file: pdfFile },
+        ...rawSupportingFiles.map((file, index) => ({ key: `support-${index}`, file })),
+      ];
+      assertUploadSizes(entries);
+
       const submissionData = new FormData();
       submissionData.append("formType", selectedForm);
       const dataPayload = JSON.stringify(sanitizedFormData);
       submissionData.append("data", dataPayload);
-
-      submissionData.append("pdf", pdfBlob, `RFP_${sanitizedEntity}_${dateStr || "document"}.pdf`);
-
-      rawSupportingFiles.forEach((file) => {
-        submissionData.append("supportingFiles", file);
-      });
-
-      const requestBytes = pdfBlob.size + rawSupportingFiles.reduce((total, file) => total + file.size, 0) + new Blob([dataPayload]).size;
-      const maxRequestBytes = 4 * 1024 * 1024;
-      if (requestBytes > maxRequestBytes) {
-        const requestSizeMb = (requestBytes / (1024 * 1024)).toFixed(1);
-        throw new Error(`The submission is ${requestSizeMb} MB. Remove or compress supporting files so the total stays below 4 MB.`);
+      if (new Blob([dataPayload]).size > MAX_UPLOAD_FILE_BYTES) {
+        throw new Error("The form data is too large to submit. Reduce embedded signature image size.");
       }
 
       // Advance stage to ClickUp upload
@@ -569,9 +597,7 @@ function RfpAppContent() {
         json = JSON.parse(resText);
       } catch {
         if (res.status === 413 || resText.toLowerCase().includes("request entity too large")) {
-          throw new Error(
-            "Attachment payload is too large for the server. Please attach smaller or compressed files."
-          );
+          throw new Error("Form data is too large for the server. Reduce embedded signature image size.");
         }
         throw new Error(resText || `Submission request failed with server error (${res.status}).`);
       }
@@ -579,28 +605,43 @@ function RfpAppContent() {
       if (!res.ok || !json?.success) {
         throw new Error(json?.message || "Failed to submit Request for Payment to ClickUp");
       }
+      createdResponse = json;
 
-      setSubmissionStage("finalizing");
-      await new Promise((r) => setTimeout(r, 450));
-
-      setSubmissionResponse(json);
-      setIsModalOpen(true);
-
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        colors: ["#003366", "#C9A84C"],
-        origin: { y: 0.6 },
-      });
-
-      // Clear draft
-      localStorage.removeItem("prime_rfp_draft");
+      const pending: PendingUpload = {
+        response: json,
+        entries,
+        uploaded: new Set<string>(),
+        pdfBlob,
+      };
+      setPendingUpload(pending);
+      await completePendingUpload(pending);
     } catch (err: any) {
       console.error("Submission failed:", err);
-      setErrorMessage(err.message || "Failed to complete submission. Please try again.");
+      const retryMessage = createdResponse
+        ? ` Request ${createdResponse.requestId || createdResponse.taskId} already exists in ClickUp. Press Submit again to retry its remaining uploads.`
+        : "";
+      setErrorMessage(`${err.message || "Failed to complete submission."}${retryMessage}`);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const completePendingUpload = async (pending: PendingUpload) => {
+    await uploadSubmissionFiles(pending.response.taskId, pending.entries, pending.uploaded, () => {
+      setPendingUpload({ ...pending, uploaded: new Set(pending.uploaded) });
+    });
+    setSubmissionStage("finalizing");
+    setSubmissionResponse(pending.response);
+    setLastGeneratedPdf(pending.pdfBlob);
+    setPendingUpload(null);
+    setIsModalOpen(true);
+    localStorage.removeItem("prime_rfp_draft");
+    confetti({
+      particleCount: 80,
+      spread: 70,
+      colors: ["#003366", "#C9A84C"],
+      origin: { y: 0.6 },
+    });
   };
 
   const activeTaskId = formData.taskId;
