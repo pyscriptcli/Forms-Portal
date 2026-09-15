@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { createClickUpTask, getClickUpConfig } from "@/lib/clickup";
+import { buildTaskDescription, createClickUpTask, getClickUpConfig } from "@/lib/clickup";
 
 describe("ClickUp Configuration Multi-List Resolution", () => {
   const originalEnv = { ...process.env };
@@ -47,6 +47,31 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
     expect(config.token).toBe("oauth-access-token");
     expect(config.isOAuth).toBe(true);
     expect(config.listId).toBe("901420772915");
+  });
+
+  it("persists the portal RFP ID in the ClickUp task description", () => {
+    const description = buildTaskDescription({
+      rfpCodeSuffix: "0000042",
+      requestedByEmail: "requestor@example.com",
+      requestedByName: "Requestor",
+      date: "09/15/2026",
+      dateNeeded: "09/20/2026",
+      payee: "Vendor",
+      department: "ISD",
+      totalAmount: 100,
+      purpose: "Test",
+      items: [],
+      bank: "",
+      accountName: "",
+      accountNumber: "",
+      paymentMethod: "online",
+      signatureType: "none",
+      requestedByRemarks: "",
+      urgency: "not_urgent",
+    } as any);
+
+    expect(description).toContain("| **RFP ID** | **RFP-0000042** |");
+    expect(description).toContain("| **Requested By Email** | requestor@example.com |");
   });
 
   it("does not report a mock task as a successful ClickUp submission", async () => {

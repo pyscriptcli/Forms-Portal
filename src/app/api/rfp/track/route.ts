@@ -9,6 +9,7 @@ import { DEFAULT_USERS, type UserRole } from "@/lib/rbac";
 
 export interface TrackedRfp {
   taskId: string;
+  requestId: string;
   taskName: string;
   taskUrl: string;
   formType: "rfp" | "gw-rfp" | "travel-budget" | "po" | "pcv";
@@ -85,6 +86,7 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
   let dateNeeded = "";
   const urgency: "urgent" | "normal" = task.priority?.priority === "urgent" ? "urgent" : "normal";
   let purpose = "";
+  let requestId = "";
   let requestedBy = "";
   let requestedByEmail = "";
 
@@ -96,6 +98,7 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
       else if (name.includes("dept") && cf.value) department = String(cf.value);
       else if (name.includes("amount") && cf.value) totalAmount = Number(cf.value) || 0;
       else if (name.includes("purpose") && cf.value) purpose = String(cf.value);
+      else if ((name.includes("rfp id") || name.includes("request id") || name.includes("rfp number")) && cf.value) requestId = String(cf.value);
       else if (name.includes("requestor") || name.includes("requestedby")) {
         if (typeof cf.value === "string") requestedBy = cf.value;
       }
@@ -123,6 +126,8 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
     const reqMatch = desc.match(/\|\s*\*\*(?:Requested By|Prepared By)\*\*\s*\|\s*\*\*?(.+?)\*\*?\s*(?:\(|$)/);
     if (reqMatch) requestedBy = reqMatch[1].trim();
   }
+  const requestIdMatch = desc.match(/\|\s*\*\*(?:RFP ID|Request ID)\*\*\s*\|\s*([^|\n]+?)\s*\|/i);
+  if (!requestId && requestIdMatch) requestId = requestIdMatch[1].replace(/[\*_`]/g, "").trim();
   const emailMatch = desc.match(/\|\s*\*\*(?:Requested By Email|Prepared By Email)\*\*\s*\|\s*([^|\n]+?)\s*\|/i);
   if (emailMatch) requestedByEmail = emailMatch[1].replace(/[\*_`]/g, "").trim().toLowerCase();
   if (!dateNeeded) {
@@ -140,8 +145,9 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
   const isBox4Checked = /\[[xX]\]\s*(?:\*\*)?4\./.test(desc);
   const isBox5Checked = /\[[xX]\]\s*(?:\*\*)?5\./.test(desc);
 
-  const isDone = statusStr === "done" || statusStr === "complete" || statusStr === "closed";
-  const isOngoing = statusStr === "on going" || statusStr === "in progress";
+  const normalizedStatus = statusStr.replace(/[_-]/g, " ").replace(/\s+/g, " ").trim();
+  const isDone = ["done", "complete", "completed", "closed"].includes(normalizedStatus);
+  const isOngoing = ["on going", "in progress", "for tl approval", "approval team leader", "endorsed"].includes(normalizedStatus);
 
   let isRevisionRequested = false;
   let revisionReason = "";
@@ -168,15 +174,15 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
     currentStage = "completed";
     stageLabel = "Payment Released & Completed";
     stageIndex = 5;
-  } else if (isBox4Checked) {
+  } else if (isBox4Checked || normalizedStatus.includes("executive sign")) {
     currentStage = "executive_signoff";
     stageLabel = "Executive Sign-Off (CFO & CEO)";
     stageIndex = 4;
-  } else if (isBox3Checked) {
+  } else if (isBox3Checked || normalizedStatus.includes("disbursement prep")) {
     currentStage = "disbursement_prep";
     stageLabel = "Disbursement Preparation (UB / Check)";
     stageIndex = 3;
-  } else if (isBox2Checked) {
+  } else if (isBox2Checked || normalizedStatus.includes("finance verification")) {
     currentStage = "finance_verification";
     stageLabel = "Finance Verification (Zoho & Top Sheet)";
     stageIndex = 2;
@@ -213,6 +219,7 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
 
   return {
     taskId: task.id,
+    requestId: requestId || "RFP ID unavailable",
     taskName: task.name,
     taskUrl: task.url || `https://app.clickup.com/t/${task.id}`,
     formType,

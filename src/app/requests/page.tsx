@@ -15,11 +15,49 @@ import {
   RefreshCw,
   ExternalLink,
   X,
+  Clock3,
+  Check,
 } from "lucide-react";
 import { TrackedRfp } from "../api/rfp/track/route";
 import { DEPARTMENT_NAMES } from "@/types/rfp";
 
 const DEPARTMENTS = ["All Departments", ...DEPARTMENT_NAMES];
+
+const WORKFLOW_STAGES = [
+  { label: "Submitted", description: "Request received" },
+  { label: "Approval Team Leader", description: "Awaiting Team Leader approval" },
+  { label: "Finance Verification", description: "Zoho & Top Sheet Prepared" },
+  { label: "Disbursement Prep", description: "UnionBank / Check Prepared" },
+  { label: "Executive Sign-Off", description: "CFO & CEO Signed Off" },
+  { label: "Completed", description: "Payment Released & Filed" },
+];
+
+function RequestTimeline({ request }: { request: TrackedRfp }) {
+  const activeIndex = Math.max(0, Math.min(request.stageIndex, WORKFLOW_STAGES.length - 1));
+
+  return (
+    <div className="border-b border-prime-rule bg-prime-white px-4 py-6 sm:px-7">
+      <div className="grid grid-cols-2 gap-y-7 sm:grid-cols-6 sm:gap-0">
+        {WORKFLOW_STAGES.map((stage, index) => {
+          const complete = index < activeIndex;
+          const active = index === activeIndex;
+          return (
+            <div key={stage.label} className="relative flex flex-col items-center text-center px-2">
+              {index < WORKFLOW_STAGES.length - 1 && (
+                <span className={`hidden sm:block absolute left-1/2 right-[-50%] top-4 h-px ${complete ? "bg-prime-blue" : "bg-prime-rule"}`} aria-hidden="true" />
+              )}
+              <span className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold ${active ? "border-prime-gold bg-prime-gold text-prime-blue" : complete ? "border-prime-blue bg-prime-blue text-prime-white" : "border-prime-rule bg-prime-white text-prime-ink"}`}>
+                {complete ? <Check size={14} /> : active ? <Clock3 size={15} /> : index + 1}
+              </span>
+              <p className={`relative z-10 mt-2 text-xs font-semibold ${active ? "text-prime-blue" : "text-prime-ink"}`}>{stage.label}</p>
+              <p className="relative z-10 mt-0.5 max-w-[150px] text-[10px] leading-tight text-prime-ink/70">{active && request.isRevisionRequested ? "Revision requested" : stage.description}</p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function RequestsContent() {
   const searchParams = useSearchParams();
@@ -129,12 +167,13 @@ function RequestsContent() {
             <div>
               <p className="text-[10px] uppercase tracking-[0.2em] text-prime-ink">Request details</p>
               <h2 className="font-serif italic text-2xl text-prime-blue mt-1">{selectedRequest.payee}</h2>
-              <p className="text-xs text-prime-ink mt-1">#{selectedRequest.taskId} · {selectedRequest.formType.toUpperCase()}</p>
+              <p className="text-xs text-prime-ink mt-1">{selectedRequest.requestId} · {selectedRequest.formType.toUpperCase()}</p>
             </div>
             <button type="button" aria-label="Close request details" onClick={closeRequest} className="p-2 text-prime-ink hover:text-prime-blue">
               <X size={18} />
             </button>
           </div>
+          <RequestTimeline request={selectedRequest} />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-prime-rule">
             {[
               ["Department", selectedRequest.department],
@@ -209,7 +248,7 @@ function RequestsContent() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <span className="font-sans tabular-nums text-[11px] font-medium text-prime-blue bg-prime-white px-1.5 py-0.5 border border-prime-rule">
-                      #{req.taskId}
+                      {req.requestId}
                     </span>
                     {req.formType && (
                       <span className="text-[11px] font-medium uppercase px-1.5 py-0.5 bg-prime-blue text-prime-white">
@@ -218,6 +257,9 @@ function RequestsContent() {
                     )}
                     <span className="text-[11px] font-medium uppercase text-prime-ink bg-prime-white px-1.5 py-0.5">
                       {req.department}
+                    </span>
+                    <span className={`text-[11px] font-medium px-1.5 py-0.5 border ${req.currentStage === "completed" ? "border-prime-blue text-prime-blue" : "border-prime-gold text-prime-blue"}`}>
+                      {req.stageLabel}
                     </span>
                     {req.isRevisionRequested && (
                       <span className="flex items-center gap-0.5 text-[11px] font-medium text-prime-blue bg-prime-white border border-prime-rule px-1.5 py-0.5">

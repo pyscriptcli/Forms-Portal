@@ -125,6 +125,7 @@ export function buildTaskDescription(data: RfpFormData): string {
     `| **Date Needed** | **${data.dateNeeded || "N/A"}** (${urgencyDisplay}) |`,
     `| **Payment Details** | ${paymentDetails} |`,
     `| **Purpose** | ${data.purpose ? data.purpose.replace(/\n/g, " ") : "_No purpose stated._"} |`,
+    `| **RFP ID** | **RFP-${String(data.rfpCodeSuffix || "0000001").replace(/^RFP-/, "")}** |`,
     `| **Requested By** | **${data.requestedByName || "N/A"}** (Date: ${data.date || "N/A"}) |`,
     `| **Requested By Email** | ${data.requestedByEmail || "N/A"} |`,
     "",

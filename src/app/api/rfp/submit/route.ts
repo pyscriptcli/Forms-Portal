@@ -77,9 +77,13 @@ export async function POST(req: NextRequest) {
 
       // 2. Upload official generated PDF document
       const pdfBlob = formData.get("pdf") as File | null;
-      if (pdfBlob) {
-        const pdfFilename = `${typeLabel}_${sanitizedName}_${data.date || "document"}.pdf`;
-        await uploadAttachmentToTask(taskId, pdfBlob, pdfFilename, accessToken);
+      if (!pdfBlob || pdfBlob.size === 0) {
+        throw new Error("The form PDF was not generated. The submission was not completed.");
+      }
+      const pdfFilename = `${typeLabel}_${sanitizedName}_${data.date || "document"}.pdf`;
+      const pdfUpload = await uploadAttachmentToTask(taskId, pdfBlob, pdfFilename, accessToken);
+      if (!pdfUpload.success) {
+        throw new Error("The form PDF could not be uploaded to ClickUp. The submission was not completed.");
       }
 
       // 3. Upload all supporting documents
