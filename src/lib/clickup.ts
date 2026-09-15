@@ -5,14 +5,34 @@ import {
   ClickUpTaskResponse,
   FormType,
 } from "@/types/rfp";
+import { readFileSync } from "fs";
+import path from "path";
+import {
+  DEFAULT_FORM_DESTINATIONS,
+  normalizeFormDestinations,
+  type FormDestinationKey,
+} from "@/lib/adminSettings";
 
 const CLICKUP_API_BASE = "https://api.clickup.com/api/v2";
 const DEFAULT_SUBMISSIONS_LIST_ID = "901420772915";
 
+function getAdminDestination(formType: FormType) {
+  try {
+    const settingsPath = path.join(process.cwd(), "src", "lib", "featureFlags.json");
+    const parsed = JSON.parse(readFileSync(settingsPath, "utf8")) as { destinations?: unknown };
+    return normalizeFormDestinations(parsed.destinations)[formType as FormDestinationKey];
+  } catch {
+    return DEFAULT_FORM_DESTINATIONS[formType as FormDestinationKey];
+  }
+}
+
 export function getClickUpConfig(formType: FormType = "rfp") {
   const token = process.env.CLICKUP_API_TOKEN || "";
   let listId = "";
+  const adminDestination = getAdminDestination(formType);
 
+  // Explicit environment variables remain the highest-priority override for
+  // deployments, followed by the admin table, then the built-in default.
   if (formType === "po") {
     listId =
       process.env.PO_LIST_ID ||
@@ -26,12 +46,20 @@ export function getClickUpConfig(formType: FormType = "rfp") {
       process.env.CLICKUP_LIST_ID ||
       "";
   } else {
-    // Default RFP list ID
+    // Deployment-specific RFP override; the admin destination and built-in
+    // default are applied below when this is empty.
     listId =
       process.env.RFP_LIST_ID ||
       process.env.CLICKUP_RFP_LIST_ID ||
       process.env.CLICKUP_LIST_ID ||
-      DEFAULT_SUBMISSIONS_LIST_ID;
+      "";
+  }
+
+  if (!listId && adminDestination?.enabled && adminDestination.listId) {
+    listId = adminDestination.listId;
+  }
+  if (!listId && formType !== "po" && formType !== "pcv") {
+    listId = DEFAULT_SUBMISSIONS_LIST_ID;
   }
 
   const isConfigured = Boolean(token && listId && token !== "mock" && !token.startsWith("pk_your"));

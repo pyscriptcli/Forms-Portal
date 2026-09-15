@@ -32,6 +32,16 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
     expect(config.listId).toBe("111222333444");
   });
 
+  it("uses the configured default submissions List for RFP forms", () => {
+    process.env.CLICKUP_API_TOKEN = "pk_test_token_123";
+    delete process.env.RFP_LIST_ID;
+    delete process.env.CLICKUP_RFP_LIST_ID;
+    delete process.env.CLICKUP_LIST_ID;
+
+    const config = getClickUpConfig("rfp");
+    expect(config.listId).toBe("901420772915");
+  });
+
   it("resolves PO_LIST_ID for PO forms", () => {
     process.env.CLICKUP_API_TOKEN = "pk_test_token_123";
     process.env.PO_LIST_ID = "po_list_456";

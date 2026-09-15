@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
-import { ADMIN_TOKEN } from "@/lib/adminSettings";
+import {
+  ADMIN_TOKEN,
+  normalizeFormDestinations,
+  getDefaultFormDestinations,
+} from "@/lib/adminSettings";
 
 const FLAGS_PATH = path.join(process.cwd(), "src", "lib", "featureFlags.json");
 
@@ -10,7 +14,11 @@ async function readFlags() {
     const raw = await fs.readFile(FLAGS_PATH, "utf8");
     return JSON.parse(raw);
   } catch {
-    return { portalGuideEnabled: true, rfpAutofillEnabled: true };
+    return {
+      portalGuideEnabled: true,
+      rfpAutofillEnabled: true,
+      destinations: getDefaultFormDestinations(),
+    };
   }
 }
 
@@ -44,6 +52,9 @@ export async function POST(req: NextRequest) {
       : {}),
     ...(typeof body.rfpAutofillEnabled === "boolean"
       ? { rfpAutofillEnabled: body.rfpAutofillEnabled }
+      : {}),
+    ...(body.destinations && typeof body.destinations === "object"
+      ? { destinations: normalizeFormDestinations(body.destinations) }
       : {}),
   };
 

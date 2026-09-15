@@ -27,6 +27,8 @@ import {
   getAdminSettings,
   ADMIN_TOKEN,
   type AdminSettings,
+  type FormDestinationKey,
+  type FormDestinations,
 } from "@/lib/adminSettings";
 import {
   ROLE_DEFINITIONS,
@@ -38,6 +40,14 @@ import {
 } from "@/lib/rbac";
 import { DEFAULT_RBAC_LIST_ID } from "@/lib/clickupRbac";
 
+const DEFAULT_FORM_DESTINATIONS: FormDestinations = {
+  rfp: { listId: "901420772915", workspaceId: "9014981136", label: "PRIME RFP submissions", enabled: true },
+  "gw-rfp": { listId: "901420772915", workspaceId: "9014981136", label: "GW RFP submissions", enabled: true },
+  "travel-budget": { listId: "901420772915", workspaceId: "9014981136", label: "Travel Budget requests", enabled: true },
+  po: { listId: "", workspaceId: "9014981136", label: "Purchase Order requests", enabled: true },
+  pcv: { listId: "", workspaceId: "9014981136", label: "Petty Cash Voucher requests", enabled: true },
+};
+
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [email, setEmail] = useState("");
@@ -46,7 +56,9 @@ export default function AdminPage() {
   const [settings, setSettings] = useState<AdminSettings>({
     portalGuideEnabled: true,
     rfpAutofillEnabled: true,
+    destinations: DEFAULT_FORM_DESTINATIONS,
   });
+  const [destinations, setDestinations] = useState<FormDestinations>(DEFAULT_FORM_DESTINATIONS);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
@@ -94,9 +106,16 @@ export default function AdminPage() {
       fetch("/api/admin/settings")
         .then((r) => r.json())
         .then((flags) => {
-          if (flags && typeof flags === "object") setSettings(flags);
+          if (flags && typeof flags === "object") {
+            setSettings(flags);
+            if (flags.destinations) setDestinations(flags.destinations);
+          }
         })
-        .catch(() => setSettings(getAdminSettings()));
+        .catch(() => {
+          const localSettings = getAdminSettings();
+          setSettings(localSettings);
+          if (localSettings.destinations) setDestinations(localSettings.destinations);
+        });
 
       // Load RBAC users from ClickUp DB / fallback
       loadRbacData();
@@ -121,7 +140,7 @@ export default function AdminPage() {
     setPassword("");
   }
 
-  async function handleToggle(key: keyof AdminSettings) {
+  async function handleToggle(key: "portalGuideEnabled" | "rfpAutofillEnabled") {
     const updated = { ...settings, [key]: !settings[key] };
     setSettings(updated);
     saveAdminSettings(updated);
@@ -143,6 +162,38 @@ export default function AdminPage() {
     } finally {
       setIsSaving(false);
       setTimeout(() => setSaveMsg(""), 2500);
+    }
+  }
+
+  function updateDestination(key: FormDestinationKey, field: keyof FormDestinations[FormDestinationKey], value: string | boolean) {
+    setDestinations((current) => ({
+      ...current,
+      [key]: { ...current[key], [field]: value },
+    }));
+  }
+
+  async function handleSaveDestinations() {
+    setIsSaving(true);
+    setSaveMsg("");
+    const updated = { ...settings, destinations };
+    setSettings(updated);
+    saveAdminSettings(updated);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-token": ADMIN_TOKEN,
+        },
+        body: JSON.stringify({ destinations }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      setSaveMsg("Form destinations saved.");
+    } catch {
+      setSaveMsg("Error saving — changes applied locally only.");
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setSaveMsg(""), 3000);
     }
   }
 
@@ -252,7 +303,7 @@ export default function AdminPage() {
   }
 
   /* ── Admin Dashboard ── */
-  const toggles: { key: keyof AdminSettings; label: string; description: string }[] = [
+  const toggles: { key: "portalGuideEnabled" | "rfpAutofillEnabled"; label: string; description: string }[] = [
     {
       key: "portalGuideEnabled",
       label: "Portal Guide",
@@ -309,6 +360,82 @@ export default function AdminPage() {
             ))}
           </div>
           {saveMsg && <p role="status" className="prime-notice mt-6">{saveMsg}</p>}
+        </section>
+
+        {/* ========================================================================= */}
+        {/* FORM DESTINATIONS */}
+        {/* ========================================================================= */}
+        <section className="pt-6 border-t border-prime-rule">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-5">
+            <div>
+              <h2 className="prime-heading text-3xl">Form destinations</h2>
+              <p className="text-sm text-prime-ink/80 mt-1">
+                Choose the ClickUp List that receives each form submission. PRIME RFP defaults to List 901420772915.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleSaveDestinations}
+              disabled={isSaving}
+              className="prime-button flex items-center justify-center gap-2 shrink-0"
+            >
+              <Save className="w-4 h-4" />
+              {isSaving ? "Saving..." : "Save destinations"}
+            </button>
+          </div>
+
+          <div className="overflow-x-auto border border-prime-rule">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-prime-surface/50">
+                <tr className="border-b border-prime-rule">
+                  <th className="p-3 font-semibold">Form</th>
+                  <th className="p-3 font-semibold">ClickUp List ID</th>
+                  <th className="p-3 font-semibold">Workspace ID</th>
+                  <th className="p-3 font-semibold">Enabled</th>
+                </tr>
+              </thead>
+              <tbody>
+                {([
+                  ["rfp", "PRIME RFP"],
+                  ["gw-rfp", "GW RFP"],
+                  ["travel-budget", "Travel Budget Request"],
+                  ["po", "Purchase Order"],
+                  ["pcv", "Petty Cash Voucher"],
+                ] as [FormDestinationKey, string][]).map(([key, label]) => (
+                  <tr key={key} className="border-b border-prime-rule last:border-b-0">
+                    <td className="p-3 font-medium whitespace-nowrap">{label}</td>
+                    <td className="p-3 min-w-48">
+                      <input
+                        aria-label={`${label} ClickUp List ID`}
+                        value={destinations[key].listId}
+                        onChange={(e) => updateDestination(key, "listId", e.target.value)}
+                        className="prime-field font-mono text-sm"
+                        placeholder="ClickUp List ID"
+                      />
+                    </td>
+                    <td className="p-3 min-w-44">
+                      <input
+                        aria-label={`${label} Workspace ID`}
+                        value={destinations[key].workspaceId}
+                        onChange={(e) => updateDestination(key, "workspaceId", e.target.value)}
+                        className="prime-field font-mono text-sm"
+                        placeholder="Workspace ID"
+                      />
+                    </td>
+                    <td className="p-3">
+                      <input
+                        type="checkbox"
+                        aria-label={`Enable ${label}`}
+                        checked={destinations[key].enabled}
+                        onChange={(e) => updateDestination(key, "enabled", e.target.checked)}
+                        className="h-4 w-4 accent-prime-blue"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         {/* ========================================================================= */}
