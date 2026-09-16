@@ -4,6 +4,7 @@ import {
   type WorkflowStatuses,
 } from "@/lib/adminSettings";
 import type { FormDestinationKey, FormDestination } from "@/lib/adminSettings";
+import { formatRfpReference } from "@/lib/rfpNaming";
 
 const WORKFLOW_TABLE = "forms-portal-workflow_statuses";
 const DESTINATIONS_TABLE = "forms-portal-form_destinations";
@@ -26,6 +27,24 @@ function supabaseHeaders(key: string, extra: Record<string, string> = {}) {
 
 export function isSupabaseAdminConfigured(): boolean {
   return getSupabaseConfig().isConfigured;
+}
+
+export async function readNextRfpReference(referenceMonth: string): Promise<{ reference: string; lastSequence: number }> {
+  const { url, key, isConfigured } = getSupabaseConfig();
+  if (!isConfigured) throw new Error("Finance numbering is unavailable until Supabase is configured.");
+
+  const response = await fetch(
+    `${url}/rest/v1/${encodeURIComponent("forms-portal-rfp_sequence")}?select=sequence_number&order=sequence_number.desc&limit=1`,
+    { headers: supabaseHeaders(key), cache: "no-store", signal: AbortSignal.timeout(4000) }
+  );
+  if (!response.ok) {
+    throw new Error(`Finance number lookup failed (${response.status}): ${await response.text()}`);
+  }
+  const rows = await response.json() as Array<{ sequence_number?: number }>;
+  const lastSequence = Number(rows[0]?.sequence_number || 0);
+  const nextSequence = lastSequence + 1;
+  if (nextSequence > 9999) throw new Error("Finance RFP sequence limit reached at 9999.");
+  return { reference: formatRfpReference(referenceMonth, nextSequence), lastSequence };
 }
 
 export async function allocateRfpReference(input: {
