@@ -155,6 +155,7 @@ export default function AdminPage() {
   const [contractStatus, setContractStatus] = useState<{
     isChecking: boolean;
     isRegisteringWebhook: boolean;
+    isSyncingTimestamps: boolean;
     message: string;
     isError: boolean;
     mappedCount?: number;
@@ -164,6 +165,7 @@ export default function AdminPage() {
   }>({
     isChecking: false,
     isRegisteringWebhook: false,
+    isSyncingTimestamps: false,
     message: "",
     isError: false,
     mapping: {},
@@ -181,7 +183,9 @@ export default function AdminPage() {
           mapping: data.mapping,
         }));
       }
-    } catch {}
+    } catch {
+      // Ignore
+    }
   };
 
   async function handleDiscoverContractFields() {
@@ -200,7 +204,7 @@ export default function AdminPage() {
         setContractStatus((prev) => ({
           ...prev,
           isChecking: false,
-          message: data.message || "Custom fields discovered and mapped successfully.",
+          message: data.message || "Contract fields discovered and updated.",
           mappedCount: data.validation?.mappedCount,
           totalExpected: data.validation?.totalExpected,
           mapping: data.mapping || {},
@@ -218,6 +222,42 @@ export default function AdminPage() {
         ...prev,
         isChecking: false,
         message: err.message || "Network error discovering fields.",
+        isError: true,
+      }));
+    }
+  }
+
+  async function handleSyncTaskTimestamps() {
+    setContractStatus((prev) => ({ ...prev, isSyncingTimestamps: true, message: "", isError: false }));
+    try {
+      const res = await fetch("/api/admin/clickup-fields", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-token": ADMIN_TOKEN,
+        },
+        body: JSON.stringify({ action: "sync_task_timestamps" }),
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        setContractStatus((prev) => ({
+          ...prev,
+          isSyncingTimestamps: false,
+          message: data.message || "Task milestone timestamps synchronized successfully.",
+        }));
+      } else {
+        setContractStatus((prev) => ({
+          ...prev,
+          isSyncingTimestamps: false,
+          message: data?.message || "Failed to sync task timestamps.",
+          isError: true,
+        }));
+      }
+    } catch (err: any) {
+      setContractStatus((prev) => ({
+        ...prev,
+        isSyncingTimestamps: false,
+        message: err.message || "Network error syncing task timestamps.",
         isError: true,
       }));
     }
@@ -737,6 +777,23 @@ export default function AdminPage() {
                 <Webhook className={`w-3.5 h-3.5 ${contractStatus.isRegisteringWebhook ? "animate-spin" : ""}`} />
                 {contractStatus.isRegisteringWebhook ? "Registering..." : "Register Status Webhook"}
               </button>
+              <button
+                type="button"
+                onClick={handleSyncTaskTimestamps}
+                disabled={contractStatus.isSyncingTimestamps}
+                className="prime-button secondary flex items-center justify-center gap-1.5 h-[38px] px-3.5 text-xs cursor-pointer"
+              >
+                <Clock className={`w-3.5 h-3.5 ${contractStatus.isSyncingTimestamps ? "animate-spin" : ""}`} />
+                {contractStatus.isSyncingTimestamps ? "Syncing Tasks..." : "Sync Missing Timestamps"}
+              </button>
+            </div>
+          </div>
+
+          {/* Native ClickUp Automation Guidance Banner */}
+          <div className="mb-6 p-3 bg-blue-50/70 border border-blue-200 text-xs text-blue-900 flex items-start gap-2.5">
+            <Clock className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
+            <div>
+              <strong>ClickUp Native Automation Option:</strong> For immediate zero-latency population directly inside ClickUp, you can also add a native automation in your ClickUp list: <em>When status changes to [Status] → Set Custom Field [RFP TS - ...] to Trigger date</em>.
             </div>
           </div>
 

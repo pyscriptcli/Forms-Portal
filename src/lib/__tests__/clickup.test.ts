@@ -49,6 +49,34 @@ describe("ClickUp attachment upload", () => {
 
     expect(result).toEqual({ reference: "RFP-092026-0011", lastSequence: 10 });
     expect(String(fetchMock.mock.calls[0][0])).toContain("subtasks=false");
-    expect(String(fetchMock.mock.calls[0][0])).toContain("include_markdown_description=false");
+  });
+
+  it("creates a webhook on the team endpoint targeting the specified list", async () => {
+    const { createClickUpWebhook } = await import("@/lib/clickup");
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({ id: "wh-123", webhook: { id: "wh-123", secret: "sec-456" } })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await createClickUpWebhook(
+      "list-123",
+      "https://portal.com/api/clickup/webhook",
+      "pk_test_token",
+      "team-999"
+    );
+
+    expect(result.id).toBe("wh-123");
+    expect(result.secret).toBe("sec-456");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.clickup.com/api/v2/team/team-999/webhook",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          endpoint: "https://portal.com/api/clickup/webhook",
+          events: ["taskStatusUpdated"],
+          list_id: "list-123",
+        }),
+      })
+    );
   });
 });

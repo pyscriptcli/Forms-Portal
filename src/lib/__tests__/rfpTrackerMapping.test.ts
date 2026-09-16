@@ -104,5 +104,32 @@ describe("rfpTrackerMapping", () => {
       expect(result.requestedBy).toBe("Mark Spencer");
       expect(result.dataSource).toBe("legacy_fallback");
     });
+
+    it("infers missing milestone timestamps from task dates and queues them for ClickUp backfill", () => {
+      const mockTask = {
+        id: "task-missing-ts",
+        name: "[RFP-092026-0004] PRIME – Bestprints – Quotation printing",
+        status: { status: "finance validation" },
+        date_created: "1789547820000",
+        date_updated: "1789547880000",
+        custom_fields: [
+          { id: "f-ts-sub", name: "RFP TS - Requestor Form Submission", value: 1789547820000 },
+          { id: "f-ts-tl", name: "RFP TS - TL Review and Approval", value: null },
+          { id: "f-ts-val", name: "RFP TS - Finance Validation", value: null },
+        ],
+      };
+
+      const result = mapClickUpTaskToTrackedRfp(mockTask);
+
+      expect(result.milestoneTimestamps.requestorFormSubmission).toBeTruthy();
+      expect(result.milestoneTimestamps.tlReviewAndApproval).toBeTruthy();
+      expect(result.milestoneTimestamps.financeValidation).toBeTruthy();
+      expect(result.pendingClickUpBackfill).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ fieldId: "f-ts-tl" }),
+          expect.objectContaining({ fieldId: "f-ts-val" }),
+        ])
+      );
+    });
   });
 });

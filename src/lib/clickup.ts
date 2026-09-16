@@ -313,19 +313,53 @@ export async function setTaskCustomFieldValue(
 }
 
 /**
- * Registers a webhook on a ClickUp list.
+ * Registers a webhook on a ClickUp list via the Workspace (Team) endpoint.
  */
 export async function createClickUpWebhook(
   listId: string,
   endpointUrl: string,
-  token?: string
+  token?: string,
+  workspaceId?: string
 ): Promise<{ id: string; secret: string; webhook?: any }> {
   const authToken = token || process.env.CLICKUP_API_TOKEN || "";
   if (!authToken || authToken === "mock") {
     throw new Error("ClickUp API token not configured.");
   }
 
-  const res = await fetch(`${CLICKUP_API_BASE}/list/${listId}/webhook`, {
+  let teamId = workspaceId;
+  if (!teamId) {
+    try {
+      const settingsPath = path.join(process.cwd(), "src", "lib", "featureFlags.json");
+      const parsed = JSON.parse(readFileSync(settingsPath, "utf8")) as any;
+      teamId = parsed.destinations?.rfp?.workspaceId || parsed.workspaceId;
+    } catch {
+      // Ignore
+    }
+  }
+
+  if (!teamId) {
+    try {
+      const teamRes = await fetch(`${CLICKUP_API_BASE}/team`, {
+        headers: {
+          Authorization: authToken.startsWith("Bearer ") ? authToken : authToken,
+        },
+      });
+      if (teamRes.ok) {
+        const teamData = await teamRes.json();
+        if (Array.isArray(teamData.teams) && teamData.teams.length > 0) {
+          teamId = String(teamData.teams[0].id);
+        }
+      }
+    } catch (err) {
+      console.warn("Could not query ClickUp teams for webhook registration:", err);
+    }
+  }
+
+  if (!teamId) {
+    throw new Error("ClickUp Workspace ID (team_id) not found to register webhook.");
+  }
+
+  const res = await fetch(`${CLICKUP_API_BASE}/team/${teamId}/webhook`, {
     method: "POST",
     headers: {
       Authorization: authToken.startsWith("Bearer ") ? authToken : authToken,
@@ -334,6 +368,7 @@ export async function createClickUpWebhook(
     body: JSON.stringify({
       endpoint: endpointUrl,
       events: ["taskStatusUpdated"],
+      list_id: listId,
     }),
   });
 
@@ -964,15 +999,31 @@ export async function approveTaskByApprover(
         console.error("Finance Validation timestamp field is not configured on this ClickUp task.");
         return false;
       }
+
+      const now = Date.now();
       const timestampWritten = await setTaskCustomFieldValue(
         taskId,
         financeValidationTimestampId,
-        Date.now(),
+        now,
         token
       );
       if (!timestampWritten) {
         console.error(`Failed to persist Finance Validation timestamp to custom field ${financeValidationTimestampId}`);
         return false;
+      }
+
+      // Also persist TL Review and Approval milestone timestamp
+      const tlApprovalId = fieldMapping[CLICKUP_MILESTONE_FIELDS.tlReviewAndApproval];
+      if (tlApprovalId) {
+        await setTaskCustomFieldValue(taskId, tlApprovalId, now, token);
+      }
+
+      // Backfill submission milestone timestamp if it was not populated
+      const submissionId = fieldMapping[CLICKUP_MILESTONE_FIELDS.requestorFormSubmission];
+      const existingSubmission = currentTask.custom_fields?.find((f: any) => f.id === submissionId);
+      if (submissionId && !existingSubmission?.value) {
+        const createdMs = Number(currentTask.date_created) || now;
+        await setTaskCustomFieldValue(taskId, submissionId, createdMs, token);
       }
     } else {
       console.error("ClickUp task has no custom fields; approval cannot record its milestone timestamp.");
@@ -1007,6 +1058,24 @@ export async function approveTaskByApprover(
   } catch (err) {
     console.error(`Error approving task ${taskId}:`, err);
     return false;
+  }
+}
+
+/**
+ * Asynchronously backfills milestone timestamps into ClickUp custom fields.
+ */
+export async function backfillMilestoneTimestampsToClickUp(
+  taskId: string,
+  missing: Array<{ fieldId: string; timestamp: number }>,
+  token?: string
+): Promise<void> {
+  if (!missing || missing.length === 0 || !taskId || taskId.startsWith("MOCK-")) return;
+  for (const item of missing) {
+    try {
+      await setTaskCustomFieldValue(taskId, item.fieldId, item.timestamp, token);
+    } catch (err) {
+      console.warn(`Failed to backfill milestone custom field ${item.fieldId} on task ${taskId}:`, err);
+    }
   }
 }
 

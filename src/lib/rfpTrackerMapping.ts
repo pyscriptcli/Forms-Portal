@@ -1,11 +1,10 @@
-import type { RfpMilestoneKey } from "./rfpWorkflow";
+import { resolveRfpMilestone, ORDERED_MILESTONE_KEYS, type RfpMilestoneKey } from "./rfpWorkflow";
 import {
   CLICKUP_METADATA_FIELDS,
   CLICKUP_MILESTONE_FIELDS,
   resolveFieldIdMapping,
   type ClickUpFieldIdMapping,
 } from "./clickupFields";
-import { resolveRfpMilestone } from "./rfpWorkflow";
 import { DEFAULT_WORKFLOW_STATUSES, type WorkflowStatuses } from "./adminSettings";
 
 export type MilestoneTimestamps = Partial<Record<RfpMilestoneKey, string>>;
@@ -43,6 +42,7 @@ export interface TrackedRfp {
   attachments: Array<{ id: string; name: string; url: string; type?: string }>;
   milestoneTimestamps: MilestoneTimestamps;
   dataSource?: "custom_field" | "legacy_fallback";
+  pendingClickUpBackfill?: Array<{ fieldId: string; timestamp: number }>;
 }
 
 /**
@@ -237,16 +237,7 @@ export function mapClickUpTaskToTrackedRfp(
     if (deptMatch) department = deptMatch[1].replace(/[\*_`]/g, "").trim();
   }
 
-  // 4. Milestone Timestamps Mapping
-  const milestoneTimestamps: MilestoneTimestamps = {};
-  for (const [key, fieldName] of Object.entries(CLICKUP_MILESTONE_FIELDS) as Array<[RfpMilestoneKey, string]>) {
-    const rawVal = getFieldValue(fieldName);
-    if (rawVal !== undefined && rawVal !== null && rawVal !== "") {
-      milestoneTimestamps[key] = formatMilestoneTimestamp(rawVal);
-    }
-  }
-
-  // 5. Workflow and Status Resolution
+  // 4. Workflow and Status Resolution
   const normalizedStatus = statusStr.replace(/[_-]/g, " ").replace(/\s+/g, " ").trim();
   const isDone = ["done", "complete", "completed", "closed"].includes(normalizedStatus);
 
@@ -291,6 +282,36 @@ export function mapClickUpTaskToTrackedRfp(
     currentMilestone = "Revision Requested";
   }
 
+  // 5. Milestone Timestamps Mapping with Self-Healing Fallbacks
+  const milestoneTimestamps: MilestoneTimestamps = {};
+  const pendingClickUpBackfill: Array<{ fieldId: string; timestamp: number }> = [];
+
+  const createdMs = Number(task.date_created) || Date.now();
+  const updatedMs = Number(task.date_updated) || createdMs;
+  const activeMilestoneIdx = ORDERED_MILESTONE_KEYS.indexOf(resolved.key);
+  const effectiveMilestoneIdx = isDone ? ORDERED_MILESTONE_KEYS.length - 1 : activeMilestoneIdx;
+
+  for (let idx = 0; idx < ORDERED_MILESTONE_KEYS.length; idx++) {
+    const key = ORDERED_MILESTONE_KEYS[idx];
+    const fieldName = CLICKUP_MILESTONE_FIELDS[key];
+    const rawVal = getFieldValue(fieldName);
+    const fieldId = fieldMapping[fieldName];
+
+    if (rawVal !== undefined && rawVal !== null && rawVal !== "") {
+      milestoneTimestamps[key] = formatMilestoneTimestamp(rawVal);
+    } else if (idx <= effectiveMilestoneIdx && effectiveMilestoneIdx >= 0) {
+      // Milestone is complete or currently active, but custom field was empty in ClickUp.
+      // Infer authoritative timestamp: submission uses date_created, subsequent milestones use date_updated.
+      const inferredMs = idx === 0 ? createdMs : updatedMs;
+      milestoneTimestamps[key] = formatMilestoneTimestamp(inferredMs);
+
+      // Flag for background persistence into ClickUp custom field placeholder
+      if (fieldId) {
+        pendingClickUpBackfill.push({ fieldId, timestamp: inferredMs });
+      }
+    }
+  }
+
   // 6. Attachments (Sanitize and extract clean links)
   const attachments = Array.isArray(task.attachments)
     ? task.attachments.map((att: any) => ({
@@ -332,5 +353,6 @@ export function mapClickUpTaskToTrackedRfp(
     attachments,
     milestoneTimestamps,
     dataSource,
+    pendingClickUpBackfill: pendingClickUpBackfill.length > 0 ? pendingClickUpBackfill : undefined,
   };
 }

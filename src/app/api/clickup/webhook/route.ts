@@ -6,7 +6,7 @@ import {
   CLICKUP_AUDIT_FIELDS,
   resolveFieldIdMapping,
 } from "@/lib/clickupFields";
-import { resolveRfpMilestone } from "@/lib/rfpWorkflow";
+import { resolveRfpMilestone, ORDERED_MILESTONE_KEYS } from "@/lib/rfpWorkflow";
 import { DEFAULT_WORKFLOW_STATUSES } from "@/lib/adminSettings";
 import { getAdminSettings } from "@/lib/adminSettings";
 
@@ -106,6 +106,24 @@ export async function POST(req: NextRequest) {
   // 3. Write Authoritative Milestone Timestamp (Unix ms)
   if (milestoneFieldId) {
     await setTaskCustomFieldValue(taskId, milestoneFieldId, eventDate);
+  }
+
+  // 3b. Backfill any preceding milestones that are currently empty
+  const currentIdx = ORDERED_MILESTONE_KEYS.indexOf(milestoneKey);
+  if (currentIdx > 0) {
+    const priorKeys = ORDERED_MILESTONE_KEYS.slice(0, currentIdx);
+    for (let p = 0; p < priorKeys.length; p++) {
+      const pKey = priorKeys[p];
+      const pFieldName = CLICKUP_MILESTONE_FIELDS[pKey];
+      const pFieldId = fieldMapping[pFieldName];
+      if (pFieldId) {
+        const existingVal = availableFields.find((f: any) => f.id === pFieldId)?.value;
+        if (!existingVal) {
+          const ts = p === 0 ? (Number(task.date_created) || eventDate) : eventDate;
+          await setTaskCustomFieldValue(taskId, pFieldId, ts);
+        }
+      }
+    }
   }
 
   // 4. Append to Process History and Update Last Status Event ID

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getListTasks, getClickUpTask } from "@/lib/clickup";
+import { getListTasks, getClickUpTask, backfillMilestoneTimestampsToClickUp } from "@/lib/clickup";
 import { getServerAuthSession } from "@/lib/auth";
 import { readFormDestinationFromSupabase } from "@/lib/supabaseAdmin";
 import type { FormDestinationKey } from "@/lib/adminSettings";
@@ -90,6 +90,7 @@ export async function GET(req: NextRequest) {
       if (!viewer.canViewAll && !taskBelongsToViewer(parsed, viewer)) {
         return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
       }
+      scheduleBackfills([parsed], accessToken);
       return NextResponse.json({
         success: true,
         requests: [parsed],
@@ -146,6 +147,8 @@ export async function GET(req: NextRequest) {
     // Sort by creation date descending
     parsed.sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime());
 
+    scheduleBackfills(parsed, accessToken);
+
     return NextResponse.json({
       success: true,
       requests: parsed,
@@ -171,3 +174,12 @@ function taskBelongsToViewer(request: TrackedRfp, viewer: ViewerAccess): boolean
   if (!viewerName || viewerName.includes("@")) return false;
   return request.requestedBy.trim().toLowerCase() === viewerName;
 }
+
+function scheduleBackfills(requests: TrackedRfp[], token?: string) {
+  for (const r of requests) {
+    if (r.pendingClickUpBackfill && r.pendingClickUpBackfill.length > 0) {
+      void backfillMilestoneTimestampsToClickUp(r.taskId, r.pendingClickUpBackfill, token);
+    }
+  }
+}
+

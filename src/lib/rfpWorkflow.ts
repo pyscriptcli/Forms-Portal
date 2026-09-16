@@ -11,6 +11,18 @@ export const RFP_STAGES = [
 
 export type RfpMilestoneKey = keyof WorkflowStatuses;
 
+export const ORDERED_MILESTONE_KEYS: RfpMilestoneKey[] = [
+  "requestorFormSubmission",
+  "tlReviewAndApproval",
+  "financeValidation",
+  "financeProcessing",
+  "paymentPreparation",
+  "managementApproval",
+  "paymentRelease",
+  "paymentDocumentation",
+  "recordsFiling",
+];
+
 export function getMilestoneEntries(statuses: WorkflowStatuses) {
   return RFP_STAGES.flatMap((stage) => stage.milestoneKeys.map((key) => ({
     key,

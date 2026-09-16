@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClickUpConfig, getListCustomFields, createClickUpWebhook } from "@/lib/clickup";
+import {
+  getClickUpConfig,
+  getListCustomFields,
+  createClickUpWebhook,
+  getListTasks,
+  backfillMilestoneTimestampsToClickUp,
+} from "@/lib/clickup";
 import { resolveFieldIdMapping, validateFieldMapping } from "@/lib/clickupFields";
+import { mapClickUpTaskToTrackedRfp } from "@/lib/rfpTrackerMapping";
 import { ADMIN_TOKEN } from "@/lib/adminSettings";
 import { promises as fs } from "fs";
 import path from "path";
@@ -58,13 +65,57 @@ export async function POST(req: NextRequest) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
       const webhookEndpoint = `${appUrl}/api/clickup/webhook`;
 
-      const webhookResult = await createClickUpWebhook(listId, webhookEndpoint, token);
+      let workspaceId: string | undefined;
+      try {
+        const raw = await fs.readFile(FLAGS_PATH, "utf8");
+        const flags = JSON.parse(raw);
+        workspaceId = flags.destinations?.rfp?.workspaceId || flags.workspaceId;
+      } catch {}
+
+      const webhookResult = await createClickUpWebhook(listId, webhookEndpoint, token, workspaceId);
+
+      // Persist webhook ID and secret
+      try {
+        const raw = await fs.readFile(FLAGS_PATH, "utf8");
+        const flags = JSON.parse(raw);
+        flags.clickupWebhookId = webhookResult.id;
+        if (webhookResult.secret) {
+          flags.clickupWebhookSecret = webhookResult.secret;
+        }
+        await fs.writeFile(FLAGS_PATH, JSON.stringify(flags, null, 2), "utf8");
+      } catch {}
+
       return NextResponse.json({
         success: true,
         message: "ClickUp webhook registered successfully for taskStatusUpdated.",
         endpoint: webhookEndpoint,
         webhookId: webhookResult.id,
         secret: webhookResult.secret,
+      });
+    }
+
+    if (action === "sync_task_timestamps") {
+      const tasks = await getListTasks(true, "rfp", token, listId);
+      const availableFields = await getListCustomFields(listId, token);
+      const mapping = resolveFieldIdMapping(availableFields);
+
+      let syncedTasksCount = 0;
+      let syncedFieldsCount = 0;
+
+      for (const task of tasks) {
+        const tracked = mapClickUpTaskToTrackedRfp(task, mapping);
+        if (tracked.pendingClickUpBackfill && tracked.pendingClickUpBackfill.length > 0) {
+          await backfillMilestoneTimestampsToClickUp(tracked.taskId, tracked.pendingClickUpBackfill, token);
+          syncedTasksCount++;
+          syncedFieldsCount += tracked.pendingClickUpBackfill.length;
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Successfully synchronized ${syncedFieldsCount} milestone timestamp(s) across ${syncedTasksCount} task(s).`,
+        syncedTasksCount,
+        syncedFieldsCount,
       });
     }
 
