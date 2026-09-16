@@ -7,11 +7,12 @@ vi.mock("@/lib/auth", () => ({
 }));
 vi.mock("@/lib/clickup", () => ({
   getClickUpTask: vi.fn(),
+  taskHasAttachmentNamed: vi.fn(),
   uploadAttachmentToTask: vi.fn(),
 }));
 
 import { fetchClickUpUser, getServerAuthSession } from "@/lib/auth";
-import { getClickUpTask, uploadAttachmentToTask } from "@/lib/clickup";
+import { getClickUpTask, taskHasAttachmentNamed, uploadAttachmentToTask } from "@/lib/clickup";
 
 function request(file: File, taskId = "task-123") {
   const body = new FormData();
@@ -29,6 +30,7 @@ describe("request attachment endpoint", () => {
       creator: { id: "viewer-1" },
       markdown_description: "| **Requested By Email** | owner@example.com |",
     });
+    vi.mocked(taskHasAttachmentNamed).mockReturnValue(false);
     vi.mocked(uploadAttachmentToTask).mockResolvedValue({ success: true, id: "attachment-1" });
   });
 

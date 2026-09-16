@@ -108,9 +108,12 @@ export async function POST(req: NextRequest) {
       // 3. Upload all supporting documents
       const supportingFiles = formData.getAll("supportingFiles") as File[];
       if (supportingFiles && supportingFiles.length > 0) {
-        for (const file of supportingFiles) {
+        for (const [index, file] of supportingFiles.entries()) {
           if (file && file.size > 0) {
-            await uploadAttachmentToTask(taskId, file, file.name, accessToken);
+            const filename = formType === "rfp" || formType === "gw-rfp"
+              ? formatSubmittedFilename(data.rfpCodeSuffix, "SUP", data.payee || "Payee", undefined, index + 1)
+              : file.name;
+            await uploadAttachmentToTask(taskId, file, filename, accessToken);
           }
         }
       }

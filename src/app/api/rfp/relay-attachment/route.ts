@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchClickUpUser, getServerAuthSession } from "@/lib/auth";
-import { getClickUpTask, uploadAttachmentToTask } from "@/lib/clickup";
+import { getClickUpTask, taskHasAttachmentNamed, uploadAttachmentToTask } from "@/lib/clickup";
 import { downloadStagedFile, removeStagedFile } from "@/lib/supabaseStorage";
 
 export const maxDuration = 60;
@@ -23,6 +23,8 @@ export async function POST(req: NextRequest) {
     const taskEmail = emailMatch?.[1]?.replace(/[\*_`]/g, "").trim().toLowerCase();
     const creatorId = String(task.creator?.id || "");
     if (taskEmail ? taskEmail !== user.email.toLowerCase() : creatorId !== String(user.id)) return NextResponse.json({ success: false, message: "You cannot upload to this request." }, { status: 403 });
+    if (/[\\/:*?"<>|]/.test(filename)) return NextResponse.json({ success: false, message: "The upload filename contains unsupported characters." }, { status: 400 });
+    if (taskHasAttachmentNamed(task, filename)) return NextResponse.json({ success: true, alreadyExists: true });
     const file = await downloadStagedFile(objectPath);
     const result = await uploadAttachmentToTask(taskId, file, filename, accessToken);
     if (!result.success) return NextResponse.json({ success: false, message: `ClickUp could not save ${filename}.` }, { status: 502 });

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchClickUpUser, getServerAuthSession } from "@/lib/auth";
-import { getClickUpTask, uploadAttachmentToTask } from "@/lib/clickup";
+import { getClickUpTask, taskHasAttachmentNamed, uploadAttachmentToTask } from "@/lib/clickup";
 import { MAX_DIRECT_UPLOAD_FILE_BYTES } from "@/lib/submissionUploads";
 
 export const maxDuration = 60;
@@ -24,6 +24,9 @@ export async function POST(req: NextRequest) {
     if (!taskId || !(file instanceof File) || file.size === 0) {
       return NextResponse.json({ success: false, message: "A task ID and nonempty file are required." }, { status: 400 });
     }
+    if (/[\\/:*?"<>|]/.test(file.name)) {
+      return NextResponse.json({ success: false, message: "The upload filename contains unsupported characters. Retry the request to generate a compliant filename." }, { status: 400 });
+    }
     if (file.size > MAX_DIRECT_UPLOAD_FILE_BYTES) {
       return NextResponse.json({ success: false, message: "This file exceeds the 4 MB upload limit." }, { status: 413 });
     }
@@ -38,6 +41,12 @@ export async function POST(req: NextRequest) {
     const creatorId = String(task.creator?.id || "");
     if (taskEmail ? taskEmail !== user.email.toLowerCase() : creatorId !== String(user.id)) {
       return NextResponse.json({ success: false, message: "You cannot upload to this request." }, { status: 403 });
+    }
+
+    // A timeout can happen after ClickUp accepts the file. Treat an existing
+    // same-name attachment as success so retry cannot create a duplicate.
+    if (taskHasAttachmentNamed(task, file.name)) {
+      return NextResponse.json({ success: true, alreadyExists: true });
     }
 
     const result = await uploadAttachmentToTask(taskId, file, file.name, accessToken);

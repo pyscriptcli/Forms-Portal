@@ -587,6 +587,13 @@ export async function getClickUpTask(taskId: string, oauthToken?: string): Promi
   return await res.json();
 }
 
+export function taskHasAttachmentNamed(task: any, filename: string): boolean {
+  const target = filename.trim().toLowerCase();
+  return Array.isArray(task?.attachments) && task.attachments.some((attachment: any) =>
+    String(attachment?.title || attachment?.filename || attachment?.name || "").trim().toLowerCase() === target
+  );
+}
+
 /**
  * Fetches all tasks from the configured ClickUp list.
  */

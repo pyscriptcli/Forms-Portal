@@ -30,6 +30,7 @@ import {
 } from "@/lib/rfpValidation";
 import { AlertCircle } from "lucide-react";
 import { getAdminSettings } from "@/lib/adminSettings";
+import { formatSubmittedFilename } from "@/lib/rfpNaming";
 
 interface PendingUpload {
   response: SubmissionResponse;
@@ -501,7 +502,7 @@ function RfpAppContent() {
       try {
         await completePendingUpload(pendingUpload);
       } catch (error: any) {
-        setErrorMessage(`${error.message} Your ClickUp request ${pendingUpload.response.requestId || pendingUpload.response.taskId} already exists; press Submit again to retry the remaining uploads.`);
+        setErrorMessage(`${error.message} Request ${pendingUpload.response.requestId || pendingUpload.response.taskId} was created. Use Retry uploads to continue without creating a duplicate.`);
       } finally {
         setIsSubmitting(false);
       }
@@ -525,10 +526,6 @@ function RfpAppContent() {
 
     try {
       const elementId = "rfp-printable-sheet";
-      const entity = formData.payee || "Payee";
-      const dateStr = formData.date;
-      const sanitizedEntity = entity.replace(/[^a-zA-Z0-9_-]/g, "_");
-
       // 1. Generate the official PDF from the exact printable virtual-form DOM.
       // The generator uses a compressed JPEG internally to avoid exceeding the
       // serverless multipart request limit while preserving the form layout.
@@ -553,13 +550,6 @@ function RfpAppContent() {
           dataUrl: "", // Avoid duplicating binary file data in JSON
         })),
       };
-
-      const pdfFile = new File([pdfBlob], `RFP_${sanitizedEntity}_${dateStr || "document"}.pdf`, { type: "application/pdf" });
-      const entries: UploadEntry[] = [
-        { key: "form-pdf", file: pdfFile },
-        ...rawSupportingFiles.map((file, index) => ({ key: `support-${index}`, file })),
-      ];
-      assertUploadSizes(entries);
 
       const submissionData = new FormData();
       submissionData.append("formType", selectedForm);
@@ -595,6 +585,37 @@ function RfpAppContent() {
       }
       createdResponse = json;
 
+      // The server assigns the reference. All uploads, including retries, use
+      // that reference so ClickUp never receives the old date-based filename.
+      const isRfpSubmission = selectedForm === "rfp" || selectedForm === "gw-rfp";
+      const entity = formData.payee || "Payee";
+      const sanitizedEntity = entity.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const reference = json.requestId || "";
+      if (isRfpSubmission && !/^RFP-\d{6}-\d{4}$/.test(reference)) {
+        throw new Error("The request was created without a valid Finance RFP number. Contact Finance before retrying uploads.");
+      }
+      const pdfFile = new File(
+        [pdfBlob],
+        isRfpSubmission
+          ? formatSubmittedFilename(reference, "RFP", formData.payee || "Payee")
+          : `${selectedForm.toUpperCase()}_${sanitizedEntity}_${formData.date || "document"}.pdf`,
+        { type: "application/pdf" }
+      );
+      const entries: UploadEntry[] = [
+        { key: "form-pdf", file: pdfFile },
+        ...rawSupportingFiles.map((file, index) => ({
+          key: `support-${index}`,
+          file: isRfpSubmission
+            ? new File(
+                [file],
+                formatSubmittedFilename(reference, "SUP", formData.payee || "Payee", undefined, index + 1),
+                { type: "application/pdf" }
+              )
+            : file,
+        })),
+      ];
+      assertUploadSizes(entries);
+
       const pending: PendingUpload = {
         response: json,
         entries,
@@ -606,7 +627,7 @@ function RfpAppContent() {
     } catch (err: any) {
       console.error("Submission failed:", err);
       const retryMessage = createdResponse
-        ? ` Request ${createdResponse.requestId || createdResponse.taskId} already exists in ClickUp. Press Submit again to retry its remaining uploads.`
+        ? ` Request ${createdResponse.requestId || createdResponse.taskId} was created. Use Retry uploads to continue its remaining uploads.`
         : "";
       setErrorMessage(`${err.message || "Failed to complete submission."}${retryMessage}`);
     } finally {
@@ -630,6 +651,20 @@ function RfpAppContent() {
       colors: ["#003366", "#C9A84C"],
       origin: { y: 0.6 },
     });
+  };
+
+  const handleRetryUploads = async () => {
+    if (!pendingUpload) return;
+    setErrorMessage(null);
+    setIsSubmitting(true);
+    setSubmissionStage("uploading_clickup");
+    try {
+      await completePendingUpload(pendingUpload);
+    } catch (error: any) {
+      setErrorMessage(`${error.message || "Upload failed."} Request ${pendingUpload.response.requestId || pendingUpload.response.taskId} remains available. Retry uploads again.`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const activeTaskId = formData.taskId;
@@ -680,6 +715,16 @@ function RfpAppContent() {
           <div className="mb-4 p-4 bg-prime-white border border-prime-rule text-prime-blue text-xs font-medium flex items-center gap-2.5 animate-shake">
             <AlertCircle className="w-4 h-4 text-prime-blue shrink-0" />
             <span>{errorMessage}</span>
+            {pendingUpload && (
+              <button
+                type="button"
+                onClick={handleRetryUploads}
+                disabled={isSubmitting}
+                className="ml-auto shrink-0 rounded border border-prime-blue px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide hover:bg-prime-blue hover:text-white disabled:opacity-50"
+              >
+                Retry uploads
+              </button>
+            )}
           </div>
         )}
 
