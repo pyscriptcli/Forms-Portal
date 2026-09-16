@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { buildTaskDescription, createClickUpTask, getClickUpConfig } from "@/lib/clickup";
+import { approveTaskByApprover, buildTaskDescription, createClickUpTask, getClickUpConfig } from "@/lib/clickup";
 
 describe("ClickUp Configuration Multi-List Resolution", () => {
   const originalEnv = { ...process.env };
@@ -105,6 +105,25 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
       "list-123",
       { requestorFormSubmission: { status: "REQUESTOR FORM SUBMISSION" } } as never
     )).resolves.toMatchObject({ id: "task-1" });
+  });
+
+  it("does not advance approval when the Finance Validation timestamp field is missing", async () => {
+    process.env.CLICKUP_API_TOKEN = "pk_test_token_123";
+    const fetchMock = vi.fn()
+      .mockResolvedValue(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(Response.json({
+        id: "task-1",
+        description: "Request",
+        custom_fields: [
+          { id: "approver-name", name: "RFP Approver Name", type: "short_text" },
+        ],
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(approveTaskByApprover("task-1", "Team Lead")).resolves.toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[1][0])).toContain("/field/approver-name");
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === "PUT")).toBe(false);
   });
 
   it("resolves PO_LIST_ID for PO forms", () => {

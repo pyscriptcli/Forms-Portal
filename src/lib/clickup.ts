@@ -950,8 +950,33 @@ export async function approveTaskByApprover(
 
       const approverEmailId = fieldMapping[CLICKUP_METADATA_FIELDS.approverEmail];
       if (approverEmailId && approverEmail) {
-        await setTaskCustomFieldValue(taskId, approverEmailId, approverEmail, token);
+        const ok = await setTaskCustomFieldValue(taskId, approverEmailId, approverEmail, token);
+        if (!ok) {
+          console.error(`Failed to persist approver email to custom field ${approverEmailId}`);
+          return false;
+        }
       }
+
+      // Fail closed: the status must never advance without the authoritative
+      // timestamp that the request timeline will display for this milestone.
+      const financeValidationTimestampId = fieldMapping[CLICKUP_MILESTONE_FIELDS.financeValidation];
+      if (!financeValidationTimestampId) {
+        console.error("Finance Validation timestamp field is not configured on this ClickUp task.");
+        return false;
+      }
+      const timestampWritten = await setTaskCustomFieldValue(
+        taskId,
+        financeValidationTimestampId,
+        Date.now(),
+        token
+      );
+      if (!timestampWritten) {
+        console.error(`Failed to persist Finance Validation timestamp to custom field ${financeValidationTimestampId}`);
+        return false;
+      }
+    } else {
+      console.error("ClickUp task has no custom fields; approval cannot record its milestone timestamp.");
+      return false;
     }
 
     let updatedDescription = currentTask.description || currentTask.markdown_description || "";

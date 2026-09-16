@@ -76,10 +76,8 @@ function normalizeMilestone(value: string) {
   return value.toLowerCase().replace(/^finance\s+/, "").replace(/[^a-z0-9]+/g, " ").trim();
 }
 
-function getMilestoneTimestampDisplay(request: TrackedRfp, milestoneKey: RfpMilestoneKey): string {
-  const ts = request.milestoneTimestamps?.[milestoneKey];
-  if (ts) return ts;
-  return "Timestamp unavailable";
+function getMilestoneTimestampDisplay(request: TrackedRfp, milestoneKey: RfpMilestoneKey): string | null {
+  return request.milestoneTimestamps?.[milestoneKey] || null;
 }
 
 function RequestTimeline({ request }: { request: TrackedRfp }) {
@@ -168,13 +166,11 @@ function RequestTimeline({ request }: { request: TrackedRfp }) {
                           >
                             {milestone.label}
                           </p>
-                          <p className="mt-1 text-[9px] leading-tight text-prime-ink/65">
-                            {milestoneActive
-                              ? tsDisplay
-                              : milestoneComplete
-                              ? tsDisplay
-                              : "Pending"}
-                          </p>
+                          {(tsDisplay || (!milestoneActive && !milestoneComplete)) && (
+                            <p className="mt-1 text-[9px] leading-tight text-prime-ink/65">
+                              {tsDisplay || "Pending"}
+                            </p>
+                          )}
                         </div>
                       );
                     })
@@ -394,8 +390,8 @@ function RequestsContent() {
         </section>
       )}
 
-      {/* Results */}
-      {isLoading ? (
+      {/* Results stay out of the visual hierarchy while one request is open. */}
+      {!selectedRequest && (isLoading ? (
         <div className="bg-prime-white border border-prime-rule p-12 text-center">
           <Loader2 className="w-6 h-6 animate-spin text-prime-blue mx-auto mb-2" />
           <p className="text-xs font-medium text-prime-ink">Loading requests…</p>
@@ -451,9 +447,11 @@ function RequestsContent() {
                     <span className="text-[11px] font-medium uppercase text-prime-ink bg-prime-white px-1.5 py-0.5">
                       {req.department}
                     </span>
-                    <span className={`text-[11px] font-medium px-1.5 py-0.5 border ${req.currentStage === "completed" ? "border-prime-blue text-prime-blue" : "border-prime-gold text-prime-blue"}`}>
-                      {req.stageLabel}
-                    </span>
+                    {req.currentStage !== "completed" && (
+                      <span className="text-[11px] font-medium px-1.5 py-0.5 border border-prime-gold text-prime-blue">
+                        {req.stageLabel}
+                      </span>
+                    )}
                     {req.isRevisionRequested && (
                       <span className="flex items-center gap-0.5 text-[11px] font-medium text-prime-blue bg-prime-white border border-prime-rule px-1.5 py-0.5">
                         <AlertTriangle className="w-3 h-3" /> Revision
@@ -491,7 +489,7 @@ function RequestsContent() {
             );
           })}
         </div>
-      )}
+      ))}
     </div>
   );
 }

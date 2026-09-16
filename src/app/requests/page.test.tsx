@@ -29,11 +29,11 @@ describe("request details", () => {
           requestedByEmail: "member@primephilippines.com",
           approverName: "Team Lead",
           approverEmail: "lead@primephilippines.com",
-          currentStage: "finance_verification",
-          stageLabel: "Finance",
-          currentMilestone: "Finance Processing",
+          currentStage: "completed",
+          stageLabel: "Completed",
+          currentMilestone: "Records Filing",
           statusUpdatedAt: "2026-09-16T01:25:00.000Z",
-          stageIndex: 2,
+          stageIndex: 5,
           isRevisionRequested: false,
           dateCreated: "2026-09-15T01:00:00.000Z",
           attachments: [],
@@ -57,8 +57,11 @@ describe("request details", () => {
     expect(screen.getByText("Payment Preparation")).toBeInTheDocument();
     expect(screen.getByText("Sep 16, 2026, 8:45 AM")).toBeInTheDocument();
     expect(screen.getByText("Sep 16, 2026, 9:25 AM")).toBeInTheDocument();
+    expect(screen.queryByText("Timestamp unavailable")).not.toBeInTheDocument();
     expect(screen.queryByText(/Open in ClickUp/i)).not.toBeInTheDocument();
-    expect(screen.getAllByText("Tarpaulin installation").length).toBeGreaterThan(0);
+    expect(screen.getByText("Tarpaulin installation")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "View status for ABC Company" })).not.toBeInTheDocument();
+    expect(screen.getAllByText("Completed")).toHaveLength(1);
     expect(screen.getByText("Team Lead")).toBeInTheDocument();
   });
 });
