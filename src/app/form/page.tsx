@@ -56,7 +56,7 @@ const getInitialFormData = (): RfpFormData => {
   ];
 
   return {
-    rfpCodeSuffix: `RFP-${mm}${yyyy}-0001`,
+    rfpCodeSuffix: "",
     date: today,
     dateAccomplished: today,
     dueDate: "",
@@ -118,6 +118,7 @@ function RfpAppContent() {
   const formParam = searchParams.get("form");
 
   const [formData, setFormData] = useState<RfpFormData>(getInitialFormData);
+  const [rfpNumberStatus, setRfpNumberStatus] = useState<"loading" | "ready" | "unavailable">("loading");
   const [selectedForm, setSelectedForm] = useState<string>(formParam ?? "rfp");
   const [previousDraft, setPreviousDraft] = useState<RfpFormData | null>(null);
   const [extractedBanner, setExtractedBanner] = useState<{
@@ -140,25 +141,31 @@ function RfpAppContent() {
     }
   }, [user]);
 
-  // Show the next provisional RFP number immediately by reading the latest
-  // RFP reference in ClickUp. The submit endpoint rechecks and reserves the
-  // final number server-side, so this display can never create a duplicate.
+  // Display only a number derived from the current ClickUp list. The submit
+  // endpoint still rechecks the list before task creation to prevent races.
   useEffect(() => {
     if (taskIdParam || (selectedForm !== "rfp" && selectedForm !== "gw-rfp")) return;
     let cancelled = false;
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 8000);
+    setRfpNumberStatus("loading");
+    setFormData((previous) => ({ ...previous, rfpCodeSuffix: "" }));
     fetch("/api/rfp/next-reference", { cache: "no-store", signal: controller.signal })
-      .then((response) => response.json())
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.message || "Could not read the next RFP number from ClickUp.");
+        return result;
+      })
       .then((result) => {
-        if (!cancelled && result.success && typeof result.reference === "string") {
-          setFormData((previous) => previous.rfpCodeSuffix ? previous : { ...previous, rfpCodeSuffix: result.reference });
+        if (!cancelled && typeof result.reference === "string") {
+          setFormData((previous) => ({ ...previous, rfpCodeSuffix: result.reference }));
+          setRfpNumberStatus("ready");
         }
       })
       .catch((error) => {
         if (!cancelled) {
           console.warn("Could not load next ClickUp RFP number:", error);
-          setFormData((previous) => previous.rfpCodeSuffix ? previous : { ...previous, rfpCodeSuffix: "Assigned on submit" });
+          setRfpNumberStatus("unavailable");
         }
       })
       .finally(() => window.clearTimeout(timeout));
@@ -785,7 +792,7 @@ function RfpAppContent() {
 
         {/* Document First Paper Sheet */}
         <section id="rfp-sheet-container" className="prime-form-scroll mb-8" aria-label="Form document">
-          {selectedForm === "travel-budget" ? <TravelBudgetSheet data={formData as any} onChange={setFormData as any} /> : <RfpSheet data={formData} onChange={setFormData} validationErrors={validationErrors} variant={selectedForm === "gw-rfp" ? "gw" : "prime"} />}
+          {selectedForm === "travel-budget" ? <TravelBudgetSheet data={formData as any} onChange={setFormData as any} /> : <RfpSheet data={formData} onChange={setFormData} validationErrors={validationErrors} variant={selectedForm === "gw-rfp" ? "gw" : "prime"} rfpNumberStatus={rfpNumberStatus} />}
         </section>
 
         {/* Supporting Documents Section */}

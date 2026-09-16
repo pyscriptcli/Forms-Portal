@@ -608,7 +608,13 @@ export async function getListTasks(
   includeClosed: boolean = true,
   formType: FormType = "rfp",
   oauthToken?: string,
-  listIdOverride?: string
+  listIdOverride?: string,
+  options?: {
+    includeMarkdownDescription?: boolean;
+    orderBy?: "created" | "updated" | "due_date";
+    reverse?: boolean;
+    throwOnError?: boolean;
+  }
 ): Promise<any[]> {
   const { token, listId, isConfigured, isOAuth } = getClickUpConfig(formType, oauthToken, listIdOverride);
 
@@ -617,20 +623,30 @@ export async function getListTasks(
   }
 
   try {
-    const url = `${CLICKUP_API_BASE}/list/${listId}/task?include_closed=${includeClosed}&subtasks=true&include_markdown_description=true`;
+    const params = new URLSearchParams({
+      include_closed: String(includeClosed),
+      subtasks: "true",
+      include_markdown_description: String(options?.includeMarkdownDescription ?? true),
+    });
+    if (options?.orderBy) params.set("order_by", options.orderBy);
+    if (options?.reverse !== undefined) params.set("reverse", String(options.reverse));
+    const url = `${CLICKUP_API_BASE}/list/${listId}/task?${params.toString()}`;
     const res = await fetch(url, {
       headers: { Authorization: authorizationHeader(token, isOAuth) },
       cache: "no-store",
     });
 
     if (!res.ok) {
-      console.error(`Failed to fetch tasks from list ${listId}:`, await res.text());
+      const detail = await res.text();
+      if (options?.throwOnError) throw new Error(`ClickUp task lookup failed (${res.status}): ${detail}`);
+      console.error(`Failed to fetch tasks from list ${listId}:`, detail);
       return [];
     }
 
     const data = await res.json();
     return data.tasks || [];
   } catch (err) {
+    if (options?.throwOnError) throw err;
     console.error("Error fetching list tasks:", err);
     return [];
   }

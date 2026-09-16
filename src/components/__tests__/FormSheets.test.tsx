@@ -13,7 +13,7 @@ const initialRfp: RfpFormData = {
 
 function RfpHarness({ variant }: { variant: "prime" | "gw" }) {
   const [data, setData] = useState(initialRfp);
-  return <><RfpSheet variant={variant} data={data} onChange={setData} /><output data-testid="state">{JSON.stringify(data)}</output></>;
+  return <><RfpSheet variant={variant} data={data} onChange={setData} rfpNumberStatus="loading" /><output data-testid="state">{JSON.stringify(data)}</output></>;
 }
 
 describe.each(["prime", "gw"] as const)("%s RFP", (variant) => {
@@ -46,6 +46,13 @@ describe.each(["prime", "gw"] as const)("%s RFP", (variant) => {
     expect(reference).toHaveAttribute("readonly");
     fireEvent.change(reference, { target: { value: "RFP-092026-0042" } });
     expect(JSON.parse(screen.getByTestId("state").textContent || "{}")).not.toHaveProperty("rfpCodeSuffix");
+  });
+
+  it("does not display an invented provisional RFP sequence", () => {
+    render(<RfpHarness variant={variant} />);
+    const reference = screen.getByLabelText("RFP number");
+    expect(reference).toHaveValue("Fetching from ClickUp...");
+    expect((reference as HTMLInputElement).value).not.toMatch(/-0001$/);
   });
 
   it("keeps time, purpose, bank details, and supporting-document checks editable", () => {

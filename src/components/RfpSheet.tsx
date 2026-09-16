@@ -38,9 +38,10 @@ interface RfpSheetProps {
   onChange: (data: RfpFormData) => void;
   validationErrors?: Record<string, string>;
   variant?: "prime" | "gw";
+  rfpNumberStatus?: "loading" | "ready" | "unavailable";
 }
 
-export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }: RfpSheetProps) {
+export function RfpSheet({ data, onChange, validationErrors, variant = "prime", rfpNumberStatus = "loading" }: RfpSheetProps) {
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [isTlSignatureModalOpen, setIsTlSignatureModalOpen] = useState(false);
 
@@ -153,14 +154,13 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
       </div>
 
       {/* Right-aligned RFP Document Code */}
-      <div className="flex justify-end items-baseline gap-1 mb-2.5 text-xs font-bold text-[#002B49]">
-        <span>RFP</span>
+      <div className="flex justify-end items-baseline mb-2.5 text-xs font-bold text-[#002B49]">
         <input
           aria-label="RFP number"
           type="text"
-          value={data.rfpCodeSuffix || "Loading next number..."}
+          value={data.rfpCodeSuffix || (rfpNumberStatus === "unavailable" ? "ClickUp number unavailable" : "Fetching from ClickUp...")}
           readOnly
-          className="border-b border-[#002B49] min-w-28 w-32 text-right text-xs font-bold text-[#002B49] bg-transparent focus:outline-none"
+          className="border-b border-[#002B49] min-w-48 w-48 text-right text-xs font-bold text-[#002B49] bg-transparent focus:outline-none"
           maxLength={20}
         />
       </div>
