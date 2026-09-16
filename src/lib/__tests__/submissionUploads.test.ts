@@ -1,9 +1,27 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MAX_UPLOAD_FILE_BYTES, uploadSubmissionFiles } from "@/lib/submissionUploads";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  document.cookie = "clickup_auth_token=; Max-Age=0";
+});
 
 describe("split ClickUp attachment uploads", () => {
+  it("uploads directly to ClickUp when the browser has an OAuth session token", async () => {
+    document.cookie = "clickup_auth_token=oauth-token";
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, text: async () => "" });
+    vi.stubGlobal("fetch", fetchMock);
+    const file = new File(["pdf"], "RFP-092026-0003_RFP_BestPrint.pdf", { type: "application/pdf" });
+
+    await uploadSubmissionFiles("task-123", [{ key: "pdf", file }], new Set(), vi.fn());
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe("https://api.clickup.com/api/v2/task/task-123/attachment");
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe("Bearer oauth-token");
+    expect(fetchMock.mock.calls[0][1].body.get("attachment").name).toBe(file.name);
+    document.cookie = "clickup_auth_token=; Max-Age=0";
+  });
+
   it("sends one request per attachment and keeps the task ID", async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ success: true }) });
     vi.stubGlobal("fetch", fetchMock);

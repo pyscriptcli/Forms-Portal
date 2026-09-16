@@ -1,5 +1,6 @@
 export const MAX_DIRECT_UPLOAD_FILE_BYTES = 4 * 1024 * 1024;
 export const MAX_UPLOAD_FILE_BYTES = 50 * 1024 * 1024;
+const CLICKUP_API_BASE = "https://api.clickup.com/api/v2";
 
 export interface UploadEntry {
   key: string;
@@ -25,6 +26,30 @@ async function parseUploadResponse(response: Response, filename: string) {
 }
 
 async function uploadSupportingFile(file: File, taskId: string) {
+  const clientToken = typeof document !== "undefined"
+    ? document.cookie.match(/(?:^|; )clickup_auth_token=([^;]+)/)?.[1]
+    : undefined;
+
+  // Internal-tool direct mode: send the file from the browser to ClickUp.
+  // No Vercel upload endpoint or Supabase staging is involved when the OAuth
+  // token is available in the browser session.
+  if (clientToken) {
+    const body = new FormData();
+    body.append("attachment", file, file.name);
+    const response = await fetch(`${CLICKUP_API_BASE}/task/${encodeURIComponent(taskId)}/attachment`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${decodeURIComponent(clientToken)}` },
+      body,
+    });
+    const result = await response.text().catch(() => "");
+    if (!response.ok) {
+      let message = result;
+      try { message = JSON.parse(result)?.err || JSON.parse(result)?.message || result; } catch { /* plain text response */ }
+      throw new Error(`ClickUp direct upload failed for ${file.name} (${response.status})${message ? `: ${message.slice(0, 240)}` : "."}`);
+    }
+    return { success: true };
+  }
+
   if (file.size <= MAX_DIRECT_UPLOAD_FILE_BYTES) {
     const body = new FormData();
     body.append("taskId", taskId);

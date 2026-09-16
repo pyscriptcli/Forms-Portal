@@ -36,10 +36,11 @@ export async function GET(req: NextRequest) {
 
     const redirectResponse = NextResponse.redirect(`${defaultBase}${callbackTarget}`);
 
-    // Set secure HTTP cookies
+    // The direct browser-upload mode requires the OAuth token in the browser.
+    // This is intentionally enabled for the user's internal-tool deployment.
     const cookieOptions = {
       path: "/",
-      httpOnly: true,
+      httpOnly: false,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax" as const,
       maxAge: 60 * 60 * 24 * 7, // 7 days
