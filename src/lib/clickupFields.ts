@@ -136,16 +136,20 @@ export function formatCustomFieldValueForWrite(
 ): string | number | boolean | null {
   if (value === undefined || value === null) return null;
 
-  switch (fieldType) {
+  const normType = (fieldType || "text").toLowerCase().trim();
+
+  switch (normType) {
     case "money":
     case "currency":
-    case "number":
-      return typeof value === "number" ? value : parseFloat(String(value).replace(/,/g, "")) || 0;
+    case "number": {
+      const num = typeof value === "number" ? value : parseFloat(String(value).replace(/,/g, ""));
+      return Number.isNaN(num) ? 0 : num;
+    }
 
     case "date": {
-      if (typeof value === "number") return value;
+      if (typeof value === "number") return Math.round(value);
       const num = Number(value);
-      if (!Number.isNaN(num) && num > 1000000000) return num;
+      if (!Number.isNaN(num) && num > 1000000000) return Math.round(num);
       const date = new Date(String(value));
       return Number.isNaN(date.getTime()) ? null : date.getTime();
     }
@@ -153,6 +157,11 @@ export function formatCustomFieldValueForWrite(
     case "checkbox":
       return Boolean(value);
 
+    case "string":
+    case "text":
+    case "short_text":
+    case "url":
+    case "email":
     default:
       return String(value).trim();
   }

@@ -286,7 +286,26 @@ export async function setTaskCustomFieldValue(
       },
       body: JSON.stringify({ value }),
     });
-    return res.ok;
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      console.warn(`ClickUp custom field ${fieldId} set failed (${res.status}): ${errText}`);
+      // If error is FIELD_018 (Value is not a valid string), retry with String(value)
+      if (errText.includes("FIELD_018") || errText.includes("not a valid string")) {
+        const retryRes = await fetch(`${CLICKUP_API_BASE}/task/${taskId}/field/${fieldId}`, {
+          method: "POST",
+          headers: {
+            Authorization: authToken.startsWith("Bearer ") ? authToken : authToken,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ value: String(value) }),
+        });
+        return retryRes.ok;
+      }
+      return false;
+    }
+
+    return true;
   } catch (err) {
     console.error(`Error setting custom field ${fieldId} on task ${taskId}:`, err);
     return false;
@@ -343,10 +362,12 @@ async function getMatchingCustomFields(listId: string, token: string, data: any,
     const customFieldsPayload: Array<{ id: string; value: any }> = [];
 
     // Helper to add if mapped
-    const addIfMapped = (canonicalName: string, rawVal: any, fieldType: string = "text") => {
+    const addIfMapped = (canonicalName: string, rawVal: any, defaultFieldType: string = "text") => {
       const fieldId = fieldMapping[canonicalName];
       if (fieldId && rawVal !== undefined && rawVal !== null && rawVal !== "") {
-        const formatted = formatCustomFieldValueForWrite(fieldType, rawVal);
+        const fieldDef = availableFields.find((f) => f.id === fieldId);
+        const actualType = (fieldDef?.type || defaultFieldType).toLowerCase();
+        const formatted = formatCustomFieldValueForWrite(actualType, rawVal);
         if (formatted !== null) {
           customFieldsPayload.push({ id: fieldId, value: formatted });
         }
@@ -374,16 +395,23 @@ async function getMatchingCustomFields(listId: string, token: string, data: any,
       const isAlreadyMapped = customFieldsPayload.some((item) => item.id === field.id);
       if (isAlreadyMapped) return;
 
+      const actualType = (field.type || "text").toLowerCase();
+
       if (name.includes("payee") && data.payee) {
-        customFieldsPayload.push({ id: field.id, value: data.payee });
+        const val = formatCustomFieldValueForWrite(actualType, data.payee);
+        if (val !== null) customFieldsPayload.push({ id: field.id, value: val });
       } else if (name.includes("bank") && data.bank) {
-        customFieldsPayload.push({ id: field.id, value: data.bank });
+        const val = formatCustomFieldValueForWrite(actualType, data.bank);
+        if (val !== null) customFieldsPayload.push({ id: field.id, value: val });
       } else if (name.includes("accountname") && data.accountName) {
-        customFieldsPayload.push({ id: field.id, value: data.accountName });
+        const val = formatCustomFieldValueForWrite(actualType, data.accountName);
+        if (val !== null) customFieldsPayload.push({ id: field.id, value: val });
       } else if (name.includes("accountnum") && data.accountNumber) {
-        customFieldsPayload.push({ id: field.id, value: data.accountNumber });
+        const val = formatCustomFieldValueForWrite(actualType, data.accountNumber);
+        if (val !== null) customFieldsPayload.push({ id: field.id, value: val });
       } else if (name.includes("edit") || name.includes("revision") || name.includes("formurl")) {
-        customFieldsPayload.push({ id: field.id, value: editUrl });
+        const val = formatCustomFieldValueForWrite(actualType, editUrl);
+        if (val !== null) customFieldsPayload.push({ id: field.id, value: val });
       }
     });
 
@@ -485,7 +513,7 @@ export async function createClickUpTask(
   }
 
   // 1. Create task with the administrator-configured initial status
-  const createRes = await fetch(`${CLICKUP_API_BASE}/list/${listId}/task`, {
+  let createRes = await fetch(`${CLICKUP_API_BASE}/list/${listId}/task`, {
     method: "POST",
     headers: {
       Authorization: authorizationHeader(token, isOAuth),
@@ -493,6 +521,45 @@ export async function createClickUpTask(
     },
     body: JSON.stringify(body),
   });
+
+  // Resilient fallback: If task creation failed due to a custom field validation error (e.g. FIELD_018)
+  if (!createRes.ok && body.custom_fields && body.custom_fields.length > 0) {
+    const errText = await createRes.clone().text().catch(() => "");
+    if (createRes.status === 400 && (errText.includes("FIELD_") || errText.includes("custom_field") || errText.includes("valid string"))) {
+      console.warn(
+        `ClickUp task creation failed with custom field error (${errText}). Retrying task creation without custom_fields and applying fields individually...`
+      );
+
+      const payloadWithoutCustomFields = { ...body };
+      delete payloadWithoutCustomFields.custom_fields;
+
+      const retryRes = await fetch(`${CLICKUP_API_BASE}/list/${listId}/task`, {
+        method: "POST",
+        headers: {
+          Authorization: authorizationHeader(token, isOAuth),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payloadWithoutCustomFields),
+      });
+
+      if (retryRes.ok) {
+        createRes = retryRes;
+        const createdTask = await retryRes.clone().json().catch(() => ({}));
+        const newTaskId = createdTask.id;
+
+        // Apply custom fields individually in the background
+        if (newTaskId && Array.isArray(customFields)) {
+          Promise.all(
+            customFields.map((field) =>
+              setTaskCustomFieldValue(newTaskId, field.id, field.value, token).catch((err) => {
+                console.warn(`Failed to set custom field ${field.id} on task ${newTaskId}:`, err);
+              })
+            )
+          ).catch(() => {});
+        }
+      }
+    }
+  }
 
   if (!createRes.ok) {
     const errText = await createRes.text();
@@ -877,8 +944,7 @@ export async function approveTaskByApprover(
       if (approverNameId && approverName) {
         const ok = await setTaskCustomFieldValue(taskId, approverNameId, approverName, token);
         if (!ok) {
-          console.error(`Failed to persist approver name to custom field ${approverNameId}`);
-          return false;
+          console.warn(`Could not set approver name custom field ${approverNameId}, proceeding with status transition.`);
         }
       }
 
