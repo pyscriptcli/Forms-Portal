@@ -29,12 +29,16 @@ export function SupportingDocuments({
     const selected = Array.from(selectedFiles);
     const oversized = selected.find((file) => file.size > MAX_UPLOAD_FILE_BYTES);
     if (oversized) {
-      setSelectionError(`${oversized.name} exceeds the 4 MB per-file upload limit and cannot be attached.`);
+      setSelectionError(`${oversized.name} exceeds the 4 MB submission limit and cannot be attached.`);
+      return;
+    }
+    const newFilesList = selected;
+    const updatedRaw = [...rawFiles, ...newFilesList];
+    if (updatedRaw.reduce((total, file) => total + file.size, 0) > MAX_UPLOAD_FILE_BYTES) {
+      setSelectionError("The combined supporting files exceed the 4 MB submission limit.");
       return;
     }
     setSelectionError(null);
-    const newFilesList = selected;
-    const updatedRaw = [...rawFiles, ...newFilesList];
     onRawFilesChange(updatedRaw);
 
     // Convert to previewable SupportingFile list
@@ -146,7 +150,7 @@ export function SupportingDocuments({
           Click to upload or drag & drop supporting files here
         </p>
         <p className="text-xs text-prime-ink mt-1">
-          Supports PDF, PNG, JPG, and DOCX (up to 4 MB per file).
+          Supports PDF, PNG, JPG, and DOCX. Complete submission limit: 4 MB.
         </p>
         {selectionError && <p role="alert" className="mt-2 text-xs text-red-700">{selectionError}</p>}
         <input

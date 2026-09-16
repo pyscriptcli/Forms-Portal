@@ -1,74 +1,15 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { MAX_UPLOAD_FILE_BYTES, uploadSubmissionFiles } from "@/lib/submissionUploads";
+import { describe, expect, it } from "vitest";
+import { assertSubmissionPayloadSize, getSubmissionPayloadSize, MAX_SUBMISSION_PAYLOAD_BYTES } from "@/lib/submissionUploads";
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-  document.cookie = "clickup_auth_token=; Max-Age=0";
-});
-
-describe("split ClickUp attachment uploads", () => {
-  it("retries the authenticated relay when the upload request is interrupted", async () => {
-    const fetchMock = vi.fn()
-      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ success: true }) });
-    vi.stubGlobal("fetch", fetchMock);
-    const file = new File(["pdf"], "RFP-092026-0003_RFP_BestPrint.pdf", { type: "application/pdf" });
-
-    await uploadSubmissionFiles("task-123", [{ key: "pdf", file }], new Set(), vi.fn());
-
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0][0]).toBe("/api/rfp/upload");
+describe("submission payload limit", () => {
+  it("counts form data and every file toward one 4 MB limit", () => {
+    const files = [new File(["pdf"], "form.pdf"), new File(["quote"], "quote.pdf")];
+    expect(getSubmissionPayloadSize("data", files)).toBe(4 + 3 + 5);
+    expect(() => assertSubmissionPayloadSize("data", files)).not.toThrow();
   });
 
-  it("sends one request per attachment and keeps the task ID", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ success: true }) });
-    vi.stubGlobal("fetch", fetchMock);
-    const entries = [
-      { key: "pdf", file: new File(["pdf"], "form.pdf", { type: "application/pdf" }) },
-      { key: "quote", file: new File(["quote"], "quote.png", { type: "image/png" }) },
-    ];
-    const completed = new Set<string>();
-    await uploadSubmissionFiles("task-123", entries, completed, vi.fn());
-
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    for (const [, options] of fetchMock.mock.calls) {
-      expect(options.body.get("taskId")).toBe("task-123");
-      expect(options.body.getAll("file")).toHaveLength(1);
-    }
-    expect([...completed]).toEqual(["pdf", "quote"]);
-  });
-
-  it("retries a transient file failure without recreating or reuploading the PDF", async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ success: true }) })
-      .mockResolvedValueOnce({ ok: false, status: 502, json: async () => ({ success: false, message: "ClickUp unavailable" }) })
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ success: true }) });
-    vi.stubGlobal("fetch", fetchMock);
-    const entries = [
-      { key: "pdf", file: new File(["pdf"], "form.pdf") },
-      { key: "quote", file: new File(["quote"], "quote.png") },
-    ];
-    const completed = new Set<string>();
-    await uploadSubmissionFiles("task-123", entries, completed, vi.fn());
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect([...completed]).toEqual(["pdf", "quote"]);
-  });
-
-  it("rejects an oversized file before sending any request", async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-    const file = new File([new Uint8Array(MAX_UPLOAD_FILE_BYTES + 1)], "large.pdf");
-    await expect(uploadSubmissionFiles("task-123", [{ key: "large", file }], new Set(), vi.fn()))
-      .rejects.toThrow("large.pdf exceeds the 4 MB");
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("rejects files above 4 MB before contacting the upload service", async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-    const file = new File([new Uint8Array(5 * 1024 * 1024)], "large.pdf", { type: "application/pdf" });
-    await expect(uploadSubmissionFiles("task-123", [{ key: "large", file }], new Set(), vi.fn()))
-      .rejects.toThrow("large.pdf exceeds the 4 MB");
-    expect(fetchMock).not.toHaveBeenCalled();
+  it("rejects a combined payload above 4 MB", () => {
+    const file = new File([new Uint8Array(MAX_SUBMISSION_PAYLOAD_BYTES)], "form.pdf");
+    expect(() => assertSubmissionPayloadSize("x", [file])).toThrow("complete submission exceeds the 4 MB limit");
   });
 });

@@ -21,7 +21,7 @@ import { SubmissionModal } from "@/components/SubmissionModal";
 import { SubmissionLoadingModal, SubmissionStage } from "@/components/SubmissionLoadingModal";
 import { ValidationAlertBanner } from "@/components/ValidationAlertBanner";
 import { generateRfpPdf, downloadPdfBlob } from "@/lib/pdfGenerator";
-import { assertUploadSizes, uploadSubmissionFiles, type UploadEntry, MAX_DIRECT_UPLOAD_FILE_BYTES } from "@/lib/submissionUploads";
+import { assertSubmissionPayloadSize, MAX_DIRECT_UPLOAD_FILE_BYTES } from "@/lib/submissionUploads";
 import {
   validateRfpForm,
   ValidationResult,
@@ -30,14 +30,6 @@ import {
 } from "@/lib/rfpValidation";
 import { AlertCircle } from "lucide-react";
 import { getAdminSettings } from "@/lib/adminSettings";
-import { formatSubmittedFilename } from "@/lib/rfpNaming";
-
-interface PendingUpload {
-  response: SubmissionResponse;
-  entries: UploadEntry[];
-  uploaded: Set<string>;
-  pdfBlob: Blob;
-}
 
 const getInitialFormData = (): RfpFormData => {
   const now = new Date();
@@ -187,7 +179,6 @@ function RfpAppContent() {
   // Success dialog state
   const [submissionResponse, setSubmissionResponse] = useState<SubmissionResponse | null>(null);
   const [lastGeneratedPdf, setLastGeneratedPdf] = useState<Blob | null>(null);
-  const [pendingUpload, setPendingUpload] = useState<PendingUpload | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Feature flag: admin can disable RFP autofill
@@ -401,10 +392,7 @@ function RfpAppContent() {
   }, [formData, rawSupportingFiles, supportingFilesList]);
 
   const handleReset = () => {
-    const pendingWarning = pendingUpload
-      ? " A ClickUp request already exists; resetting will discard the local retry state."
-      : "";
-    if (confirm(`Are you sure you want to reset this form? All entered data, attachments, signatures, and local draft data will be cleared.${pendingWarning}`)) {
+    if (confirm("Are you sure you want to reset this form? All entered data, attachments, signatures, and local draft data will be cleared.")) {
       localStorage.removeItem("prime_rfp_draft");
       window.history.replaceState(null, "", "/form");
       setSelectedForm("rfp");
@@ -414,7 +402,6 @@ function RfpAppContent() {
       setRawSupportingFiles([]);
       setSupportingFilesList([]);
       setErrorMessage(null);
-      setPendingUpload(null);
       setSubmissionResponse(null);
       setLastGeneratedPdf(null);
       setIsModalOpen(false);
@@ -528,19 +515,6 @@ function RfpAppContent() {
   const handleSubmit = async () => {
     setErrorMessage(null);
 
-    if (pendingUpload) {
-      setIsSubmitting(true);
-      setSubmissionStage("uploading_clickup");
-      try {
-        await completePendingUpload(pendingUpload);
-      } catch (error: any) {
-        setErrorMessage(`${error.message} Request ${pendingUpload.response.requestId || pendingUpload.response.taskId} was created. Use Retry uploads to continue without creating a duplicate.`);
-      } finally {
-        setIsSubmitting(false);
-      }
-      return;
-    }
-
     // Field validation for active form
     const validation = getValidationResult();
     if (!validation.isValid) {
@@ -554,7 +528,6 @@ function RfpAppContent() {
 
     setIsSubmitting(true);
     setSubmissionStage("rendering_pdf");
-    let createdResponse: SubmissionResponse | null = null;
 
     try {
       const elementId = "rfp-printable-sheet";
@@ -570,11 +543,8 @@ function RfpAppContent() {
       }
       setLastGeneratedPdf(pdfBlob);
 
-      // Advance stage to packaging attachments
       setSubmissionStage("packaging_attachments");
-      await new Promise((r) => setTimeout(r, 400));
 
-      // 2. Sanitize JSON payload so large base64 dataUrls are not duplicated in JSON string
       const sanitizedFormData = {
         ...formData,
         supportingFiles: (formData.supportingFiles || []).map((f) => ({
@@ -586,21 +556,15 @@ function RfpAppContent() {
         })),
       };
 
-      // Reject oversized attachments before creating the ClickUp task.
-      assertUploadSizes(rawSupportingFiles.map((file, index) => ({ key: `support-${index}`, file })));
-
       const submissionData = new FormData();
       submissionData.append("formType", selectedForm);
       const dataPayload = JSON.stringify(sanitizedFormData);
       submissionData.append("data", dataPayload);
-      if (new Blob([dataPayload]).size > MAX_DIRECT_UPLOAD_FILE_BYTES) {
-        throw new Error("The form data is too large to submit. Reduce embedded signature image size.");
-      }
+      submissionData.append("pdf", new File([pdfBlob], "form.pdf", { type: "application/pdf" }));
+      rawSupportingFiles.forEach((file) => submissionData.append("supportingFiles", file));
+      assertSubmissionPayloadSize(dataPayload, [pdfBlob, ...rawSupportingFiles]);
 
-      // Advance stage to ClickUp upload
       setSubmissionStage("uploading_clickup");
-
-      // 3. Post to backend ClickUp route
       const res = await fetch("/api/rfp/submit", {
         method: "POST",
         body: submissionData,
@@ -613,7 +577,7 @@ function RfpAppContent() {
         json = JSON.parse(resText);
       } catch {
         if (res.status === 413 || resText.toLowerCase().includes("request entity too large")) {
-          throw new Error("Form data is too large for the server. Reduce embedded signature image size.");
+          throw new Error("The complete submission exceeds the 4 MB limit. Remove attachments or use smaller files.");
         }
         throw new Error(resText || `Submission request failed with server error (${res.status}).`);
       }
@@ -621,85 +585,19 @@ function RfpAppContent() {
       if (!res.ok || !json?.success) {
         throw new Error(json?.message || "Failed to submit Request for Payment to ClickUp");
       }
-      createdResponse = json;
-
-      // The server assigns the reference. All uploads, including retries, use
-      // that reference so ClickUp never receives the old date-based filename.
-      const isRfpSubmission = selectedForm === "rfp" || selectedForm === "gw-rfp";
-      const entity = formData.payee || "Payee";
-      const sanitizedEntity = entity.replace(/[^a-zA-Z0-9_-]/g, "_");
-      const reference = json.requestId || "";
-      if (isRfpSubmission && !/^RFP-\d{6}-\d{4}$/.test(reference)) {
-        throw new Error("The request was created without a valid Finance RFP number. Contact Finance before retrying uploads.");
-      }
-      const pdfFile = new File(
-        [pdfBlob],
-        isRfpSubmission
-          ? formatSubmittedFilename(reference, "RFP", formData.payee || "Payee")
-          : `${selectedForm.toUpperCase()}_${sanitizedEntity}_${formData.date || "document"}.pdf`,
-        { type: "application/pdf" }
-      );
-      const entries: UploadEntry[] = [
-        { key: "form-pdf", file: pdfFile },
-        ...rawSupportingFiles.map((file, index) => ({
-          key: `support-${index}`,
-          file: isRfpSubmission
-            ? new File(
-                [file],
-                formatSubmittedFilename(reference, "SUP", formData.payee || "Payee", undefined, index + 1),
-                { type: "application/pdf" }
-              )
-            : file,
-        })),
-      ];
-      assertUploadSizes(entries);
-
-      const pending: PendingUpload = {
-        response: json,
-        entries,
-        uploaded: new Set<string>(),
-        pdfBlob,
-      };
-      setPendingUpload(pending);
-      await completePendingUpload(pending);
+      setSubmissionStage("finalizing");
+      setSubmissionResponse(json);
+      setIsModalOpen(true);
+      localStorage.removeItem("prime_rfp_draft");
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        colors: ["#003366", "#C9A84C"],
+        origin: { y: 0.6 },
+      });
     } catch (err: any) {
       console.error("Submission failed:", err);
-      const retryMessage = createdResponse
-        ? ` Request ${createdResponse.requestId || createdResponse.taskId} was created. Use Retry uploads to continue its remaining uploads.`
-        : "";
-      setErrorMessage(`${err.message || "Failed to complete submission."}${retryMessage}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const completePendingUpload = async (pending: PendingUpload) => {
-    await uploadSubmissionFiles(pending.response.taskId, pending.entries, pending.uploaded, () => {
-      setPendingUpload({ ...pending, uploaded: new Set(pending.uploaded) });
-    });
-    setSubmissionStage("finalizing");
-    setSubmissionResponse(pending.response);
-    setLastGeneratedPdf(pending.pdfBlob);
-    setPendingUpload(null);
-    setIsModalOpen(true);
-    localStorage.removeItem("prime_rfp_draft");
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      colors: ["#003366", "#C9A84C"],
-      origin: { y: 0.6 },
-    });
-  };
-
-  const handleRetryUploads = async () => {
-    if (!pendingUpload) return;
-    setErrorMessage(null);
-    setIsSubmitting(true);
-    setSubmissionStage("uploading_clickup");
-    try {
-      await completePendingUpload(pendingUpload);
-    } catch (error: any) {
-      setErrorMessage(`${error.message || "Upload failed."} Request ${pendingUpload.response.requestId || pendingUpload.response.taskId} remains available. Retry uploads again.`);
+      setErrorMessage(err.message || "Failed to complete submission. Nothing was submitted.");
     } finally {
       setIsSubmitting(false);
     }
@@ -753,16 +651,6 @@ function RfpAppContent() {
           <div className="mb-4 p-4 bg-prime-white border border-prime-rule text-prime-blue text-xs font-medium flex items-center gap-2.5 animate-shake">
             <AlertCircle className="w-4 h-4 text-prime-blue shrink-0" />
             <span>{errorMessage}</span>
-            {pendingUpload && (
-              <button
-                type="button"
-                onClick={handleRetryUploads}
-                disabled={isSubmitting}
-                className="ml-auto shrink-0 rounded border border-prime-blue px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide hover:bg-prime-blue hover:text-white disabled:opacity-50"
-              >
-                Retry uploads
-              </button>
-            )}
           </div>
         )}
 

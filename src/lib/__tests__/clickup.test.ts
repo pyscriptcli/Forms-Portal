@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { uploadAttachmentToTask } from "@/lib/clickup";
+import { deleteClickUpTask, uploadAttachmentToTask } from "@/lib/clickup";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -20,5 +20,19 @@ describe("ClickUp attachment upload", () => {
     );
 
     expect(result.success).toBe(true);
+  });
+
+  it("deletes an incomplete task during submission rollback", async () => {
+    process.env.CLICKUP_API_TOKEN = "test-token";
+    process.env.RFP_LIST_ID = "list-123";
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await deleteClickUpTask("task-123");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.clickup.com/api/v2/task/task-123",
+      expect.objectContaining({ method: "DELETE" })
+    );
   });
 });

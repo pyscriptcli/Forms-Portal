@@ -490,6 +490,20 @@ export interface UploadAttachmentResult {
   error?: string;
 }
 
+export async function deleteClickUpTask(taskId: string, oauthToken?: string): Promise<void> {
+  const { token, isConfigured, isOAuth } = getClickUpConfig("rfp", oauthToken);
+  if (!isConfigured || taskId.startsWith("MOCK-")) return;
+
+  const response = await fetch(`${CLICKUP_API_BASE}/task/${taskId}`, {
+    method: "DELETE",
+    headers: { Authorization: authorizationHeader(token, isOAuth) },
+  });
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`ClickUp task rollback failed (${response.status})${detail ? `: ${detail.slice(0, 240)}` : "."}`);
+  }
+}
+
 /**
  * Uploads a file attachment to a ClickUp task.
  */
@@ -507,7 +521,7 @@ export async function uploadAttachmentToTask(
   }
 
   let lastError = "ClickUp attachment upload failed.";
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const formData = new FormData();
       formData.append("attachment", fileBlob, filename);
@@ -534,7 +548,7 @@ export async function uploadAttachmentToTask(
     } catch (err) {
       lastError = err instanceof Error ? err.message : "ClickUp connection failed.";
     }
-    if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+    if (attempt < 1) await new Promise((resolve) => setTimeout(resolve, 300));
   }
   console.error(`Failed to upload attachment ${filename}: ${lastError}`);
   return { success: false, error: lastError };
