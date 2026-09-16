@@ -10,10 +10,10 @@ vi.mock("@/lib/clickup", () => ({
   updateClickUpTask: vi.fn(),
   uploadAttachmentToTask: vi.fn(),
   deleteClickUpTask: vi.fn(),
+  readNextRfpReferenceFromClickUp: vi.fn(),
 }));
 
 vi.mock("@/lib/supabaseAdmin", () => ({
-  allocateRfpReference: vi.fn(),
   readFormDestinationFromSupabase: vi.fn(),
   readWorkflowStatusesFromSupabase: vi.fn(),
 }));
@@ -22,8 +22,8 @@ vi.mock("@/lib/email", () => ({ sendApproverNotification: vi.fn() }));
 
 import { POST } from "./route";
 import { fetchClickUpUser, getServerAuthSession } from "@/lib/auth";
-import { createClickUpTask, deleteClickUpTask, uploadAttachmentToTask } from "@/lib/clickup";
-import { allocateRfpReference, readFormDestinationFromSupabase, readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
+import { createClickUpTask, deleteClickUpTask, readNextRfpReferenceFromClickUp, uploadAttachmentToTask } from "@/lib/clickup";
+import { readFormDestinationFromSupabase, readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
 
 function submissionRequest(files: File[]) {
   const body = new FormData();
@@ -44,7 +44,7 @@ describe("atomic RFP submission", () => {
     vi.mocked(fetchClickUpUser).mockResolvedValue({ id: "user-1", email: "owner@example.com", username: "Owner" });
     vi.mocked(readFormDestinationFromSupabase).mockResolvedValue({ enabled: true, listId: "list-1", workspaceId: "workspace-1" } as never);
     vi.mocked(readWorkflowStatusesFromSupabase).mockResolvedValue({ requestorFormSubmission: "REQUESTOR FORM SUBMISSION" } as never);
-    vi.mocked(allocateRfpReference).mockResolvedValue("RFP-092026-0009");
+    vi.mocked(readNextRfpReferenceFromClickUp).mockResolvedValue({ reference: "RFP-092026-0009", lastSequence: 8 });
     vi.mocked(createClickUpTask).mockResolvedValue({ id: "task-1", url: "https://app.clickup.com/t/task-1", name: "Request", isMock: false } as never);
     vi.mocked(deleteClickUpTask).mockResolvedValue(undefined);
   });

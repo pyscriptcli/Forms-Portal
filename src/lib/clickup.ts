@@ -15,7 +15,7 @@ import {
   type WorkflowStatuses,
   type FormDestinationKey,
 } from "@/lib/adminSettings";
-import { formatRfpTaskName } from "@/lib/rfpNaming";
+import { formatRfpReference, formatRfpTaskName, highestRfpSequence } from "@/lib/rfpNaming";
 
 const CLICKUP_API_BASE = "https://api.clickup.com/api/v2";
 const DEFAULT_SUBMISSIONS_LIST_ID = "901420772915";
@@ -627,19 +627,22 @@ export async function getListTasks(
     includeMarkdownDescription?: boolean;
     orderBy?: "created" | "updated" | "due_date";
     reverse?: boolean;
+    subtasks?: boolean;
+    timeoutMs?: number;
     throwOnError?: boolean;
   }
 ): Promise<any[]> {
   const { token, listId, isConfigured, isOAuth } = getClickUpConfig(formType, oauthToken, listIdOverride);
 
   if (!isConfigured) {
+    if (options?.throwOnError) throw new Error("ClickUp is not configured for this form.");
     return [];
   }
 
   try {
     const params = new URLSearchParams({
       include_closed: String(includeClosed),
-      subtasks: "true",
+      subtasks: String(options?.subtasks ?? true),
       include_markdown_description: String(options?.includeMarkdownDescription ?? true),
     });
     if (options?.orderBy) params.set("order_by", options.orderBy);
@@ -648,6 +651,7 @@ export async function getListTasks(
     const res = await fetch(url, {
       headers: { Authorization: authorizationHeader(token, isOAuth) },
       cache: "no-store",
+      signal: AbortSignal.timeout(options?.timeoutMs ?? 15000),
     });
 
     if (!res.ok) {
@@ -664,6 +668,25 @@ export async function getListTasks(
     console.error("Error fetching list tasks:", err);
     return [];
   }
+}
+
+export async function readNextRfpReferenceFromClickUp(
+  referenceMonth: string,
+  oauthToken: string,
+  listId: string
+): Promise<{ reference: string; lastSequence: number }> {
+  const tasks = await getListTasks(true, "rfp", oauthToken, listId, {
+    includeMarkdownDescription: false,
+    orderBy: "created",
+    reverse: true,
+    subtasks: false,
+    timeoutMs: 4000,
+    throwOnError: true,
+  });
+  const lastSequence = highestRfpSequence(tasks.map((task) => String(task?.name || "")));
+  const nextSequence = lastSequence + 1;
+  if (nextSequence > 9999) throw new Error("Finance RFP sequence limit reached at 9999.");
+  return { reference: formatRfpReference(referenceMonth, nextSequence), lastSequence };
 }
 
 /**

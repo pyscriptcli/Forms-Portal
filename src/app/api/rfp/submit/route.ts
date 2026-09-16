@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FormType } from "@/types/rfp";
-import { createClickUpTask, deleteClickUpTask, updateClickUpTask, uploadAttachmentToTask } from "@/lib/clickup";
+import { createClickUpTask, deleteClickUpTask, readNextRfpReferenceFromClickUp, updateClickUpTask, uploadAttachmentToTask } from "@/lib/clickup";
 import { sendApproverNotification } from "@/lib/email";
 import { fetchClickUpUser, getServerAuthSession } from "@/lib/auth";
-import { allocateRfpReference, readFormDestinationFromSupabase, readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
-import { formatSubmittedFilename, normalizeEntityCode, normalizePayeeToken } from "@/lib/rfpNaming";
+import { readFormDestinationFromSupabase, readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
+import { formatSubmittedFilename } from "@/lib/rfpNaming";
 import { getSubmissionPayloadSize, MAX_SUBMISSION_PAYLOAD_BYTES } from "@/lib/submissionUploads";
 
 export const maxDuration = 60;
@@ -74,20 +74,16 @@ export async function POST(req: NextRequest) {
       data.requestedByName = data.requestedByName || user.username;
     }
 
+    const destinationListId = destination?.enabled ? destination.listId : undefined;
+    if (!destinationListId) throw new Error(`No enabled ClickUp destination List is configured for ${formType}.`);
+    data.clickupWorkspaceId = destination?.workspaceId || "";
+
     if ((formType === "rfp" || formType === "gw-rfp") && !data.taskId) {
       const submissionDate = new Date(data.date || Date.now());
       const referenceMonth = `${String(submissionDate.getMonth() + 1).padStart(2, "0")}${submissionDate.getFullYear()}`;
       data.entityCode = data.entityCode || (formType === "gw-rfp" ? "GW" : "PRIME");
-      data.rfpCodeSuffix = await allocateRfpReference({
-        referenceMonth,
-        entityCode: normalizeEntityCode(data.entityCode),
-        payeeToken: normalizePayeeToken(data.payee || "Payee"),
-      });
+      data.rfpCodeSuffix = (await readNextRfpReferenceFromClickUp(referenceMonth, accessToken, destinationListId)).reference;
     }
-
-    const destinationListId = destination?.enabled ? destination.listId : undefined;
-    if (!destinationListId) throw new Error(`No enabled ClickUp destination List is configured for ${formType}.`);
-    data.clickupWorkspaceId = destination?.workspaceId || "";
 
     const host = req.headers.get("host") || "localhost:3000";
     const protocol = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");

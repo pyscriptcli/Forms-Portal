@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { deleteClickUpTask, uploadAttachmentToTask } from "@/lib/clickup";
+import { deleteClickUpTask, readNextRfpReferenceFromClickUp, uploadAttachmentToTask } from "@/lib/clickup";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -34,5 +34,21 @@ describe("ClickUp attachment upload", () => {
       "https://api.clickup.com/api/v2/task/task-123",
       expect.objectContaining({ method: "DELETE" })
     );
+  });
+
+  it("derives the next RFP number from ClickUp task names only", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({
+      tasks: [
+        { name: "[RFP-092026-0010] PRIME – Vendor – Supplies" },
+        { name: "Unrelated task" },
+      ],
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await readNextRfpReferenceFromClickUp("092026", "oauth-token", "list-123");
+
+    expect(result).toEqual({ reference: "RFP-092026-0011", lastSequence: 10 });
+    expect(String(fetchMock.mock.calls[0][0])).toContain("subtasks=false");
+    expect(String(fetchMock.mock.calls[0][0])).toContain("include_markdown_description=false");
   });
 });
