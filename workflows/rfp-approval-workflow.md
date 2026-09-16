@@ -14,17 +14,17 @@ After numbering and ClickUp task creation, the current ClickUp status is the mil
 
 ## Milestones
 
-1. `Requestor Form Submission` — Submission
-2. `TL Review and Approval` — TL Approval
-3. `Finance Validation` — Finance
-4. `Finance Processing` — Finance
-5. `Payment Preparation` — Finance
-6. `CFO/CEO Review and Sign-off` — Management Approval
-7. `Payment Release` — Payment
-8. `Payment Documentation` — Payment
-9. `Records Filing` — Completed
+1. `REQUESTOR FORM SUBMISSION` — Submission
+2. `TL REVIEW AND APPROVAL` — TL Approval
+3. `FINANCE VALIDATION` — Finance
+4. `FINANCE PROCESSING` — Finance
+5. `PAYMENT PREPARATION` — Finance
+6. `CFO/CEO SIGN-OFF` — Management Approval
+7. `PAYMENT RELEASE` — Payment
+8. `PAYMENT DOCUMENTATION` — Payment
+9. `RECORDS FILING` — Completed
 
-`Revision Requested` is a non-progress status. It pauses the current milestone and returns to the appropriate stage after resubmission. Finance or Admin may correct a status backward. Records Filing is the only terminal Completed status.
+`REVISION REQUESTED` is a non-progress status. It pauses the current milestone and returns to the appropriate stage after resubmission. Finance or Admin may correct a status backward. Records Filing is the only terminal Completed status.
 
 ## Numbering
 

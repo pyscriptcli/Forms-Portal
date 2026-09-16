@@ -23,16 +23,16 @@ export type WorkflowStatuses = {
 };
 
 export const DEFAULT_WORKFLOW_STATUSES: WorkflowStatuses = {
-  requestorFormSubmission: "Requestor Form Submission",
-  tlReviewAndApproval: "TL Review and Approval",
-  financeValidation: "Finance Validation",
-  financeProcessing: "Finance Processing",
-  paymentPreparation: "Payment Preparation",
-  managementApproval: "CFO/CEO Review and Sign-off",
-  paymentRelease: "Payment Release",
-  paymentDocumentation: "Payment Documentation",
-  recordsFiling: "Records Filing",
-  revisionRequested: "Revision Requested",
+  requestorFormSubmission: "REQUESTOR FORM SUBMISSION",
+  tlReviewAndApproval: "TL REVIEW AND APPROVAL",
+  financeValidation: "FINANCE VALIDATION",
+  financeProcessing: "FINANCE PROCESSING",
+  paymentPreparation: "PAYMENT PREPARATION",
+  managementApproval: "CFO/CEO SIGN-OFF",
+  paymentRelease: "PAYMENT RELEASE",
+  paymentDocumentation: "PAYMENT DOCUMENTATION",
+  recordsFiling: "RECORDS FILING",
+  revisionRequested: "REVISION REQUESTED",
 };
 
 export const DEFAULT_FORM_DESTINATIONS: FormDestinations = {
@@ -113,10 +113,30 @@ export function normalizeFormDestinations(value: unknown): FormDestinations {
 
 export function normalizeWorkflowStatuses(value: unknown): WorkflowStatuses {
   const raw = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const legacyAliases: Record<string, string> = {
+    "requestor form submission": DEFAULT_WORKFLOW_STATUSES.requestorFormSubmission,
+    "submitted": DEFAULT_WORKFLOW_STATUSES.requestorFormSubmission,
+    "tl review and approval": DEFAULT_WORKFLOW_STATUSES.tlReviewAndApproval,
+    "for tl approval": DEFAULT_WORKFLOW_STATUSES.tlReviewAndApproval,
+    "finance validation": DEFAULT_WORKFLOW_STATUSES.financeValidation,
+    "finance verification": DEFAULT_WORKFLOW_STATUSES.financeValidation,
+    "finance processing": DEFAULT_WORKFLOW_STATUSES.financeProcessing,
+    "payment preparation": DEFAULT_WORKFLOW_STATUSES.paymentPreparation,
+    "disbursement prep": DEFAULT_WORKFLOW_STATUSES.paymentPreparation,
+    "cfo/ceo review and sign-off": DEFAULT_WORKFLOW_STATUSES.managementApproval,
+    "executive sign off": DEFAULT_WORKFLOW_STATUSES.managementApproval,
+    "payment release": DEFAULT_WORKFLOW_STATUSES.paymentRelease,
+    "payment documentation": DEFAULT_WORKFLOW_STATUSES.paymentDocumentation,
+    "records filing": DEFAULT_WORKFLOW_STATUSES.recordsFiling,
+    "completed": DEFAULT_WORKFLOW_STATUSES.recordsFiling,
+    "revision requested": DEFAULT_WORKFLOW_STATUSES.revisionRequested,
+  };
   return Object.fromEntries(
     Object.entries(DEFAULT_WORKFLOW_STATUSES).map(([key, fallback]) => [
       key,
-      typeof raw[key] === "string" && raw[key].trim() ? raw[key].trim() : fallback,
+      typeof raw[key] === "string" && raw[key].trim()
+        ? legacyAliases[raw[key].trim().toLowerCase()] || raw[key].trim()
+        : fallback,
     ])
   ) as WorkflowStatuses;
 }

@@ -12,12 +12,12 @@ Each milestone is an actual ClickUp status. The portal groups the statuses into 
 
 | Portal stage | ClickUp milestone statuses, in order | Next-stage trigger |
 | --- | --- | --- |
-| Submission | Requestor Form Submission | TL Review and Approval |
-| TL Approval | TL Review and Approval | Finance Validation |
-| Finance | Finance Validation → Finance Processing → Payment Preparation | CFO/CEO Review and Sign-off |
-| Management Approval | CFO/CEO Review and Sign-off | Payment Release |
-| Payment | Payment Release → Payment Documentation | Records Filing |
-| Completed | Records Filing | Terminal status |
+| Submission | REQUESTOR FORM SUBMISSION | TL REVIEW AND APPROVAL |
+| TL Approval | TL REVIEW AND APPROVAL | FINANCE VALIDATION |
+| Finance | FINANCE VALIDATION → FINANCE PROCESSING → PAYMENT PREPARATION | CFO/CEO SIGN-OFF |
+| Management Approval | CFO/CEO SIGN-OFF | PAYMENT RELEASE |
+| Payment | PAYMENT RELEASE → PAYMENT DOCUMENTATION | RECORDS FILING |
+| Completed | RECORDS FILING | Terminal status |
 
 Configure these nine status values plus a revision status in the ClickUp destination List. Define one shared mapping from literal ClickUp status to portal stage and milestone position. Direct status changes in ClickUp are allowed and must appear in the portal on refresh or sync. If someone skips a status, show the current status accurately; do not infer that skipped milestones were completed. Finance or Admin may move a mistaken status backward. Revision pauses progress, keeps the current request, and resumes its appropriate stage after resubmission. Records Filing alone marks the request Completed.
 

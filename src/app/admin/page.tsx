@@ -48,16 +48,16 @@ const DEFAULT_FORM_DESTINATIONS: FormDestinations = {
 };
 
 const DEFAULT_WORKFLOW_STATUSES: WorkflowStatuses = {
-  requestorFormSubmission: "Requestor Form Submission",
-  tlReviewAndApproval: "TL Review and Approval",
-  financeValidation: "Finance Validation",
-  financeProcessing: "Finance Processing",
-  paymentPreparation: "Payment Preparation",
-  managementApproval: "CFO/CEO Review and Sign-off",
-  paymentRelease: "Payment Release",
-  paymentDocumentation: "Payment Documentation",
-  recordsFiling: "Records Filing",
-  revisionRequested: "Revision Requested",
+  requestorFormSubmission: "REQUESTOR FORM SUBMISSION",
+  tlReviewAndApproval: "TL REVIEW AND APPROVAL",
+  financeValidation: "FINANCE VALIDATION",
+  financeProcessing: "FINANCE PROCESSING",
+  paymentPreparation: "PAYMENT PREPARATION",
+  managementApproval: "CFO/CEO SIGN-OFF",
+  paymentRelease: "PAYMENT RELEASE",
+  paymentDocumentation: "PAYMENT DOCUMENTATION",
+  recordsFiling: "RECORDS FILING",
+  revisionRequested: "REVISION REQUESTED",
 };
 
 export default function AdminPage() {
@@ -516,16 +516,16 @@ export default function AdminPage() {
 
           <div className="border border-prime-rule divide-y divide-prime-rule">
             {([
-              ["requestorFormSubmission", "Requestor Form Submission", "Initial status after a requestor submits"],
-              ["tlReviewAndApproval", "TL Review and Approval", "Team leader review milestone"],
-              ["financeValidation", "Finance Validation", "Finance validation milestone"],
-              ["financeProcessing", "Finance Processing", "Finance processing milestone"],
-              ["paymentPreparation", "Payment Preparation", "Payment preparation milestone"],
-              ["managementApproval", "CFO/CEO Review and Sign-off", "Management approval milestone"],
-              ["paymentRelease", "Payment Release", "Payment release milestone"],
-              ["paymentDocumentation", "Payment Documentation", "Payment documentation milestone"],
-              ["recordsFiling", "Records Filing", "Final completed milestone"],
-              ["revisionRequested", "Revision Requested", "Paused revision status"],
+              ["requestorFormSubmission", "REQUESTOR FORM SUBMISSION", "Initial status after a requestor submits"],
+              ["tlReviewAndApproval", "TL REVIEW AND APPROVAL", "Team leader review milestone"],
+              ["financeValidation", "FINANCE VALIDATION", "Finance validation milestone"],
+              ["financeProcessing", "FINANCE PROCESSING", "Finance processing milestone"],
+              ["paymentPreparation", "PAYMENT PREPARATION", "Payment preparation milestone"],
+              ["managementApproval", "CFO/CEO SIGN-OFF", "Management approval milestone"],
+              ["paymentRelease", "PAYMENT RELEASE", "Payment release milestone"],
+              ["paymentDocumentation", "PAYMENT DOCUMENTATION", "Payment documentation milestone"],
+              ["recordsFiling", "RECORDS FILING", "Final completed milestone"],
+              ["revisionRequested", "REVISION REQUESTED", "Paused revision status"],
             ] as [keyof WorkflowStatuses, string, string][]).map(([key, label, description]) => (
               <label key={key} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8 p-4">
                 <span className="sm:w-48 shrink-0">

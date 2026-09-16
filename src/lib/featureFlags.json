@@ -34,15 +34,15 @@
     }
   },
   "workflowStatuses": {
-    "requestorFormSubmission": "Requestor Form Submission",
-    "tlReviewAndApproval": "TL Review and Approval",
-    "financeValidation": "Finance Validation",
-    "financeProcessing": "Finance Processing",
-    "paymentPreparation": "Payment Preparation",
-    "managementApproval": "CFO/CEO Review and Sign-off",
-    "paymentRelease": "Payment Release",
-    "paymentDocumentation": "Payment Documentation",
-    "recordsFiling": "Records Filing",
-    "revisionRequested": "Revision Requested"
+    "requestorFormSubmission": "REQUESTOR FORM SUBMISSION",
+    "tlReviewAndApproval": "TL REVIEW AND APPROVAL",
+    "financeValidation": "FINANCE VALIDATION",
+    "financeProcessing": "FINANCE PROCESSING",
+    "paymentPreparation": "PAYMENT PREPARATION",
+    "managementApproval": "CFO/CEO SIGN-OFF",
+    "paymentRelease": "PAYMENT RELEASE",
+    "paymentDocumentation": "PAYMENT DOCUMENTATION",
+    "recordsFiling": "RECORDS FILING",
+    "revisionRequested": "REVISION REQUESTED"
   }
 }
