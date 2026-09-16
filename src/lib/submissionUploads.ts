@@ -26,17 +26,26 @@ async function parseUploadResponse(response: Response, filename: string) {
 
 async function fetchUploadEndpoint(input: RequestInfo | URL, init: RequestInit, filename: string) {
   let lastError: unknown;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
-      const response = await fetch(input, init);
+      // A failed multipart fetch can consume its body. Rebuild FormData for
+      // every attempt so retries send the file bytes again reliably.
+      const retryInit = { ...init };
+      if (init.body instanceof FormData) {
+        const body = new FormData();
+        init.body.forEach((value, key) => body.append(key, value));
+        retryInit.body = body;
+      }
+      const response = await fetch(input, retryInit);
       if (response.ok || (![408, 425, 429].includes(response.status) && response.status < 500)) return response;
       lastError = new Error(`Upload service returned ${response.status}.`);
     } catch (error) {
       lastError = error;
     }
-    if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)));
+    if (attempt < 4) await new Promise((resolve) => setTimeout(resolve, 500 * (2 ** attempt)));
   }
-  throw new Error(`Upload service could not be reached for ${filename}. Retry to continue the existing request.`, { cause: lastError });
+  const detail = lastError instanceof Error && lastError.message ? ` (${lastError.message})` : "";
+  throw new Error(`Upload service could not be reached for ${filename}${detail}. Retry to continue the existing request.`, { cause: lastError });
 }
 
 async function uploadSupportingFile(file: File, taskId: string) {
