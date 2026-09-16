@@ -56,7 +56,7 @@ const getInitialFormData = (): RfpFormData => {
   ];
 
   return {
-    rfpCodeSuffix: "",
+    rfpCodeSuffix: `RFP-${mm}${yyyy}-0001`,
     date: today,
     dateAccomplished: today,
     dueDate: "",

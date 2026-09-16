@@ -124,11 +124,7 @@ export function GlobalSearch() {
           >
             <X className="w-3 h-3" />
           </button>
-        ) : (
-          <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-prime-ink/50 border border-prime-rule px-1 py-0.2 font-mono pointer-events-none">
-            ⌘K
-          </kbd>
-        )}
+        ) : null}
       </div>
 
       {isOpen && results.length > 0 && (

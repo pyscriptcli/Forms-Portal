@@ -27,7 +27,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, isLoading, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const isAuthRoute = pathname.startsWith("/auth/");
 
@@ -100,7 +100,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 username: userName,
                 email: userEmail,
                 profilePicture: user.profilePicture || "/dave-avatar.png",
-                workspaceName: "COLLABORATE@PRIME",
+                workspaceName: user.workspaceName,
               }}
               isAdmin={isAdmin}
               onSignOut={signOut}
@@ -129,7 +129,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             username: userName,
             email: userEmail,
             profilePicture: user.profilePicture || "/dave-avatar.png",
-            workspaceName: "COLLABORATE@PRIME",
+            workspaceName: user.workspaceName,
           }}
           isAdmin={isAdmin}
           onSignOut={signOut}

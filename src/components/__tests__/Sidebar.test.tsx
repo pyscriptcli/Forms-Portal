@@ -112,13 +112,13 @@ describe("Sidebar", () => {
     );
 
     const aside = container.querySelector("aside");
-    // Pinned by default: w-64
-    expect(aside).toHaveClass("w-64");
+    // Collapsed by default: w-[72px]
+    expect(aside).toHaveClass("w-[72px]");
 
-    // Click unpin
-    const pinBtn = screen.getByRole("button", { name: /unpin sidebar/i });
+    // Click expand and pin
+    const pinBtn = screen.getByRole("button", { name: /expand and pin sidebar/i });
     fireEvent.click(pinBtn);
-    expect(onPinChange).toHaveBeenCalledWith(false);
+    expect(onPinChange).toHaveBeenCalledWith(true);
   });
 
   it("filters items by allowedPages for non-admin users", () => {

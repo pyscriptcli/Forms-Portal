@@ -52,8 +52,8 @@ export function Sidebar({
   onExpandedChange,
   className = "",
 }: SidebarProps) {
-  // Pin state: default to true on initial load
-  const [internalPinned, setInternalPinned] = useState<boolean>(true);
+  // Start collapsed; hover or the expand control reveals the full navigation.
+  const [internalPinned, setInternalPinned] = useState<boolean>(false);
   const isPinned = controlledPinned !== undefined ? controlledPinned : internalPinned;
 
   const [isHovered, setIsHovered] = useState<boolean>(false);

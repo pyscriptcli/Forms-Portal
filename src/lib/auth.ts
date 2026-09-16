@@ -6,6 +6,7 @@ export interface ClickUpUser {
   email: string;
   color?: string;
   profilePicture?: string;
+  workspaceName?: string;
 }
 
 export interface AuthSession {
@@ -66,6 +67,11 @@ export async function fetchClickUpUser(accessToken: string): Promise<ClickUpUser
     email: data.user.email,
     color: data.user.color,
     profilePicture: data.user.profilePicture,
+    workspaceName:
+      data.user.workspaceName ||
+      data.user.team_name ||
+      data.user.teams?.[0]?.team_name ||
+      data.teams?.[0]?.team_name,
   };
 }
 
