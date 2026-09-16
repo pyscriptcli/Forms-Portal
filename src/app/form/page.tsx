@@ -558,6 +558,9 @@ function RfpAppContent() {
       if (pdfBlob.size > MAX_DIRECT_UPLOAD_FILE_BYTES) {
         ({ blob: pdfBlob } = await generateRfpPdf(elementId, { quality: 0.68, pixelRatio: 1.1 }));
       }
+      if (pdfBlob.size > MAX_DIRECT_UPLOAD_FILE_BYTES) {
+        throw new Error("The generated RFP PDF exceeds the 4 MB upload limit. Reduce the form content or signature image size.");
+      }
       setLastGeneratedPdf(pdfBlob);
 
       // Advance stage to packaging attachments
