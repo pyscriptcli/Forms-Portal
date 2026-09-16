@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { buildTaskDescription, createClickUpTask, getClickUpConfig } from "@/lib/clickup";
 
 describe("ClickUp Configuration Multi-List Resolution", () => {
@@ -10,6 +10,7 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
 
   afterEach(() => {
     process.env = originalEnv;
+    vi.unstubAllGlobals();
   });
 
   it("resolves RFP_LIST_ID when configured for RFP form", () => {
@@ -79,6 +80,31 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
     await expect(
       createClickUpTask({ payee: "Test Payee", totalAmount: 100 }, "http://localhost:3000", "rfp")
     ).rejects.toThrow(/CLICKUP_API_TOKEN/);
+  });
+
+  it("normalizes the create-task payload fields that ClickUp requires as strings", async () => {
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      const payload = JSON.parse(String(init?.body));
+      const invalid = ["name", "description", "markdown_content", "status"]
+        .find((field) => typeof payload[field] !== "string");
+      if (invalid) {
+        return Response.json(
+          { err: "Value is not a valid string", ECODE: "FIELD_018", field: invalid },
+          { status: 400 }
+        );
+      }
+      return Response.json({ id: "task-1", url: "https://app.clickup.com/t/task-1", status: { status: payload.status } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(createClickUpTask(
+      { payee: "Vendor", totalAmount: 100, purpose: "Supplies", items: [] },
+      "http://localhost:3000",
+      "rfp",
+      "oauth-token",
+      "list-123",
+      { requestorFormSubmission: { status: "REQUESTOR FORM SUBMISSION" } } as never
+    )).resolves.toMatchObject({ id: "task-1" });
   });
 
   it("resolves PO_LIST_ID for PO forms", () => {

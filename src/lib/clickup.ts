@@ -449,11 +449,22 @@ export async function createClickUpTask(
 
   const priority = isUrgent ? 1 : 3;
 
+  // Configuration can cross JSON/database boundaries where a ClickUp status
+  // response object is accidentally persisted instead of its string label.
+  // The Create Task API only accepts a literal string for `status`.
+  const configuredInitialStatus = workflowStatuses.requestorFormSubmission as unknown;
+  const initialStatus = typeof configuredInitialStatus === "string"
+    ? configuredInitialStatus.trim()
+    : configuredInitialStatus && typeof configuredInitialStatus === "object" &&
+        typeof (configuredInitialStatus as { status?: unknown }).status === "string"
+      ? (configuredInitialStatus as { status: string }).status.trim()
+      : DEFAULT_WORKFLOW_STATUSES.requestorFormSubmission;
+
   const body: any = {
-    name: taskName,
-    description: desc,
-    markdown_description: desc,
-    status: workflowStatuses.requestorFormSubmission,
+    name: String(taskName),
+    description: String(desc),
+    markdown_content: String(desc),
+    status: initialStatus || DEFAULT_WORKFLOW_STATUSES.requestorFormSubmission,
     priority,
     notify_all: true,
   };
