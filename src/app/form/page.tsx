@@ -140,6 +140,23 @@ function RfpAppContent() {
     }
   }, [user]);
 
+  // Show the next provisional RFP number immediately by reading the latest
+  // RFP reference in ClickUp. The submit endpoint rechecks and reserves the
+  // final number server-side, so this display can never create a duplicate.
+  useEffect(() => {
+    if (taskIdParam || (selectedForm !== "rfp" && selectedForm !== "gw-rfp")) return;
+    let cancelled = false;
+    fetch("/api/rfp/next-reference", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((result) => {
+        if (!cancelled && result.success && typeof result.reference === "string") {
+          setFormData((previous) => previous.rfpCodeSuffix ? previous : { ...previous, rfpCodeSuffix: result.reference });
+        }
+      })
+      .catch((error) => console.warn("Could not load next ClickUp RFP number:", error));
+    return () => { cancelled = true; };
+  }, [selectedForm, taskIdParam]);
+
   const [rawSupportingFiles, setRawSupportingFiles] = useState<File[]>([]);
   const [supportingFilesList, setSupportingFilesList] = useState<SupportingFile[]>([]);
 

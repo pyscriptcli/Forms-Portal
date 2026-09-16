@@ -18,6 +18,13 @@ export function formatRfpReference(month: string, sequence: number): string {
   return `RFP-${month}-${String(sequence).padStart(4, "0")}`;
 }
 
+export function highestRfpSequence(values: string[]): number {
+  return values.reduce((highest, value) => {
+    const match = value.match(/RFP-\d{6}-(\d{4})/i);
+    return match ? Math.max(highest, Number(match[1])) : highest;
+  }, 0);
+}
+
 export function formatRfpTaskName(reference: string, entity: string, payee: string, purpose: string): string {
   const shortPurpose = purpose.replace(/\s+/g, " ").trim().split(" ").slice(0, 6).join(" ") || "Request for payment";
   return `[${reference}] ${normalizeEntityCode(entity)} – ${payee.trim() || "Payee"} – ${shortPurpose}`;

@@ -154,12 +154,12 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime" }
 
       {/* Right-aligned RFP Document Code */}
       <div className="flex justify-end items-baseline gap-1 mb-2.5 text-xs font-bold text-[#002B49]">
-        <span>{variant === "gw" ? "RFP-ADM-" : "RFP-"}</span>
+        <span>RFP</span>
         <input
           aria-label="RFP number"
           type="text"
-                  value={data.rfpCodeSuffix || "Pending Finance number"}
-                  readOnly
+          value={data.rfpCodeSuffix || "Loading next number..."}
+          readOnly
           className="border-b border-[#002B49] min-w-28 w-32 text-right text-xs font-bold text-[#002B49] bg-transparent focus:outline-none"
           maxLength={20}
         />

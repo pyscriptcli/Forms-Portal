@@ -43,7 +43,9 @@ export async function POST(req: NextRequest) {
       readFormDestinationFromSupabase(formType as "rfp" | "gw-rfp" | "travel-budget" | "po" | "pcv"),
       readWorkflowStatusesFromSupabase(),
     ]);
-    if ((formType === "rfp" || formType === "gw-rfp") && !data.taskId && !/^RFP-\d{6}-\d{4}$/.test(String(data.rfpCodeSuffix || ""))) {
+    if ((formType === "rfp" || formType === "gw-rfp") && !data.taskId) {
+      // The form displays a ClickUp-derived provisional number, but never
+      // trusts it for creation. Allocation is always rechecked server-side.
       const submissionDate = new Date(data.date || Date.now());
       const referenceMonth = `${String(submissionDate.getMonth() + 1).padStart(2, "0")}${submissionDate.getFullYear()}`;
       data.entityCode = data.entityCode || (formType === "gw-rfp" ? "GW" : "PRIME");
