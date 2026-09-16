@@ -10,21 +10,29 @@ export type FormDestination = {
 export type FormDestinations = Record<FormDestinationKey, FormDestination>;
 
 export type WorkflowStatuses = {
-  submitted: string;
-  forTlApproval: string;
-  financeVerification: string;
-  disbursementPrep: string;
-  executiveSignoff: string;
-  completed: string;
+  requestorFormSubmission: string;
+  tlReviewAndApproval: string;
+  financeValidation: string;
+  financeProcessing: string;
+  paymentPreparation: string;
+  managementApproval: string;
+  paymentRelease: string;
+  paymentDocumentation: string;
+  recordsFiling: string;
+  revisionRequested: string;
 };
 
 export const DEFAULT_WORKFLOW_STATUSES: WorkflowStatuses = {
-  submitted: "Submitted",
-  forTlApproval: "For TL Approval",
-  financeVerification: "Finance Verification",
-  disbursementPrep: "Disbursement prep",
-  executiveSignoff: "Executive Sign off",
-  completed: "completed",
+  requestorFormSubmission: "Requestor Form Submission",
+  tlReviewAndApproval: "TL Review and Approval",
+  financeValidation: "Finance Validation",
+  financeProcessing: "Finance Processing",
+  paymentPreparation: "Payment Preparation",
+  managementApproval: "CFO/CEO Review and Sign-off",
+  paymentRelease: "Payment Release",
+  paymentDocumentation: "Payment Documentation",
+  recordsFiling: "Records Filing",
+  revisionRequested: "Revision Requested",
 };
 
 export const DEFAULT_FORM_DESTINATIONS: FormDestinations = {

@@ -6,6 +6,8 @@ import type { FormDestinationKey } from "@/lib/adminSettings";
 import { promises as fs } from "fs";
 import path from "path";
 import { DEFAULT_USERS, type UserRole } from "@/lib/rbac";
+import { DEFAULT_WORKFLOW_STATUSES } from "@/lib/adminSettings";
+import { resolveRfpMilestone } from "@/lib/rfpWorkflow";
 
 export interface TrackedRfp {
   taskId: string;
@@ -138,16 +140,8 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
     }
   }
 
-  // 5-Stage Checklist Detection
-  const isBox1Checked = /\[[xX]\]\s*(?:\*\*)?1\./.test(desc);
-  const isBox2Checked = /\[[xX]\]\s*(?:\*\*)?2\./.test(desc);
-  const isBox3Checked = /\[[xX]\]\s*(?:\*\*)?3\./.test(desc);
-  const isBox4Checked = /\[[xX]\]\s*(?:\*\*)?4\./.test(desc);
-  const isBox5Checked = /\[[xX]\]\s*(?:\*\*)?5\./.test(desc);
-
   const normalizedStatus = statusStr.replace(/[_-]/g, " ").replace(/\s+/g, " ").trim();
   const isDone = ["done", "complete", "completed", "closed"].includes(normalizedStatus);
-  const isOngoing = ["on going", "in progress", "for tl approval", "approval team leader", "endorsed"].includes(normalizedStatus);
 
   let isRevisionRequested = false;
   let revisionReason = "";
@@ -166,35 +160,25 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
     }
   }
 
-  let currentStage: TrackedRfp["currentStage"] = "submitted";
-  let stageLabel = "Submitted (Pending Endorsement)";
-  let stageIndex = 0;
-
-  if (isBox5Checked || isDone) {
-    currentStage = "completed";
-    stageLabel = "Payment Released & Completed";
-    stageIndex = 5;
-  } else if (isBox4Checked || normalizedStatus.includes("executive sign")) {
-    currentStage = "executive_signoff";
-    stageLabel = "Executive Sign-Off (CFO & CEO)";
-    stageIndex = 4;
-  } else if (isBox3Checked || normalizedStatus.includes("disbursement prep")) {
-    currentStage = "disbursement_prep";
-    stageLabel = "Disbursement Preparation (UB / Check)";
-    stageIndex = 3;
-  } else if (isBox2Checked || normalizedStatus.includes("finance verification")) {
-    currentStage = "finance_verification";
-    stageLabel = "Finance Verification (Zoho & Top Sheet)";
-    stageIndex = 2;
-  } else if (isBox1Checked || isOngoing) {
-    currentStage = "endorsed";
-    stageLabel = "Endorsed by Team Leader";
-    stageIndex = 1;
-  } else {
-    currentStage = "submitted";
-    stageLabel = "Submitted (Pending Endorsement)";
-    stageIndex = 0;
-  }
+  const legacy: Record<string, { currentStage: TrackedRfp["currentStage"]; stageLabel: string; stageIndex: number }> = {
+    submitted: { currentStage: "submitted", stageLabel: "Submission", stageIndex: 0 },
+    "for tl approval": { currentStage: "endorsed", stageLabel: "TL Approval", stageIndex: 1 },
+    "approval team leader": { currentStage: "endorsed", stageLabel: "TL Approval", stageIndex: 1 },
+    "finance verification": { currentStage: "finance_verification", stageLabel: "Finance", stageIndex: 2 },
+    "disbursement prep": { currentStage: "disbursement_prep", stageLabel: "Payment", stageIndex: 4 },
+    "executive sign off": { currentStage: "executive_signoff", stageLabel: "Management Approval", stageIndex: 3 },
+    completed: { currentStage: "completed", stageLabel: "Completed", stageIndex: 5 },
+  };
+  const resolved = (isDone ? legacy.completed : legacy[normalizedStatus] || resolveRfpMilestone(statusStr, DEFAULT_WORKFLOW_STATUSES)) as {
+    currentStage?: TrackedRfp["currentStage"];
+    stageLabel: string;
+    stageIndex: number;
+  };
+  let currentStage: TrackedRfp["currentStage"] = resolved.currentStage || (
+    resolved.stageIndex === 5 ? "completed" : resolved.stageIndex === 4 ? "disbursement_prep" : resolved.stageIndex === 3 ? "executive_signoff" : resolved.stageIndex === 2 ? "finance_verification" : resolved.stageIndex === 1 ? "endorsed" : "submitted"
+  );
+  let stageLabel = resolved.stageLabel;
+  let stageIndex = resolved.stageIndex;
 
   if (isRevisionRequested) {
     currentStage = "revision_requested";

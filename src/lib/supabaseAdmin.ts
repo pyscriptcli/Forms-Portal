@@ -7,6 +7,7 @@ import type { FormDestinationKey, FormDestination } from "@/lib/adminSettings";
 
 const WORKFLOW_TABLE = "forms-portal-workflow_statuses";
 const DESTINATIONS_TABLE = "forms-portal-form_destinations";
+const SEQUENCE_RPC = "forms_portal_allocate_rfp_sequence";
 
 function getSupabaseConfig() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -25,6 +26,30 @@ function supabaseHeaders(key: string, extra: Record<string, string> = {}) {
 
 export function isSupabaseAdminConfigured(): boolean {
   return getSupabaseConfig().isConfigured;
+}
+
+export async function allocateRfpReference(input: {
+  referenceMonth: string;
+  entityCode: string;
+  payeeToken: string;
+}): Promise<string> {
+  const { url, key, isConfigured } = getSupabaseConfig();
+  if (!isConfigured) throw new Error("Finance numbering is unavailable until Supabase is configured.");
+  const response = await fetch(`${url}/rest/v1/rpc/${SEQUENCE_RPC}`, {
+    method: "POST",
+    headers: supabaseHeaders(key),
+    body: JSON.stringify({
+      p_reference_month: input.referenceMonth,
+      p_entity_code: input.entityCode,
+      p_payee_token: input.payeeToken,
+    }),
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`Finance number allocation failed (${response.status}): ${await response.text()}`);
+  const rows = await response.json() as Array<{ base_reference?: string }>;
+  const reference = rows[0]?.base_reference;
+  if (!reference) throw new Error("Finance number allocation returned no reference.");
+  return reference;
 }
 
 export async function readWorkflowStatusesFromSupabase(): Promise<WorkflowStatuses | null> {

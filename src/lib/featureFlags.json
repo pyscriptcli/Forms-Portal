@@ -34,11 +34,15 @@
     }
   },
   "workflowStatuses": {
-    "submitted": "Submitted",
-    "forTlApproval": "For TL Approval",
-    "financeVerification": "Finance Verification",
-    "disbursementPrep": "Disbursement prep",
-    "executiveSignoff": "Executive Sign off",
-    "completed": "completed"
+    "requestorFormSubmission": "Requestor Form Submission",
+    "tlReviewAndApproval": "TL Review and Approval",
+    "financeValidation": "Finance Validation",
+    "financeProcessing": "Finance Processing",
+    "paymentPreparation": "Payment Preparation",
+    "managementApproval": "CFO/CEO Review and Sign-off",
+    "paymentRelease": "Payment Release",
+    "paymentDocumentation": "Payment Documentation",
+    "recordsFiling": "Records Filing",
+    "revisionRequested": "Revision Requested"
   }
 }

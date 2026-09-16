@@ -53,7 +53,8 @@ export interface AttachedDocsChecklist {
 export interface RfpFormData {
   // Document Reference / Revision
   taskId?: string; // If editing an existing ClickUp task
-  rfpCodeSuffix?: string; // e.g. COD-2026-001 or editable suffix
+  rfpCodeSuffix?: string; // Server-assigned RFP-MMYYYY-#### reference
+  entityCode?: "PRIME" | "GW" | "EDUCO" | "PIM";
   
   // Section 1: Timing of Submission
   date: string; // Synced with dateAccomplished

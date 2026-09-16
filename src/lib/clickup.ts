@@ -15,6 +15,7 @@ import {
   type WorkflowStatuses,
   type FormDestinationKey,
 } from "@/lib/adminSettings";
+import { formatRfpTaskName } from "@/lib/rfpNaming";
 
 const CLICKUP_API_BASE = "https://api.clickup.com/api/v2";
 const DEFAULT_SUBMISSIONS_LIST_ID = "901420772915";
@@ -125,7 +126,7 @@ export function buildTaskDescription(data: RfpFormData): string {
     `| **Date Needed** | **${data.dateNeeded || "N/A"}** (${urgencyDisplay}) |`,
     `| **Payment Details** | ${paymentDetails} |`,
     `| **Purpose** | ${data.purpose ? data.purpose.replace(/\n/g, " ") : "_No purpose stated._"} |`,
-    `| **RFP ID** | **RFP-${String(data.rfpCodeSuffix || "0000001").replace(/^RFP-/, "")}** |`,
+    `| **RFP ID** | **${data.rfpCodeSuffix || "Pending Finance number"}** |`,
     `| **Requested By** | **${data.requestedByName || "N/A"}** (Date: ${data.date || "N/A"}) |`,
     `| **Requested By Email** | ${data.requestedByEmail || "N/A"} |`,
     "",
@@ -331,7 +332,7 @@ export async function createClickUpTask(
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-    taskName = `${priorityPrefix}[RFP] ${data.payee || "Untitled Payee"} — ₱${formattedTotal} (${data.department || "General"})`;
+    taskName = `${priorityPrefix}${formatRfpTaskName(data.rfpCodeSuffix || "RFP-PENDING", data.entityCode || "PRIME", data.payee || "Untitled Payee", data.purpose || "Request for payment")}`;
     desc = buildTaskDescription(data as RfpFormData);
   }
 
@@ -347,7 +348,7 @@ export async function createClickUpTask(
     name: taskName,
     description: desc,
     markdown_description: desc,
-    status: workflowStatuses.submitted,
+    status: workflowStatuses.requestorFormSubmission,
     priority,
     notify_all: true,
   };
@@ -432,7 +433,7 @@ export async function updateClickUpTask(
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-    taskName = `${priorityPrefix}[RFP - Revised] ${data.payee || "Untitled Payee"} — ₱${formattedTotal} (${data.department || "General"})`;
+    taskName = `${priorityPrefix}${formatRfpTaskName(data.rfpCodeSuffix || "RFP-PENDING", data.entityCode || "PRIME", data.payee || "Untitled Payee", data.purpose || "Request for payment")}`;
     desc = buildTaskDescription(data as RfpFormData);
   }
 
@@ -675,12 +676,6 @@ export async function approveTaskByApprover(
     if (!currentTask) return false;
 
     let updatedDescription = currentTask.description || currentTask.markdown_description || "";
-    // Mark checklist item #1 as checked across RFP, PO, and PCV
-    updatedDescription = updatedDescription.replace(
-      /-\s*\[\s*\]\s*(\*\*1\.[^*]+\*\*)/i,
-      `- [x] $1 (Approved by ${approverName})`
-    );
-
     const updateRes = await fetch(`${CLICKUP_API_BASE}/task/${taskId}`, {
       method: "PUT",
       headers: {
@@ -688,7 +683,7 @@ export async function approveTaskByApprover(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        status: workflowStatuses.financeVerification,
+        status: workflowStatuses.financeValidation,
         description: updatedDescription,
         markdown_description: updatedDescription,
       }),

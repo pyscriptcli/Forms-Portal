@@ -51,7 +51,7 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
 
   it("persists the portal RFP ID in the ClickUp task description", () => {
     const description = buildTaskDescription({
-      rfpCodeSuffix: "0000042",
+      rfpCodeSuffix: "RFP-092026-0042",
       requestedByEmail: "requestor@example.com",
       requestedByName: "Requestor",
       date: "09/15/2026",
@@ -70,7 +70,7 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
       urgency: "not_urgent",
     } as any);
 
-    expect(description).toContain("| **RFP ID** | **RFP-0000042** |");
+    expect(description).toContain("| **RFP ID** | **RFP-092026-0042** |");
     expect(description).toContain("| **Requested By Email** | requestor@example.com |");
   });
 

@@ -7,7 +7,8 @@ import {
 } from "@/lib/clickup";
 import { sendApproverNotification } from "@/lib/email";
 import { fetchClickUpUser, getServerAuthSession } from "@/lib/auth";
-import { readFormDestinationFromSupabase, readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
+import { allocateRfpReference, readFormDestinationFromSupabase, readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
+import { formatSubmittedFilename, normalizeEntityCode, normalizePayeeToken } from "@/lib/rfpNaming";
 
 export const maxDuration = 60;
 
@@ -42,6 +43,16 @@ export async function POST(req: NextRequest) {
       readFormDestinationFromSupabase(formType as "rfp" | "gw-rfp" | "travel-budget" | "po" | "pcv"),
       readWorkflowStatusesFromSupabase(),
     ]);
+    if ((formType === "rfp" || formType === "gw-rfp") && !data.taskId && !/^RFP-\d{6}-\d{4}$/.test(String(data.rfpCodeSuffix || ""))) {
+      const submissionDate = new Date(data.date || Date.now());
+      const referenceMonth = `${String(submissionDate.getMonth() + 1).padStart(2, "0")}${submissionDate.getFullYear()}`;
+      data.entityCode = data.entityCode || (formType === "gw-rfp" ? "GW" : "PRIME");
+      data.rfpCodeSuffix = await allocateRfpReference({
+        referenceMonth,
+        entityCode: normalizeEntityCode(data.entityCode),
+        payeeToken: normalizePayeeToken(data.payee || "Payee"),
+      });
+    }
     const destinationListId = destination?.enabled ? destination.listId : undefined;
     if (!destinationListId) {
       throw new Error(`No enabled ClickUp destination List is configured for ${formType}.`);
@@ -86,7 +97,9 @@ export async function POST(req: NextRequest) {
       if (!pdfBlob || pdfBlob.size === 0) {
         throw new Error("The form PDF was not generated. The submission was not completed.");
       }
-      const pdfFilename = `${typeLabel}_${sanitizedName}_${data.date || "document"}.pdf`;
+      const pdfFilename = formType === "rfp" || formType === "gw-rfp"
+        ? formatSubmittedFilename(data.rfpCodeSuffix, "RFP", data.payee || "Payee")
+        : `${typeLabel}_${sanitizedName}_${data.date || "document"}.pdf`;
       const pdfUpload = await uploadAttachmentToTask(taskId, pdfBlob, pdfFilename, accessToken);
       if (!pdfUpload.success) {
         throw new Error("The form PDF could not be uploaded to ClickUp. The submission was not completed.");
@@ -125,7 +138,7 @@ export async function POST(req: NextRequest) {
       taskId: taskResult.id,
       taskUrl: taskResult.url,
       isMock: taskResult.isMock || false,
-      requestId: `RFP-${String(data.rfpCodeSuffix || "0000001").replace(/^RFP-/, "")}`,
+      requestId: data.rfpCodeSuffix || "Pending Finance number",
       message: isRevision
         ? `${docName} revised and updated in ClickUp successfully!`
         : `${docName} submitted and created in ClickUp successfully!`,
