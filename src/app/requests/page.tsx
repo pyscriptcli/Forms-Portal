@@ -170,7 +170,7 @@ function RequestsContent() {
           <div className="flex items-start justify-between gap-4 border-b border-prime-rule px-5 py-4">
             <div>
               <p className="text-[10px] uppercase tracking-[0.2em] text-prime-ink">Request details</p>
-              <h2 className="font-serif italic text-2xl text-prime-blue mt-1">{selectedRequest.payee}</h2>
+              <h2 className="text-lg font-semibold text-prime-blue mt-1">{selectedRequest.taskName}</h2>
               <p className="text-xs text-prime-ink mt-1">{selectedRequest.requestId} · {selectedRequest.formType.toUpperCase()}</p>
             </div>
             <button type="button" aria-label="Close request details" onClick={closeRequest} className="p-2 text-prime-ink hover:text-prime-blue">
@@ -286,7 +286,7 @@ function RequestsContent() {
                       </span>
                     )}
                   </div>
-                  <p className="text-base sm:text-lg font-semibold text-prime-blue truncate group-hover:underline">{req.payee || "Unnamed request"}</p>
+                  <p className="text-base sm:text-lg font-semibold text-prime-blue truncate group-hover:underline">{req.taskName || req.payee || "Unnamed request"}</p>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-[11px] text-prime-ink">
                     <span>{req.department || "No department"}</span>
                     <span className="text-prime-ink/40">•</span>

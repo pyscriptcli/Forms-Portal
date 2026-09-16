@@ -238,6 +238,7 @@ export interface SubmissionResponse {
   message: string;
   isMock: boolean;
   requestId?: string;
+  requestName?: string;
   taskData?: any;
 }
 

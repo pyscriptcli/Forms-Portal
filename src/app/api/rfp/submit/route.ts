@@ -144,6 +144,7 @@ export async function POST(req: NextRequest) {
       taskUrl: taskResult.url,
       isMock: taskResult.isMock || false,
       requestId: data.rfpCodeSuffix || "Pending Finance number",
+      requestName: taskResult.name,
       message: isRevision
         ? `${docName} revised and updated in ClickUp successfully!`
         : `${docName} submitted and created in ClickUp successfully!`,

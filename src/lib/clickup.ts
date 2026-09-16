@@ -329,7 +329,9 @@ export async function createClickUpTask(
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-    taskName = `${priorityPrefix}${formatRfpTaskName(data.rfpCodeSuffix || "RFP-PENDING", data.entityCode || "PRIME", data.payee || "Untitled Payee", data.purpose || "Request for payment")}`;
+    // RFP task names are the SSOT display name. Urgency is stored in ClickUp
+    // priority / form data, never added to the canonical task name.
+    taskName = formatRfpTaskName(data.rfpCodeSuffix || "RFP-PENDING", data.entityCode || "PRIME", data.payee || "Untitled Payee", data.purpose || "Request for payment");
     desc = buildTaskDescription(data as RfpFormData);
   }
 
@@ -430,7 +432,7 @@ export async function updateClickUpTask(
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-    taskName = `${priorityPrefix}${formatRfpTaskName(data.rfpCodeSuffix || "RFP-PENDING", data.entityCode || "PRIME", data.payee || "Untitled Payee", data.purpose || "Request for payment")}`;
+    taskName = formatRfpTaskName(data.rfpCodeSuffix || "RFP-PENDING", data.entityCode || "PRIME", data.payee || "Untitled Payee", data.purpose || "Request for payment");
     desc = buildTaskDescription(data as RfpFormData);
   }
 
