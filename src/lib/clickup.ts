@@ -527,7 +527,17 @@ export async function uploadAttachmentToTask(
       return { success: false };
     }
 
-    const json = await res.json();
+    // ClickUp may acknowledge an attachment with an empty 2xx body. The HTTP
+    // status is the success signal; response metadata is optional.
+    const responseText = await res.text().catch(() => "");
+    let json: { url?: string; id?: string } = {};
+    if (responseText.trim()) {
+      try {
+        json = JSON.parse(responseText);
+      } catch {
+        // A non-JSON success body still means ClickUp accepted the upload.
+      }
+    }
     return { success: true, url: json.url, id: json.id };
   } catch (err) {
     console.error(`Error uploading attachment to task ${taskId}:`, err);
