@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     if (taskHasAttachmentNamed(task, filename)) return NextResponse.json({ success: true, alreadyExists: true });
     const file = await downloadStagedFile(objectPath);
     const result = await uploadAttachmentToTask(taskId, file, filename, accessToken);
-    if (!result.success) return NextResponse.json({ success: false, message: `ClickUp could not save ${filename}.` }, { status: 502 });
+    if (!result.success) return NextResponse.json({ success: false, message: `${result.error || `ClickUp could not save ${filename}.`} Retry the upload.` }, { status: 502 });
     return NextResponse.json({ success: true, attachmentId: result.id, url: result.url });
   } catch (error: any) {
     console.error("Error relaying staged attachment:", error);

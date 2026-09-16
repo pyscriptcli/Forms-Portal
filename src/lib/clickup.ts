@@ -130,10 +130,6 @@ export function buildTaskDescription(data: RfpFormData): string {
     `| **Requested By** | **${data.requestedByName || "N/A"}** (Date: ${data.date || "N/A"}) |`,
     `| **Requested By Email** | ${data.requestedByEmail || "N/A"} |`,
     "",
-    `---`,
-    `### 🔄 Workflow`,
-    `Current milestone: Requestor Form Submission`,
-    `Milestones are managed as ClickUp statuses and grouped into six portal stages.`,
   ];
 
   return lines.join("\n");
@@ -491,6 +487,7 @@ export interface UploadAttachmentResult {
   success: boolean;
   url?: string;
   id?: string;
+  error?: string;
 }
 
 /**
@@ -509,40 +506,38 @@ export async function uploadAttachmentToTask(
     return { success: true, url: `https://mock.clickup.com/attachments/${filename}` };
   }
 
-  try {
-    const formData = new FormData();
-    formData.append("attachment", fileBlob, filename);
+  let lastError = "ClickUp attachment upload failed.";
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const formData = new FormData();
+      formData.append("attachment", fileBlob, filename);
 
-    const res = await fetch(`${CLICKUP_API_BASE}/task/${taskId}/attachment`, {
-      method: "POST",
-      headers: {
-        Authorization: authorizationHeader(token, isOAuth),
-      },
-      body: formData,
-    });
+      const res = await fetch(`${CLICKUP_API_BASE}/task/${taskId}/attachment`, {
+        method: "POST",
+        headers: { Authorization: authorizationHeader(token, isOAuth) },
+        body: formData,
+      });
 
-    if (!res.ok) {
-      const err = await res.text();
-      console.error(`Failed to upload attachment ${filename}:`, err);
-      return { success: false };
-    }
-
-    // ClickUp may acknowledge an attachment with an empty 2xx body. The HTTP
-    // status is the success signal; response metadata is optional.
-    const responseText = await res.text().catch(() => "");
-    let json: { url?: string; id?: string } = {};
-    if (responseText.trim()) {
-      try {
-        json = JSON.parse(responseText);
-      } catch {
-        // A non-JSON success body still means ClickUp accepted the upload.
+      if (res.ok) {
+        // ClickUp may acknowledge an attachment with an empty 2xx body.
+        const responseText = await res.text().catch(() => "");
+        let json: { url?: string; id?: string } = {};
+        if (responseText.trim()) {
+          try { json = JSON.parse(responseText); } catch { /* metadata is optional */ }
+        }
+        return { success: true, url: json.url, id: json.id };
       }
+
+      const errorBody = await res.text().catch(() => "");
+      lastError = `ClickUp rejected ${filename} (${res.status})${errorBody ? `: ${errorBody.slice(0, 240)}` : "."}`;
+      if (![408, 425, 429].includes(res.status) && res.status < 500) break;
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : "ClickUp connection failed.";
     }
-    return { success: true, url: json.url, id: json.id };
-  } catch (err) {
-    console.error(`Error uploading attachment to task ${taskId}:`, err);
-    return { success: false };
+    if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
   }
+  console.error(`Failed to upload attachment ${filename}: ${lastError}`);
+  return { success: false, error: lastError };
 }
 
 /**

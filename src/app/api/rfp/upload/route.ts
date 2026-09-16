@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     const result = await uploadAttachmentToTask(taskId, file, file.name, accessToken);
     if (!result.success) {
-      return NextResponse.json({ success: false, message: `ClickUp could not save ${file.name}. Retry the upload.` }, { status: 502 });
+      return NextResponse.json({ success: false, message: `${result.error || `ClickUp could not save ${file.name}.`} Retry the upload.` }, { status: 502 });
     }
     return NextResponse.json({ success: true, attachmentId: result.id, url: result.url });
   } catch (error) {
