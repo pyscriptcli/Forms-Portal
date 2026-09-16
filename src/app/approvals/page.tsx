@@ -111,7 +111,7 @@ function ApprovalsContent() {
 
       // Celebrate!
       confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 }, colors: ["#003366", "#C9A84C"] });
-      setActionSuccessMessage(`✅ Endorsed #${activeRequest.taskId}! Advanced to Finance Verification.`);
+      setActionSuccessMessage(`✅ Endorsed #${activeRequest.taskId}! Advanced to Finance Validation.`);
 
       // Refresh list
       setTimeout(() => {

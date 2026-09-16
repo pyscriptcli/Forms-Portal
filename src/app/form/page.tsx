@@ -193,7 +193,7 @@ function RfpAppContent() {
     const today = new Date().toISOString().split("T")[0];
 
     setFormData({
-      rfpCodeSuffix: "ISD-2026-089",
+      rfpCodeSuffix: "",
       date: today,
       dateAccomplished: today,
       dueDate: "2026-03-25",

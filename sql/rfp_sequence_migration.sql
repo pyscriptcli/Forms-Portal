@@ -39,7 +39,7 @@ begin
   if next_number > 9999 then raise exception 'RFP sequence limit reached'; end if;
   insert into public."forms-portal-rfp_sequence" (reference_month, sequence_number, base_reference, entity_code, payee_token)
   values (p_reference_month, next_number, 'RFP-' || p_reference_month || '-' || lpad(next_number::text, 4, '0'), p_entity_code, p_payee_token);
-  return query select 'RFP-' || p_reference_month || '-' || lpad(next_number::text, 4, '0'), next_number;
+  return query select ('RFP-' || p_reference_month || '-' || lpad(next_number::text, 4, '0'))::varchar(32), next_number;
 end; $$;
 
 grant execute on function public.forms_portal_allocate_rfp_sequence(varchar, varchar, varchar) to service_role;

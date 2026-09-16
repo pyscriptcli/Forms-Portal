@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `Request #${taskId} endorsed successfully! Advanced to Finance Verification.`,
+          message: `Request #${taskId} endorsed successfully! Advanced to Finance Validation.`,
       });
     }
 

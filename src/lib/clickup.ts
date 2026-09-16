@@ -131,12 +131,9 @@ export function buildTaskDescription(data: RfpFormData): string {
     `| **Requested By Email** | ${data.requestedByEmail || "N/A"} |`,
     "",
     `---`,
-    `### 🔄 Processing Checklist`,
-    `- [ ] **1. Department / Team Leader Endorsement** — Verified requirement & purpose`,
-    `- [ ] **2. Finance Verification** — Encoded in Zoho & Top Sheet prepared`,
-    `- [ ] **3. Disbursement Preparation** — Uploaded to UnionBank (UB) / Check prepared`,
-    `- [ ] **4. Executive Sign-Off** — CFO / CEO reviewed & signed`,
-    `- [ ] **5. Payment Released & Completed** — Proof of payment sent & filed`,
+    `### 🔄 Workflow`,
+    `Current milestone: Requestor Form Submission`,
+    `Milestones are managed as ClickUp statuses and grouped into six portal stages.`,
   ];
 
   return lines.join("\n");
@@ -695,8 +692,8 @@ export async function approveTaskByApprover(
     }
 
     const commentMsg = notes
-      ? `✅ **Endorsed by ${approverName}**\nNotes: ${notes}\n\n*Status advanced to Finance Verification.*`
-      : `✅ **Endorsed by ${approverName}**\n\n*Status advanced to Finance Verification.*`;
+      ? `✅ **Endorsed by ${approverName}**\nNotes: ${notes}\n\n*Status advanced to Finance Validation.*`
+      : `✅ **Endorsed by ${approverName}**\n\n*Status advanced to Finance Validation.*`;
 
     await postTaskComment(taskId, commentMsg);
     return true;
@@ -722,6 +719,7 @@ export async function rejectTaskForRevision(
   }
 
   try {
+    const workflowStatuses = getConfiguredWorkflowStatuses();
     const roleLabel = actorRole === "finance" ? "Finance & Accounting" : "Team Leader";
     const alertPrefix = `> ⚠️ **Revision Requested by ${roleLabel} (${approverName})**\n> **Reason:** ${revisionReason}\n\n`;
 
@@ -742,6 +740,7 @@ export async function rejectTaskForRevision(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          status: workflowStatuses.revisionRequested,
           description: updatedDescription,
           markdown_description: updatedDescription,
         }),

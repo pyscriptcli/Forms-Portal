@@ -44,7 +44,7 @@ ClickUp acts as the primary task management system and prototype database.
 ### Form: PRIME RFP (Request for Payment)
 - **Branding**: Official PRIME Philippines branding (`/prime-blue-logo.png`, `PROPERTY INTERACTIVE MARKETING ENTERPRISE REALTY CORP.`, Navy `#003366`, Ice Blue `#e6ecfe`). All legacy "GreatWork / GW" references have been purged.
 - **Typography**: Strictly locked to **Times New Roman** (`"Times New Roman", Times, Georgia, serif`) via `.rfp-sheet` in [`src/app/globals.css`](src/app/globals.css) and [`src/components/RfpSheet.tsx`](src/components/RfpSheet.tsx) to match the official scanned corporate paper template.
-- **Sequencing**: Formatted as `RFP-0000001` (editable sequence suffix; `COD` and `ADM` removed).
+- **Sequencing**: Server-assigned continuous global reference formatted as `RFP-MMYYYY-####`; the requestor cannot edit it.
 - **Date Inputs**: All 9 date fields use [`PrimeDatePicker.tsx`](src/components/PrimeDatePicker.tsx) which strictly standardizes outputs to `MM/DD/YYYY`.
 - **Submission Time**: Defaults automatically to the user's current local time (e.g. `10:14 AM`) on form load, and remains editable by the requestor.
 - **Dynamic Resizing**: Form fields and textareas use [`AutoResizeTextarea.tsx`](src/components/AutoResizeTextarea.tsx) to dynamically expand with content.
@@ -115,7 +115,7 @@ Forms-Portal/
 4. **Date Format Standard**:
    - All date fields must accept and output `MM/DD/YYYY`.
 5. **Sequencing Prefix**:
-   - RFP sequence must remain `RFP-0000001` (no `COD` or `ADM` prefix).
+   - RFP sequence uses the SSOT format `RFP-MMYYYY-####`; Finance allocation is authoritative.
 6. **Operating System Commands (Windows PowerShell)**:
    - Shell is PowerShell on Windows. Chaining commands with `&&` will fail. Use `;` instead.
 

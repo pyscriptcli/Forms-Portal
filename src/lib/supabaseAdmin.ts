@@ -56,7 +56,10 @@ export async function allocateRfpReference(input: {
   // schema cache. Use the unique sequence_number constraint as a retry-safe
   // compatibility path while the migration is being applied.
   const rpcError = await response.text();
-  if (response.status !== 404 || !rpcError.includes("PGRST202")) {
+  const canUseCompatibilityPath =
+    (response.status === 404 && rpcError.includes("PGRST202")) ||
+    (response.status === 400 && rpcError.includes("42804"));
+  if (!canUseCompatibilityPath) {
     throw new Error(`Finance number allocation failed (${response.status}): ${rpcError}`);
   }
 

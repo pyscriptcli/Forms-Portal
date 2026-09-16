@@ -91,11 +91,11 @@ export function GlobalSearch() {
   }
 
   const stageLabel: Record<string, string> = {
-    submitted: "Pending Approval",
-    endorsed: "Endorsed",
-    finance_verification: "Finance verification",
-    disbursement_prep: "Disbursement",
-    executive_signoff: "Executive sign-off",
+    submitted: "Submission",
+    endorsed: "TL Approval",
+    finance_verification: "Finance",
+    disbursement_prep: "Payment",
+    executive_signoff: "Management Approval",
     completed: "Completed",
     revision_requested: "Revision",
   };
