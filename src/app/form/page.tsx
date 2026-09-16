@@ -68,8 +68,8 @@ const getInitialFormData = (): RfpFormData => {
     impactIfDelayed: "",
     vendor: "",
     payee: "",
-    department: "ISD",
-    departmentCostCenter: "ISD",
+    department: "",
+    departmentCostCenter: "",
     items: initialItems,
     totalAmount: 0,
     currencyType: "PHP",
@@ -146,15 +146,23 @@ function RfpAppContent() {
   useEffect(() => {
     if (taskIdParam || (selectedForm !== "rfp" && selectedForm !== "gw-rfp")) return;
     let cancelled = false;
-    fetch("/api/rfp/next-reference", { cache: "no-store" })
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 8000);
+    fetch("/api/rfp/next-reference", { cache: "no-store", signal: controller.signal })
       .then((response) => response.json())
       .then((result) => {
         if (!cancelled && result.success && typeof result.reference === "string") {
           setFormData((previous) => previous.rfpCodeSuffix ? previous : { ...previous, rfpCodeSuffix: result.reference });
         }
       })
-      .catch((error) => console.warn("Could not load next ClickUp RFP number:", error));
-    return () => { cancelled = true; };
+      .catch((error) => {
+        if (!cancelled) {
+          console.warn("Could not load next ClickUp RFP number:", error);
+          setFormData((previous) => previous.rfpCodeSuffix ? previous : { ...previous, rfpCodeSuffix: "Assigned on submit" });
+        }
+      })
+      .finally(() => window.clearTimeout(timeout));
+    return () => { cancelled = true; controller.abort(); window.clearTimeout(timeout); };
   }, [selectedForm, taskIdParam]);
 
   const [rawSupportingFiles, setRawSupportingFiles] = useState<File[]>([]);

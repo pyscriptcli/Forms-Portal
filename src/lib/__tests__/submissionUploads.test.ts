@@ -7,23 +7,7 @@ afterEach(() => {
 });
 
 describe("split ClickUp attachment uploads", () => {
-  it("uploads directly to ClickUp when the browser has an OAuth session token", async () => {
-    document.cookie = "clickup_auth_token=oauth-token";
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, text: async () => "" });
-    vi.stubGlobal("fetch", fetchMock);
-    const file = new File(["pdf"], "RFP-092026-0003_RFP_BestPrint.pdf", { type: "application/pdf" });
-
-    await uploadSubmissionFiles("task-123", [{ key: "pdf", file }], new Set(), vi.fn());
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][0]).toBe("https://api.clickup.com/api/v2/task/task-123/attachment");
-    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe("Bearer oauth-token");
-    expect(fetchMock.mock.calls[0][1].body.get("attachment").name).toBe(file.name);
-    document.cookie = "clickup_auth_token=; Max-Age=0";
-  });
-
-  it("falls back to the authenticated relay when ClickUp blocks browser CORS", async () => {
-    document.cookie = "clickup_auth_token=oauth-token";
+  it("retries the authenticated relay when the upload request is interrupted", async () => {
     const fetchMock = vi.fn()
       .mockRejectedValueOnce(new TypeError("Failed to fetch"))
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ success: true }) });
@@ -33,7 +17,7 @@ describe("split ClickUp attachment uploads", () => {
     await uploadSubmissionFiles("task-123", [{ key: "pdf", file }], new Set(), vi.fn());
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[1][0]).toBe("/api/rfp/upload");
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/rfp/upload");
   });
 
   it("sends one request per attachment and keeps the task ID", async () => {
@@ -54,7 +38,7 @@ describe("split ClickUp attachment uploads", () => {
     expect([...completed]).toEqual(["pdf", "quote"]);
   });
 
-  it("retries only the file that failed without recreating or reuploading the PDF", async () => {
+  it("retries a transient file failure without recreating or reuploading the PDF", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ success: true }) })
       .mockResolvedValueOnce({ ok: false, status: 502, json: async () => ({ success: false, message: "ClickUp unavailable" }) })
@@ -65,12 +49,9 @@ describe("split ClickUp attachment uploads", () => {
       { key: "quote", file: new File(["quote"], "quote.png") },
     ];
     const completed = new Set<string>();
-    await expect(uploadSubmissionFiles("task-123", entries, completed, vi.fn())).rejects.toThrow("ClickUp unavailable");
-    expect([...completed]).toEqual(["pdf"]);
-
     await uploadSubmissionFiles("task-123", entries, completed, vi.fn());
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(fetchMock.mock.calls[2][1].body.get("file").name).toBe("quote.png");
+    expect([...completed]).toEqual(["pdf", "quote"]);
   });
 
   it("rejects an oversized file before sending any request", async () => {

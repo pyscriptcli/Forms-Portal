@@ -1,6 +1,5 @@
 export const MAX_DIRECT_UPLOAD_FILE_BYTES = 4 * 1024 * 1024;
 export const MAX_UPLOAD_FILE_BYTES = 50 * 1024 * 1024;
-const CLICKUP_API_BASE = "https://api.clickup.com/api/v2";
 
 export interface UploadEntry {
   key: string;
@@ -25,71 +24,52 @@ async function parseUploadResponse(response: Response, filename: string) {
   return result;
 }
 
-async function uploadSupportingFile(file: File, taskId: string) {
-  const clientToken = typeof document !== "undefined"
-    ? document.cookie.match(/(?:^|; )clickup_auth_token=([^;]+)/)?.[1]
-    : undefined;
-
-  // Internal-tool direct mode: send the file from the browser to ClickUp.
-  // No Vercel upload endpoint or Supabase staging is involved when the OAuth
-  // token is available in the browser session.
-  if (clientToken) {
+async function fetchUploadEndpoint(input: RequestInfo | URL, init: RequestInit, filename: string) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      const body = new FormData();
-      body.append("attachment", file, file.name);
-      const response = await fetch(`${CLICKUP_API_BASE}/task/${encodeURIComponent(taskId)}/attachment`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${decodeURIComponent(clientToken)}` },
-        body,
-      });
-      const result = await response.text().catch(() => "");
-      if (!response.ok) {
-        let message = result;
-        try { message = JSON.parse(result)?.err || JSON.parse(result)?.message || result; } catch { /* plain text response */ }
-        throw new Error(`ClickUp direct upload failed for ${file.name} (${response.status})${message ? `: ${message.slice(0, 240)}` : "."}`);
-      }
-      return { success: true };
+      const response = await fetch(input, init);
+      if (response.ok || (![408, 425, 429].includes(response.status) && response.status < 500)) return response;
+      lastError = new Error(`Upload service returned ${response.status}.`);
     } catch (error) {
-      // ClickUp does not expose this endpoint to browser origins in all
-      // workspaces. A CORS/network TypeError means the request never produced
-      // a readable response; use the authenticated relay, which also checks
-      // for an already-created same-name attachment before retrying.
-      const message = error instanceof Error ? error.message : "";
-      if (!(error instanceof TypeError) && !/failed to fetch|load failed/i.test(message)) throw error;
-      console.warn("Direct ClickUp upload unavailable; using authenticated relay.");
+      lastError = error;
     }
+    if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)));
   }
+  throw new Error(`Upload service could not be reached for ${filename}. Retry to continue the existing request.`, { cause: lastError });
+}
 
+async function uploadSupportingFile(file: File, taskId: string) {
   if (file.size <= MAX_DIRECT_UPLOAD_FILE_BYTES) {
     const body = new FormData();
     body.append("taskId", taskId);
     body.append("file", file);
-    return parseUploadResponse(await fetch("/api/rfp/upload", { method: "POST", body }), file.name);
+    return parseUploadResponse(await fetchUploadEndpoint("/api/rfp/upload", { method: "POST", body }, file.name), file.name);
   }
 
-  const signResponse = await fetch("/api/rfp/upload-sign", {
+  const signResponse = await fetchUploadEndpoint("/api/rfp/upload-sign", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ filename: file.name, mimeType: file.type, fileSize: file.size }),
-  });
+  }, file.name);
   const signed = await parseUploadResponse(signResponse, file.name);
   const uploadUrl = new URL(signed.signedUrl);
   if (!uploadUrl.searchParams.has("token")) uploadUrl.searchParams.set("token", signed.token);
-  const storageResponse = await fetch(uploadUrl, {
+  const storageResponse = await fetchUploadEndpoint(uploadUrl, {
     method: "PUT",
     headers: { "Content-Type": file.type || "application/octet-stream", "x-upsert": "false" },
     body: file,
-  });
+  }, file.name);
   if (!storageResponse.ok) {
     const storageMessage = await storageResponse.text().catch(() => "");
     throw new Error("Secure staging upload failed for " + file.name + (storageMessage ? ": " + storageMessage.slice(0, 180) : "") + ". Retry to continue the existing request.");
   }
 
-  const relayResponse = await fetch("/api/rfp/relay-attachment", {
+  const relayResponse = await fetchUploadEndpoint("/api/rfp/relay-attachment", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ taskId, path: signed.path, filename: file.name }),
-  });
+  }, file.name);
   return parseUploadResponse(relayResponse, file.name);
 }
 
