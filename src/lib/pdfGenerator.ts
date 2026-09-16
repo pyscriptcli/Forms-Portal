@@ -7,7 +7,7 @@ export interface GeneratedPdfResult {
 }
 
 /**
- * Generates an official high-resolution US Letter PDF from the printable RFP DOM element.
+ * Generates an official high-resolution A4 PDF from the printable RFP DOM element.
  * Uses the same printable DOM as the virtual form, captured as a compressed JPEG
  * so the PDF remains safely below serverless request limits in normal use.
  */
@@ -51,14 +51,12 @@ export async function generateRfpPdf(
   const pdf = new jsPDF({
     orientation: "portrait",
     unit: "mm",
-    format: "letter",
+    format: "a4",
   });
 
   const pdfWidth = pdf.internal.pageSize.getWidth();
   const pdfHeight = pdf.internal.pageSize.getHeight();
 
-  // Scale only by width. Preserve the virtual form's proportions and paginate
-  // vertically when it is taller than the PDF page.
   const img = new Image();
   img.src = imgData;
   await new Promise<void>((resolve, reject) => {
@@ -66,20 +64,28 @@ export async function generateRfpPdf(
     img.onerror = (e) => reject(e);
   });
 
-  const imgWidth = pdfWidth;
-  const imgHeight = (img.height * pdfWidth) / img.width;
+  const widthFittedHeight = (img.height * pdfWidth) / img.width;
 
-  let heightLeft = imgHeight;
-  let position = 0;
-
-  pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, "FAST");
-  heightLeft -= pdfHeight;
-
-  while (heightLeft > 0) {
-    position = -(imgHeight - heightLeft);
-    pdf.addPage();
-    pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, "FAST");
+  // Most completed RFPs are only slightly taller than A4. Fit those onto one
+  // page instead of clipping the bottom into a nearly empty second page.
+  if (widthFittedHeight <= pdfHeight * 1.15) {
+    const scale = Math.min(pdfWidth / img.width, pdfHeight / img.height);
+    const renderWidth = img.width * scale;
+    const renderHeight = img.height * scale;
+    const x = (pdfWidth - renderWidth) / 2;
+    pdf.addImage(imgData, "JPEG", x, 0, renderWidth, renderHeight, undefined, "FAST");
+  } else {
+    let heightLeft = widthFittedHeight;
+    let position = 0;
+    pdf.addImage(imgData, "JPEG", 0, position, pdfWidth, widthFittedHeight, undefined, "FAST");
     heightLeft -= pdfHeight;
+
+    while (heightLeft > 0) {
+      position = -(widthFittedHeight - heightLeft);
+      pdf.addPage();
+      pdf.addImage(imgData, "JPEG", 0, position, pdfWidth, widthFittedHeight, undefined, "FAST");
+      heightLeft -= pdfHeight;
+    }
   }
 
   const blob = pdf.output("blob");

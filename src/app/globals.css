@@ -124,7 +124,8 @@ input::placeholder, textarea::placeholder { color: var(--prime-gray); opacity: 0
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
 @media print {
-  .prime-sidebar, .prime-topbar, .prime-toolbar, .prime-skip-link, .no-print { display: none !important; }
+  @page { size: A4 portrait; margin: 0; }
+  .prime-sidebar, .prime-topbar, .prime-toolbar, .prime-skip-link, .no-print, [data-pdf-ignore="true"] { display: none !important; }
   .prime-app-content { margin: 0; }
   .prime-workspace { padding: 0; }
   .prime-document { min-width: 0; border: 0; }

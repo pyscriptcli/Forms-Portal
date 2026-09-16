@@ -26,7 +26,7 @@ export function PrimeDialog({ open, title, onClose, children, actions }: {
   }, [open]);
   if (!open) return null;
   return (
-    <dialog ref={ref} className="prime-dialog" aria-labelledby={titleId}
+    <dialog ref={ref} className="prime-dialog no-print" data-pdf-ignore="true" aria-labelledby={titleId}
       onCancel={event => { event.preventDefault(); onClose?.(); }}>
       <header className="prime-dialog-header">
         <h2 id={titleId}>{title}</h2>

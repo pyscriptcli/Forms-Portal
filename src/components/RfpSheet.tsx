@@ -349,7 +349,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
                 <th className="border border-[#334155] px-2 py-1 text-center font-bold w-32">
                   Amount
                 </th>
-                <th className="border border-[#334155] px-1 py-1 w-7 print:hidden text-center"></th>
+                <th className="border border-[#334155] px-1 py-1 w-7 print:hidden no-print text-center" data-pdf-ignore="true"></th>
               </tr>
             </thead>
             <tbody>
@@ -390,7 +390,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
                   <td className="border border-[#334155] px-2 py-1 align-top text-right font-medium">
                     {formatCurrency(item.amount)}
                   </td>
-                  <td className="border border-[#334155] p-1 text-center print:hidden align-middle">
+                  <td className="border border-[#334155] p-1 text-center print:hidden no-print align-middle" data-pdf-ignore="true">
                     {data.items.length > 1 && (
                       <button
                         type="button"
@@ -413,14 +413,14 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
                 <td className="border border-[#334155] px-2 py-1.5 text-right font-bold text-sm text-[#002B49]">
                   {formatCurrency(data.totalAmount)}
                 </td>
-                <td className="border border-[#334155] print:hidden"></td>
+                <td className="border border-[#334155] print:hidden no-print" data-pdf-ignore="true"></td>
               </tr>
             </tbody>
           </table>
         </div>
 
         {/* Add Row Button (Screen only) */}
-        <div className="mt-1 flex justify-between items-center print:hidden">
+        <div className="mt-1 flex justify-between items-center print:hidden no-print" data-pdf-ignore="true">
           <button
             type="button"
             onClick={addItemRow}
@@ -672,7 +672,8 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
                     <button
                       type="button"
                       onClick={() => setIsSignatureModalOpen(true)}
-                      className="text-[10px] text-[#003366] underline print:hidden"
+                      className="text-[10px] text-[#003366] underline print:hidden no-print"
+                      data-pdf-ignore="true"
                     >
                       Change
                     </button>
@@ -681,7 +682,8 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
                   <button
                     type="button"
                     onClick={() => setIsSignatureModalOpen(true)}
-                    className="text-[11px] text-[#003366] hover:underline flex items-center gap-1 py-1 font-medium print:hidden"
+                    className="text-[11px] text-[#003366] hover:underline flex items-center gap-1 py-1 font-medium print:hidden no-print"
+                    data-pdf-ignore="true"
                   >
                     <PenTool size={12} /> Click to Sign
                   </button>
@@ -746,7 +748,8 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
                     <button
                       type="button"
                       onClick={() => setIsTlSignatureModalOpen(true)}
-                      className="text-[10px] text-[#003366] underline print:hidden"
+                      className="text-[10px] text-[#003366] underline print:hidden no-print"
+                      data-pdf-ignore="true"
                     >
                       Change
                     </button>
@@ -755,7 +758,8 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
                   <button
                     type="button"
                     onClick={() => setIsTlSignatureModalOpen(true)}
-                    className="text-[11px] text-[#003366] hover:underline flex items-center gap-1 py-1 font-medium print:hidden"
+                    className="text-[11px] text-[#003366] hover:underline flex items-center gap-1 py-1 font-medium print:hidden no-print"
+                    data-pdf-ignore="true"
                   >
                     <PenTool size={12} /> Click to Sign / Upload
                   </button>
