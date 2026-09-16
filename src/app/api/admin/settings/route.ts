@@ -7,6 +7,7 @@ import {
   getDefaultFormDestinations,
   DEFAULT_WORKFLOW_STATUSES,
   normalizeWorkflowStatuses,
+  normalizeFieldMapping,
 } from "@/lib/adminSettings";
 import {
   isSupabaseAdminConfigured,
@@ -19,13 +20,18 @@ const FLAGS_PATH = path.join(process.cwd(), "src", "lib", "featureFlags.json");
 async function readFlags() {
   try {
     const raw = await fs.readFile(FLAGS_PATH, "utf8");
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return {
+      ...parsed,
+      clickupFieldMapping: normalizeFieldMapping(parsed.clickupFieldMapping),
+    };
   } catch {
     return {
       portalGuideEnabled: true,
       rfpAutofillEnabled: true,
       destinations: getDefaultFormDestinations(),
       workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
+      clickupFieldMapping: {},
     };
   }
 }
@@ -79,6 +85,9 @@ export async function POST(req: NextRequest) {
       : {}),
     ...(body.workflowStatuses && typeof body.workflowStatuses === "object"
       ? { workflowStatuses: normalizeWorkflowStatuses(body.workflowStatuses) }
+      : {}),
+    ...(body.clickupFieldMapping && typeof body.clickupFieldMapping === "object"
+      ? { clickupFieldMapping: normalizeFieldMapping(body.clickupFieldMapping) }
       : {}),
   };
 

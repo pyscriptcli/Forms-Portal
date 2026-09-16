@@ -26,6 +26,9 @@ describe("request details", () => {
           urgency: "normal",
           purpose: "Tarpaulin installation",
           requestedBy: "Team Member",
+          requestedByEmail: "member@primephilippines.com",
+          approverName: "Team Lead",
+          approverEmail: "lead@primephilippines.com",
           currentStage: "finance_verification",
           stageLabel: "Finance",
           currentMilestone: "Finance Processing",
@@ -34,20 +37,28 @@ describe("request details", () => {
           isRevisionRequested: false,
           dateCreated: "2026-09-15T01:00:00.000Z",
           attachments: [],
+          milestoneTimestamps: {
+            requestorFormSubmission: "Sep 15, 2026, 9:00 AM",
+            tlReviewAndApproval: "Sep 15, 2026, 11:30 AM",
+            financeValidation: "Sep 16, 2026, 8:45 AM",
+            financeProcessing: "Sep 16, 2026, 9:25 AM",
+          },
         }],
       }),
     }));
   });
 
-  it("presents Finance work as milestone states with an update timestamp and no ClickUp link", async () => {
+  it("presents Finance work as milestone states with exact milestone timestamps and no ClickUp link", async () => {
     render(<RequestsPage />);
 
     await waitFor(() => expect(screen.getByRole("region", { name: "Request details" })).toBeInTheDocument());
-    expect(screen.getByText("Validation")).toBeInTheDocument();
-    expect(screen.getByText("Processing")).toBeInTheDocument();
+    expect(screen.getByText("Finance Validation")).toBeInTheDocument();
+    expect(screen.getByText("Finance Processing")).toBeInTheDocument();
     expect(screen.getByText("Payment Preparation")).toBeInTheDocument();
-    expect(screen.getByText(/^Updated Sep 16, 2026/)).toBeInTheDocument();
+    expect(screen.getByText("Sep 16, 2026, 8:45 AM")).toBeInTheDocument();
+    expect(screen.getByText("Sep 16, 2026, 9:25 AM")).toBeInTheDocument();
     expect(screen.queryByText(/Open in ClickUp/i)).not.toBeInTheDocument();
-    expect(screen.getAllByText("₱15,000.00").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Tarpaulin installation").length).toBeGreaterThan(0);
+    expect(screen.getByText("Team Lead")).toBeInTheDocument();
   });
 });

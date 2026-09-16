@@ -16,7 +16,54 @@ import {
   CheckCircle2,
   RefreshCw,
   Database,
+  Webhook,
+  Clock,
+  AlertTriangle,
+  Check,
 } from "lucide-react";
+
+export const CONTRACT_FIELD_GROUPS = [
+  {
+    title: "1. Core Request Metadata (9 Fields)",
+    description: "Populated automatically upon submission and approval.",
+    fields: [
+      { name: "RFP ID", type: "Short Text", desc: "Sequential request ID (e.g. RFP-092026-0001)" },
+      { name: "RFP Entity", type: "Short Text", desc: "Entity name (e.g. PRIME, GW)" },
+      { name: "RFP Department", type: "Short Text", desc: "Requesting department (e.g. Accounting, ISD)" },
+      { name: "RFP Amount", type: "Currency / Number", desc: "Total payable amount in PHP" },
+      { name: "RFP Purpose", type: "Text", desc: "Itemized purpose or particulars" },
+      { name: "RFP Requestor Name", type: "Short Text", desc: "Full name of requestor" },
+      { name: "RFP Requestor Email", type: "Email / Text", desc: "Corporate email of requestor" },
+      { name: "RFP Approver Name", type: "Short Text", desc: "Full name of approving Team Leader" },
+      { name: "RFP Approver Email", type: "Email / Text", desc: "Corporate email of approving Team Leader" },
+    ],
+  },
+  {
+    title: "2. Milestone Timestamps (9 Fields)",
+    description: "Populated with authoritative event times when status transitions occur.",
+    fields: [
+      { name: "RFP TS - Requestor Form Submission", type: "Date & Time", desc: "Submission event timestamp" },
+      { name: "RFP TS - TL Review and Approval", type: "Date & Time", desc: "TL Approval event timestamp" },
+      { name: "RFP TS - Finance Validation", type: "Date & Time", desc: "Finance Validation milestone timestamp" },
+      { name: "RFP TS - Finance Processing", type: "Date & Time", desc: "Finance Processing milestone timestamp" },
+      { name: "RFP TS - Payment Preparation", type: "Date & Time", desc: "Payment Preparation milestone timestamp" },
+      { name: "RFP TS - CFO/CEO Sign-Off", type: "Date & Time", desc: "Executive sign-off milestone timestamp" },
+      { name: "RFP TS - Payment Release", type: "Date & Time", desc: "Disbursement milestone timestamp" },
+      { name: "RFP TS - Payment Documentation", type: "Date & Time", desc: "Documentation milestone timestamp" },
+      { name: "RFP TS - Records Filing", type: "Date & Time", desc: "Final filing milestone timestamp" },
+    ],
+  },
+  {
+    title: "3. Process Audit & Idempotency (4 Fields)",
+    description: "Enforces single-write idempotency and stores revision history.",
+    fields: [
+      { name: "RFP Revision Reason", type: "Text", desc: "Notes explaining why a revision was requested" },
+      { name: "RFP Revision Requested By", type: "Short Text", desc: "User or role who returned the request" },
+      { name: "RFP Last Status Event ID", type: "Short Text", desc: "Webhook event ID to prevent duplicate writes" },
+      { name: "RFP Process History", type: "Text / Long Text", desc: "Audit log of all milestone timestamps & events" },
+    ],
+  },
+];
 import {
   validateAdminCredentials,
   isAdminAuthenticated,
@@ -104,6 +151,115 @@ export default function AdminPage() {
     }
   };
 
+  // ClickUp Custom Fields Contract State
+  const [contractStatus, setContractStatus] = useState<{
+    isChecking: boolean;
+    isRegisteringWebhook: boolean;
+    message: string;
+    isError: boolean;
+    mappedCount?: number;
+    totalExpected?: number;
+    mapping: Record<string, string>;
+    webhookInfo?: { endpoint: string; webhookId?: string };
+  }>({
+    isChecking: false,
+    isRegisteringWebhook: false,
+    message: "",
+    isError: false,
+    mapping: {},
+  });
+
+  const loadClickUpContract = async () => {
+    try {
+      const res = await fetch("/api/admin/clickup-fields");
+      const data = await res.json();
+      if (data && data.success && data.mapping) {
+        setContractStatus((prev) => ({
+          ...prev,
+          mappedCount: data.validation?.mappedCount,
+          totalExpected: data.validation?.totalExpected,
+          mapping: data.mapping,
+        }));
+      }
+    } catch {}
+  };
+
+  async function handleDiscoverContractFields() {
+    setContractStatus((prev) => ({ ...prev, isChecking: true, message: "", isError: false }));
+    try {
+      const res = await fetch("/api/admin/clickup-fields", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-token": ADMIN_TOKEN,
+        },
+        body: JSON.stringify({ action: "discover_and_save" }),
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        setContractStatus((prev) => ({
+          ...prev,
+          isChecking: false,
+          message: data.message || "Custom fields discovered and mapped successfully.",
+          mappedCount: data.validation?.mappedCount,
+          totalExpected: data.validation?.totalExpected,
+          mapping: data.mapping || {},
+        }));
+      } else {
+        setContractStatus((prev) => ({
+          ...prev,
+          isChecking: false,
+          message: data?.message || "Failed to discover custom fields.",
+          isError: true,
+        }));
+      }
+    } catch (err: any) {
+      setContractStatus((prev) => ({
+        ...prev,
+        isChecking: false,
+        message: err.message || "Network error discovering fields.",
+        isError: true,
+      }));
+    }
+  }
+
+  async function handleRegisterWebhook() {
+    setContractStatus((prev) => ({ ...prev, isRegisteringWebhook: true, message: "", isError: false }));
+    try {
+      const res = await fetch("/api/admin/clickup-fields", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-token": ADMIN_TOKEN,
+        },
+        body: JSON.stringify({ action: "create_webhook" }),
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        setContractStatus((prev) => ({
+          ...prev,
+          isRegisteringWebhook: false,
+          message: data.message || "ClickUp webhook registered successfully.",
+          webhookInfo: { endpoint: data.endpoint, webhookId: data.webhookId },
+        }));
+      } else {
+        setContractStatus((prev) => ({
+          ...prev,
+          isRegisteringWebhook: false,
+          message: data?.message || "Failed to register webhook.",
+          isError: true,
+        }));
+      }
+    } catch (err: any) {
+      setContractStatus((prev) => ({
+        ...prev,
+        isRegisteringWebhook: false,
+        message: err.message || "Network error registering webhook.",
+        isError: true,
+      }));
+    }
+  }
+
   useEffect(() => {
     if (isAdminAuthenticated()) {
       setAuthed(true);
@@ -126,6 +282,9 @@ export default function AdminPage() {
 
       // Load RBAC users from the server-side RBAC database
       loadRbacData();
+
+      // Load ClickUp contract field mapping
+      loadClickUpContract();
     }
   }, []);
 
@@ -543,6 +702,170 @@ export default function AdminPage() {
             ))}
           </div>
           {saveMsg && <p role="status" className="prime-notice mt-6">{saveMsg}</p>}
+        </section>
+
+        {/* ========================================================================= */}
+        {/* CLICKUP CUSTOM FIELDS CONTRACT & MILESTONE TIMESTAMPS */}
+        {/* ========================================================================= */}
+        <section className="mt-12 pt-10 border-t border-prime-rule">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
+            <div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-prime-blue" />
+                <h2 className="prime-heading text-3xl">ClickUp Custom Fields Contract</h2>
+              </div>
+              <p className="text-sm text-prime-ink/80 mt-1 max-w-2xl">
+                Binds the 22 canonical contract fields (metadata, milestone timestamps, audit) to your ClickUp list for real-time tracking, audit history, and exact milestone dates.
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+              <button
+                type="button"
+                onClick={handleDiscoverContractFields}
+                disabled={contractStatus.isChecking}
+                className="prime-button secondary flex items-center justify-center gap-1.5 h-[38px] px-3.5 text-xs cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${contractStatus.isChecking ? "animate-spin" : ""}`} />
+                {contractStatus.isChecking ? "Scanning Fields..." : "Discover & Map Fields"}
+              </button>
+              <button
+                type="button"
+                onClick={handleRegisterWebhook}
+                disabled={contractStatus.isRegisteringWebhook}
+                className="prime-button flex items-center justify-center gap-1.5 h-[38px] px-3.5 text-xs cursor-pointer"
+              >
+                <Webhook className={`w-3.5 h-3.5 ${contractStatus.isRegisteringWebhook ? "animate-spin" : ""}`} />
+                {contractStatus.isRegisteringWebhook ? "Registering..." : "Register Status Webhook"}
+              </button>
+            </div>
+          </div>
+
+          {/* Status feedback message */}
+          {contractStatus.message && (
+            <div
+              className={`mb-6 p-4 border text-xs flex items-center gap-3 ${
+                contractStatus.isError
+                  ? "bg-red-50 border-red-200 text-red-800"
+                  : "bg-emerald-50 border-emerald-200 text-emerald-800"
+              }`}
+            >
+              {contractStatus.isError ? (
+                <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+              )}
+              <span>{contractStatus.message}</span>
+            </div>
+          )}
+
+          {/* Webhook info banner */}
+          {contractStatus.webhookInfo && (
+            <div className="mb-6 p-3 bg-prime-surface/40 border border-prime-rule flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <Webhook className="w-4 h-4 text-prime-blue shrink-0" />
+                <span>
+                  <strong>Active Webhook:</strong>{" "}
+                  <code className="font-mono bg-prime-white px-1.5 py-0.5 border border-prime-rule">
+                    {contractStatus.webhookInfo.endpoint}
+                  </code>
+                </span>
+              </div>
+              {contractStatus.webhookInfo.webhookId && (
+                <span className="text-prime-ink/60 font-mono text-[11px]">
+                  ID: {contractStatus.webhookInfo.webhookId}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Mapping Progress Indicator */}
+          <div className="mb-6 p-4 bg-prime-surface/30 border border-prime-rule flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+            <div>
+              <div className="font-semibold text-prime-ink">
+                Contract Synchronization Status
+              </div>
+              <p className="text-prime-ink/70 mt-0.5">
+                {contractStatus.mappedCount !== undefined
+                  ? `${contractStatus.mappedCount} of ${contractStatus.totalExpected ?? 22} contract fields mapped`
+                  : `${Object.keys(settings.clickupFieldMapping || {}).length} contract fields mapped`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span
+                className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider ${
+                  (contractStatus.mappedCount ?? Object.keys(settings.clickupFieldMapping || {}).length) >= 22
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-amber-100 text-amber-800"
+                }`}
+              >
+                {(contractStatus.mappedCount ?? Object.keys(settings.clickupFieldMapping || {}).length) >= 22 ? (
+                  <>
+                    <Check className="w-3 h-3" /> Fully Mapped
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="w-3 h-3" />
+                    {22 - (contractStatus.mappedCount ?? Object.keys(settings.clickupFieldMapping || {}).length)} Missing
+                  </>
+                )}
+              </span>
+            </div>
+          </div>
+
+          {/* Field Tables by Group */}
+          <div className="space-y-8">
+            {CONTRACT_FIELD_GROUPS.map((group) => (
+              <div key={group.title} className="border border-prime-rule">
+                <div className="bg-prime-surface/40 px-4 py-3 border-b border-prime-rule">
+                  <h3 className="font-semibold text-sm text-prime-ink">{group.title}</h3>
+                  <p className="text-xs text-prime-ink/70 mt-0.5">{group.description}</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-prime-rule bg-prime-surface/20 text-prime-ink/80 font-medium">
+                        <th className="p-3 w-1/3">Field Name</th>
+                        <th className="p-3 w-1/6">ClickUp Type</th>
+                        <th className="p-3">Description</th>
+                        <th className="p-3 text-right">Status / Field ID</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-prime-rule">
+                      {group.fields.map((f) => {
+                        const activeMapping = {
+                          ...(settings.clickupFieldMapping || {}),
+                          ...(contractStatus.mapping || {}),
+                        };
+                        const fieldId = activeMapping[f.name];
+                        const isMapped = Boolean(fieldId);
+
+                        return (
+                          <tr key={f.name} className="hover:bg-prime-surface/10 transition-colors">
+                            <td className="p-3 font-semibold text-prime-ink">{f.name}</td>
+                            <td className="p-3 font-mono text-[11px] text-prime-ink/70">{f.type}</td>
+                            <td className="p-3 text-prime-ink/80">{f.desc}</td>
+                            <td className="p-3 text-right whitespace-nowrap">
+                              {isMapped ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-mono font-medium">
+                                  <Check className="w-3 h-3 text-emerald-600" />
+                                  {fieldId}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-medium">
+                                  <AlertTriangle className="w-3 h-3 text-amber-600" />
+                                  Not found
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
         </div>}
 

@@ -6,40 +6,15 @@ import type { FormDestinationKey } from "@/lib/adminSettings";
 import { promises as fs } from "fs";
 import path from "path";
 import { DEFAULT_USERS, type UserRole } from "@/lib/rbac";
-import { DEFAULT_WORKFLOW_STATUSES } from "@/lib/adminSettings";
+import { DEFAULT_WORKFLOW_STATUSES, type WorkflowStatuses } from "@/lib/adminSettings";
 import { resolveRfpMilestone } from "@/lib/rfpWorkflow";
+import {
+  mapClickUpTaskToTrackedRfp,
+  type TrackedRfp,
+  type MilestoneTimestamps,
+} from "@/lib/rfpTrackerMapping";
 
-export interface TrackedRfp {
-  taskId: string;
-  requestId: string;
-  taskName: string;
-  formType: "rfp" | "gw-rfp" | "travel-budget" | "po" | "pcv";
-  payee: string;
-  department: string;
-  totalAmount: number;
-  dateNeeded: string;
-  urgency: "urgent" | "normal";
-  purpose: string;
-  requestedBy: string;
-  requestedByEmail?: string;
-  currentStage:
-    | "submitted"
-    | "endorsed"
-    | "finance_verification"
-    | "disbursement_prep"
-    | "executive_signoff"
-    | "completed"
-    | "revision_requested";
-  stageLabel: string;
-  currentMilestone: string;
-  statusUpdatedAt: string;
-  stageIndex: number; // 0 to 5
-  isRevisionRequested: boolean;
-  revisionReason?: string;
-  revisionBy?: "tl" | "finance" | "approver";
-  dateCreated: string;
-  attachments: Array<{ id: string; name: string; url: string; type?: string }>;
-}
+export type { TrackedRfp, MilestoneTimestamps };
 
 interface ViewerAccess {
   email: string;
@@ -70,169 +45,20 @@ async function getViewerAccess(user: { email?: string; username?: string } | nul
   return { email, username, role, canViewAll: role !== "requestor" };
 }
 
-function parseTaskToTrackedRfp(task: any): TrackedRfp {
-  const statusStr = (task.status?.status || "").toLowerCase();
-  const desc = task.markdown_description || task.description || "";
-
-  // Identify form type
-  let formType: "rfp" | "po" | "pcv" = "rfp";
-  if (task.name.includes("[PO]") || desc.includes("Purchase Order (PO)")) {
-    formType = "po";
-  } else if (task.name.includes("[PCV]") || desc.includes("Petty Cash Voucher (PCV)")) {
-    formType = "pcv";
+async function getSettingsMappingAndStatuses() {
+  try {
+    const raw = await fs.readFile(path.join(process.cwd(), "src", "lib", "featureFlags.json"), "utf8");
+    const parsed = JSON.parse(raw);
+    return {
+      fieldMapping: parsed.clickupFieldMapping || {},
+      workflowStatuses: parsed.workflowStatuses || DEFAULT_WORKFLOW_STATUSES,
+    };
+  } catch {
+    return {
+      fieldMapping: {},
+      workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
+    };
   }
-
-  // Extract payee/vendor, department, amount from task name or custom fields
-  let payee = "";
-  let department = "";
-  let totalAmount = 0;
-  let dateNeeded = "";
-  const urgency: "urgent" | "normal" = task.priority?.priority === "urgent" ? "urgent" : "normal";
-  let purpose = "";
-  let requestId = "";
-  let requestedBy = "";
-  let requestedByEmail = "";
-
-  // Read from custom fields if available
-  if (Array.isArray(task.custom_fields)) {
-    task.custom_fields.forEach((cf: any) => {
-      const name = (cf.name || "").toLowerCase();
-      if (name.includes("payee") && cf.value) payee = String(cf.value);
-      else if (name.includes("dept") && cf.value) department = String(cf.value);
-      else if (name.includes("amount") && cf.value) totalAmount = Number(cf.value) || 0;
-      else if (name.includes("purpose") && cf.value) purpose = String(cf.value);
-      else if ((name.includes("rfp id") || name.includes("request id") || name.includes("rfp number")) && cf.value) requestId = String(cf.value);
-      else if (name.includes("requestor") || name.includes("requestedby")) {
-        if (typeof cf.value === "string") requestedBy = cf.value;
-      }
-    });
-  }
-
-  // Fallbacks from Task Name: [URGENT] [FORM] Entity — ₱Total (Dept)
-  if (!payee || !department) {
-    const nameMatch = task.name.match(/(?:\[(?:RFP|PO|PCV)[^\]]*\]\s*)(.+?)\s*—\s*₱?([\d,.]+)\s*(?:\((.+?)\))?/i);
-    if (nameMatch) {
-      if (!payee) payee = nameMatch[1].trim();
-      if (!totalAmount) totalAmount = parseFloat(nameMatch[2].replace(/,/g, "")) || 0;
-      if (!department && nameMatch[3]) department = nameMatch[3].trim();
-    } else {
-      payee = payee || task.name.replace(/^🚨?\s*\[.*?\]\s*/, "");
-    }
-  }
-
-  // Parse details from Markdown Description table if missing
-  if (!purpose) {
-    const purposeMatch = desc.match(/\|\s*\*\*(?:Purpose|Notes|Particulars)\*\*\s*\|\s*(.+?)\s*\|/);
-    if (purposeMatch) purpose = purposeMatch[1].replace(/_No purpose stated\._|_No additional notes\._/, "").trim();
-  }
-  if (!requestedBy) {
-    const reqMatch = desc.match(/\|\s*\*\*(?:Requested By|Prepared By)\*\*\s*\|\s*\*\*?(.+?)\*\*?\s*(?:\(|$)/);
-    if (reqMatch) requestedBy = reqMatch[1].trim();
-  }
-  const requestIdMatch = desc.match(/\|\s*\*\*(?:RFP ID|Request ID)\*\*\s*\|\s*([^|\n]+?)\s*\|/i);
-  if (!requestId && requestIdMatch) requestId = requestIdMatch[1].replace(/[\*_`]/g, "").trim();
-  const emailMatch = desc.match(/\|\s*\*\*(?:Requested By Email|Prepared By Email)\*\*\s*\|\s*([^|\n]+?)\s*\|/i);
-  if (emailMatch) requestedByEmail = emailMatch[1].replace(/[\*_`]/g, "").trim().toLowerCase();
-  if (!dateNeeded) {
-    const dateMatch = desc.match(/\|\s*\*\*Date Needed\*\*\s*\|\s*\*\*?(.+?)\*\*?\s*(?:\(|$)/);
-    if (dateMatch) dateNeeded = dateMatch[1].trim();
-    else if (task.due_date) {
-      dateNeeded = new Date(Number(task.due_date)).toISOString().split("T")[0];
-    }
-  }
-
-  const normalizedStatus = statusStr.replace(/[_-]/g, " ").replace(/\s+/g, " ").trim();
-  const isDone = ["done", "complete", "completed", "closed"].includes(normalizedStatus);
-
-  let isRevisionRequested = false;
-  let revisionReason = "";
-  let revisionBy: "tl" | "finance" | "approver" = "approver";
-
-  if (desc.includes("Revision Requested") || task.name.toLowerCase().includes("revision")) {
-    isRevisionRequested = true;
-    const revMatch = desc.match(/(?:\*\*)?Reason:(?:\*\*)?\s*([^\n\r]+)/i);
-    if (revMatch) {
-      revisionReason = revMatch[1].trim();
-    }
-    if (/Revision Requested by Finance/i.test(desc)) {
-      revisionBy = "finance";
-    } else {
-      revisionBy = "tl";
-    }
-  }
-
-  const legacy: Record<string, { currentStage: TrackedRfp["currentStage"]; stageLabel: string; currentMilestone: string; stageIndex: number }> = {
-    submitted: { currentStage: "submitted", stageLabel: "Submission", currentMilestone: "Requestor Form Submission", stageIndex: 0 },
-    "for tl approval": { currentStage: "endorsed", stageLabel: "TL Approval", currentMilestone: "TL Review and Approval", stageIndex: 1 },
-    "approval team leader": { currentStage: "endorsed", stageLabel: "TL Approval", currentMilestone: "TL Review and Approval", stageIndex: 1 },
-    "finance verification": { currentStage: "finance_verification", stageLabel: "Finance", currentMilestone: "Finance Validation", stageIndex: 2 },
-    "disbursement prep": { currentStage: "disbursement_prep", stageLabel: "Payment", currentMilestone: "Payment Release", stageIndex: 4 },
-    "executive sign off": { currentStage: "executive_signoff", stageLabel: "Management Approval", currentMilestone: "CFO/CEO Review and Sign-off", stageIndex: 3 },
-    completed: { currentStage: "completed", stageLabel: "Completed", currentMilestone: "Records Filing", stageIndex: 5 },
-  };
-  const resolved = (isDone ? legacy.completed : legacy[normalizedStatus] || resolveRfpMilestone(statusStr, DEFAULT_WORKFLOW_STATUSES)) as {
-    currentStage?: TrackedRfp["currentStage"];
-    stageLabel: string;
-    currentMilestone?: string;
-    key?: string;
-    stageIndex: number;
-  };
-  let currentStage: TrackedRfp["currentStage"] = resolved.currentStage || (
-    resolved.stageIndex === 5 ? "completed" : resolved.stageIndex === 4 ? "disbursement_prep" : resolved.stageIndex === 3 ? "executive_signoff" : resolved.stageIndex === 2 ? "finance_verification" : resolved.stageIndex === 1 ? "endorsed" : "submitted"
-  );
-  let stageLabel = resolved.stageLabel;
-  let currentMilestone = resolved.currentMilestone || resolved.key || "Requestor Form Submission";
-  let stageIndex = resolved.stageIndex;
-
-  if (isRevisionRequested) {
-    currentStage = "revision_requested";
-    stageLabel =
-      revisionBy === "finance"
-        ? "Revision Requested by Finance"
-        : "Revision Requested by Team Leader";
-    if (revisionBy === "finance" && stageIndex < 2) {
-      stageIndex = 2;
-    }
-    currentMilestone = "Revision Requested";
-  }
-
-  // Attachments
-  const attachments = Array.isArray(task.attachments)
-    ? task.attachments.map((att: any) => ({
-        id: att.id,
-        name: att.name || "Attachment",
-        url: att.url,
-        type: att.mimetype || att.type,
-      }))
-    : [];
-
-  return {
-    taskId: task.id,
-    requestId: requestId || "RFP ID unavailable",
-    taskName: task.name,
-    formType,
-    payee,
-    department: department || "General",
-    totalAmount,
-    dateNeeded,
-    urgency,
-    purpose,
-    requestedBy: requestedBy || "Team Member",
-    requestedByEmail,
-    currentStage,
-    stageLabel,
-    currentMilestone,
-    statusUpdatedAt: task.date_updated
-      ? new Date(Number(task.date_updated)).toISOString()
-      : task.date_created
-        ? new Date(Number(task.date_created)).toISOString()
-        : new Date().toISOString(),
-    stageIndex,
-    isRevisionRequested,
-    revisionReason,
-    dateCreated: task.date_created ? new Date(Number(task.date_created)).toISOString() : new Date().toISOString(),
-    attachments,
-  };
 }
 
 export async function GET(req: NextRequest) {
@@ -252,13 +78,15 @@ export async function GET(req: NextRequest) {
     const dept = (searchParams.get("dept") || "").toLowerCase().trim();
     const email = (searchParams.get("email") || "").toLowerCase().trim();
 
+    const settings = await getSettingsMappingAndStatuses();
+
     // 1. Direct ID lookup
     if (id) {
       const task = await getClickUpTask(id, accessToken);
       if (!task) {
         return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
       }
-      const parsed = parseTaskToTrackedRfp(task);
+      const parsed = mapClickUpTaskToTrackedRfp(task, settings.fieldMapping, settings.workflowStatuses);
       if (!viewer.canViewAll && !taskBelongsToViewer(parsed, viewer)) {
         return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
       }
@@ -281,7 +109,7 @@ export async function GET(req: NextRequest) {
     const allTasks = Array.from(
       new Map(taskGroups.flat().map((task) => [task.id, task])).values()
     );
-    let parsed = allTasks.map(parseTaskToTrackedRfp);
+    let parsed = allTasks.map((task) => mapClickUpTaskToTrackedRfp(task, settings.fieldMapping, settings.workflowStatuses));
 
     // Requestors are restricted server-side. Admins, approvers, and finance
     // users retain the complete queue needed for review and processing.

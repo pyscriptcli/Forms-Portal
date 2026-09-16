@@ -10,7 +10,7 @@ import { RfpFormData } from "@/types/rfp";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { taskId, action, approverName, notes, revisionReason, actorRole } = body;
+    const { taskId, action, approverName, approverEmail, notes, revisionReason, actorRole } = body;
 
     if (!taskId || !action) {
       return NextResponse.json(
@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
       const success = await approveTaskByApprover(
         taskId,
         approverName || "Team Leader",
-        notes
+        notes,
+        approverEmail
       );
 
       if (!success) {

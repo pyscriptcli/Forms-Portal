@@ -16,6 +16,12 @@ import {
   type FormDestinationKey,
 } from "@/lib/adminSettings";
 import { formatRfpReference, formatRfpTaskName, highestRfpSequence } from "@/lib/rfpNaming";
+import {
+  CLICKUP_METADATA_FIELDS,
+  CLICKUP_MILESTONE_FIELDS,
+  resolveFieldIdMapping,
+  formatCustomFieldValueForWrite,
+} from "@/lib/clickupFields";
 
 const CLICKUP_API_BASE = "https://api.clickup.com/api/v2";
 const DEFAULT_SUBMISSIONS_LIST_ID = "901420772915";
@@ -235,43 +241,147 @@ export function buildPcvTaskDescription(data: PcvFormData): string {
 }
 
 /**
- * Matches custom fields in the ClickUp list and formats the payload.
+ * Gets custom field definitions for a ClickUp list.
  */
-async function getMatchingCustomFields(listId: string, token: string, data: RfpFormData, editUrl: string) {
+export async function getListCustomFields(
+  listId: string,
+  token?: string
+): Promise<Array<{ id: string; name: string; type: string }>> {
+  const authToken = token || process.env.CLICKUP_API_TOKEN || "";
+  if (!authToken || authToken === "mock") return [];
+
   try {
     const res = await fetch(`${CLICKUP_API_BASE}/list/${listId}/field`, {
-      headers: { Authorization: token },
+      headers: {
+        Authorization: authToken.startsWith("Bearer ") ? authToken : authToken,
+      },
     });
     if (!res.ok) return [];
-
     const json = await res.json();
-    const availableFields: Array<{ id: string; name: string; type: string }> = json.fields || [];
+    return json.fields || [];
+  } catch (err) {
+    console.error(`Error getting custom fields for list ${listId}:`, err);
+    return [];
+  }
+}
 
+/**
+ * Sets a single custom field value on a ClickUp task.
+ */
+export async function setTaskCustomFieldValue(
+  taskId: string,
+  fieldId: string,
+  value: any,
+  token?: string
+): Promise<boolean> {
+  const authToken = token || process.env.CLICKUP_API_TOKEN || "";
+  if (!authToken || authToken === "mock" || taskId.startsWith("MOCK-")) return true;
+
+  try {
+    const res = await fetch(`${CLICKUP_API_BASE}/task/${taskId}/field/${fieldId}`, {
+      method: "POST",
+      headers: {
+        Authorization: authToken.startsWith("Bearer ") ? authToken : authToken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ value }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.error(`Error setting custom field ${fieldId} on task ${taskId}:`, err);
+    return false;
+  }
+}
+
+/**
+ * Registers a webhook on a ClickUp list.
+ */
+export async function createClickUpWebhook(
+  listId: string,
+  endpointUrl: string,
+  token?: string
+): Promise<{ id: string; secret: string; webhook?: any }> {
+  const authToken = token || process.env.CLICKUP_API_TOKEN || "";
+  if (!authToken || authToken === "mock") {
+    throw new Error("ClickUp API token not configured.");
+  }
+
+  const res = await fetch(`${CLICKUP_API_BASE}/list/${listId}/webhook`, {
+    method: "POST",
+    headers: {
+      Authorization: authToken.startsWith("Bearer ") ? authToken : authToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      endpoint: endpointUrl,
+      events: ["taskStatusUpdated"],
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to create ClickUp webhook (${res.status}): ${text}`);
+  }
+
+  const data = await res.json();
+  return {
+    id: data.id || data.webhook?.id,
+    secret: data.webhook?.secret || data.secret,
+    webhook: data.webhook,
+  };
+}
+
+/**
+ * Matches custom fields in the ClickUp list and formats the payload.
+ */
+async function getMatchingCustomFields(listId: string, token: string, data: any, editUrl: string) {
+  try {
+    const availableFields = await getListCustomFields(listId, token);
+    if (!availableFields || availableFields.length === 0) return [];
+
+    const fieldMapping = resolveFieldIdMapping(availableFields);
     const customFieldsPayload: Array<{ id: string; value: any }> = [];
 
-    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    // Helper to add if mapped
+    const addIfMapped = (canonicalName: string, rawVal: any, fieldType: string = "text") => {
+      const fieldId = fieldMapping[canonicalName];
+      if (fieldId && rawVal !== undefined && rawVal !== null && rawVal !== "") {
+        const formatted = formatCustomFieldValueForWrite(fieldType, rawVal);
+        if (formatted !== null) {
+          customFieldsPayload.push({ id: fieldId, value: formatted });
+        }
+      }
+    };
 
+    // Contract metadata fields
+    addIfMapped(CLICKUP_METADATA_FIELDS.requestId, data.rfpCodeSuffix || data.requestId || "");
+    addIfMapped(CLICKUP_METADATA_FIELDS.entityCode, data.entityCode || "PRIME");
+    addIfMapped(CLICKUP_METADATA_FIELDS.department, data.department || "");
+    addIfMapped(CLICKUP_METADATA_FIELDS.totalAmount, Number(data.totalAmount || data.amount || 0), "money");
+    addIfMapped(CLICKUP_METADATA_FIELDS.purpose, data.purpose || "");
+    addIfMapped(CLICKUP_METADATA_FIELDS.requestedBy, data.requestedByName || "");
+    addIfMapped(CLICKUP_METADATA_FIELDS.requestedByEmail, data.requestedByEmail || "");
+    addIfMapped(CLICKUP_METADATA_FIELDS.approverName, data.tlSignatureName || data.approvedByName || "");
+    addIfMapped(CLICKUP_METADATA_FIELDS.approverEmail, data.approverEmail || "");
+
+    // Milestone submission timestamp
+    addIfMapped(CLICKUP_MILESTONE_FIELDS.requestorFormSubmission, Date.now(), "date");
+
+    // Additional common fields by fuzzy name if not already mapped
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
     availableFields.forEach((field) => {
       const name = normalize(field.name);
+      const isAlreadyMapped = customFieldsPayload.some((item) => item.id === field.id);
+      if (isAlreadyMapped) return;
 
       if (name.includes("payee") && data.payee) {
         customFieldsPayload.push({ id: field.id, value: data.payee });
-      } else if (name.includes("dept") || name.includes("department")) {
-        customFieldsPayload.push({ id: field.id, value: data.department });
-      } else if ((name.includes("amount") || name.includes("total")) && data.totalAmount) {
-        customFieldsPayload.push({ id: field.id, value: Number(data.totalAmount) });
-      } else if (name.includes("purpose") && data.purpose) {
-        customFieldsPayload.push({ id: field.id, value: data.purpose });
-      } else if (name.includes("urgent") || name.includes("urgency")) {
-        customFieldsPayload.push({ id: field.id, value: data.urgency === "urgent" });
       } else if (name.includes("bank") && data.bank) {
         customFieldsPayload.push({ id: field.id, value: data.bank });
       } else if (name.includes("accountname") && data.accountName) {
         customFieldsPayload.push({ id: field.id, value: data.accountName });
       } else if (name.includes("accountnum") && data.accountNumber) {
         customFieldsPayload.push({ id: field.id, value: data.accountNumber });
-      } else if (name.includes("requestor") || name.includes("requestedby")) {
-        customFieldsPayload.push({ id: field.id, value: data.requestedByName });
       } else if (name.includes("edit") || name.includes("revision") || name.includes("formurl")) {
         customFieldsPayload.push({ id: field.id, value: editUrl });
       }
@@ -355,6 +465,12 @@ export async function createClickUpTask(
       body.due_date = dueDateMs;
       body.due_date_time = false;
     }
+  }
+
+  // Populate custom fields (metadata + submission milestone timestamp)
+  const customFields = await getMatchingCustomFields(listId, token, data, `${appUrl}/form?taskId=PENDING`);
+  if (customFields.length > 0) {
+    body.custom_fields = customFields;
   }
 
   // 1. Create task with the administrator-configured initial status
@@ -726,7 +842,8 @@ export async function postTaskComment(taskId: string, commentText: string): Prom
 export async function approveTaskByApprover(
   taskId: string,
   approverName: string = "Team Leader",
-  notes?: string
+  notes?: string,
+  approverEmail?: string
 ): Promise<boolean> {
   const { token, isConfigured } = getClickUpConfig();
   const workflowStatuses = getConfiguredWorkflowStatuses();
@@ -738,6 +855,27 @@ export async function approveTaskByApprover(
   try {
     const currentTask = await getClickUpTask(taskId);
     if (!currentTask) return false;
+
+    // Persist approver metadata custom fields BEFORE advancing to Finance Validation
+    if (Array.isArray(currentTask.custom_fields)) {
+      const fieldMapping = resolveFieldIdMapping(
+        currentTask.custom_fields.map((f: any) => ({ id: f.id, name: f.name, type: f.type }))
+      );
+
+      const approverNameId = fieldMapping[CLICKUP_METADATA_FIELDS.approverName];
+      if (approverNameId && approverName) {
+        const ok = await setTaskCustomFieldValue(taskId, approverNameId, approverName, token);
+        if (!ok) {
+          console.error(`Failed to persist approver name to custom field ${approverNameId}`);
+          return false;
+        }
+      }
+
+      const approverEmailId = fieldMapping[CLICKUP_METADATA_FIELDS.approverEmail];
+      if (approverEmailId && approverEmail) {
+        await setTaskCustomFieldValue(taskId, approverEmailId, approverEmail, token);
+      }
+    }
 
     let updatedDescription = currentTask.description || currentTask.markdown_description || "";
     const updateRes = await fetch(`${CLICKUP_API_BASE}/task/${taskId}`, {
@@ -792,6 +930,17 @@ export async function rejectTaskForRevision(
 
     const currentTask = await getClickUpTask(taskId);
     if (currentTask) {
+      // Write revision audit custom fields if available
+      if (Array.isArray(currentTask.custom_fields)) {
+        const fieldMapping = resolveFieldIdMapping(
+          currentTask.custom_fields.map((f: any) => ({ id: f.id, name: f.name, type: f.type }))
+        );
+        const revAtId = fieldMapping[CLICKUP_MILESTONE_FIELDS.revisionRequested];
+        const revById = fieldMapping[CLICKUP_METADATA_FIELDS.approverName];
+        if (revAtId) await setTaskCustomFieldValue(taskId, revAtId, Date.now(), token);
+        if (revById) await setTaskCustomFieldValue(taskId, revById, approverName, token);
+      }
+
       const existingDesc = currentTask.description || currentTask.markdown_description || "";
       // Strip any previous revision banner if present
       const cleanDesc = existingDesc.replace(

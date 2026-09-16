@@ -68,11 +68,14 @@ export const DEFAULT_FORM_DESTINATIONS: FormDestinations = {
   },
 };
 
+import type { ClickUpFieldIdMapping } from "./clickupFields";
+
 export type AdminSettings = {
   portalGuideEnabled: boolean;
   rfpAutofillEnabled: boolean;
   destinations?: FormDestinations;
   workflowStatuses?: WorkflowStatuses;
+  clickupFieldMapping?: ClickUpFieldIdMapping;
 };
 
 export const ADMIN_SETTINGS_KEY = "prime_admin_settings";
@@ -86,6 +89,7 @@ export const DEFAULT_SETTINGS: AdminSettings = {
   rfpAutofillEnabled: true,
   destinations: DEFAULT_FORM_DESTINATIONS,
   workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
+  clickupFieldMapping: {},
 };
 
 export function getDefaultFormDestinations(): FormDestinations {
@@ -141,6 +145,17 @@ export function normalizeWorkflowStatuses(value: unknown): WorkflowStatuses {
   ) as WorkflowStatuses;
 }
 
+export function normalizeFieldMapping(value: unknown): ClickUpFieldIdMapping {
+  if (!value || typeof value !== "object") return {};
+  const mapping: ClickUpFieldIdMapping = {};
+  for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof val === "string" && val.trim()) {
+      mapping[key] = val.trim();
+    }
+  }
+  return mapping;
+}
+
 /** Read settings from localStorage (client-side only). Falls back to defaults. */
 export function getAdminSettings(): AdminSettings {
   if (typeof window === "undefined") return { ...DEFAULT_SETTINGS };
@@ -159,6 +174,7 @@ export function getAdminSettings(): AdminSettings {
           : DEFAULT_SETTINGS.rfpAutofillEnabled,
       destinations: normalizeFormDestinations(parsed.destinations),
       workflowStatuses: normalizeWorkflowStatuses(parsed.workflowStatuses),
+      clickupFieldMapping: normalizeFieldMapping(parsed.clickupFieldMapping),
     };
   } catch {
     return { ...DEFAULT_SETTINGS };

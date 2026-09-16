@@ -26,29 +26,60 @@ import { DEPARTMENT_NAMES } from "@/types/rfp";
 
 const DEPARTMENTS = ["All Departments", ...DEPARTMENT_NAMES];
 
-const WORKFLOW_STAGES = [
-  { label: "Submission", milestones: ["Requestor form submission"] },
-  { label: "TL Approval", milestones: ["TL Review and Approval"] },
-  { label: "Finance", milestones: ["Validation", "Processing", "Payment Preparation"] },
-  { label: "Management Approval", milestones: ["CFO/CEO review and sign-off"] },
-  { label: "Payment", milestones: ["Payment Release", "Payment Documentation"] },
-  { label: "Completed", milestones: ["Records Filing"] },
+import type { RfpMilestoneKey } from "@/lib/rfpWorkflow";
+
+interface WorkflowMilestoneDef {
+  key: RfpMilestoneKey;
+  label: string;
+}
+
+interface WorkflowStageDef {
+  label: string;
+  milestones: WorkflowMilestoneDef[];
+}
+
+const WORKFLOW_STAGES: WorkflowStageDef[] = [
+  {
+    label: "Submission",
+    milestones: [{ key: "requestorFormSubmission", label: "Requestor Form Submission" }],
+  },
+  {
+    label: "TL Approval",
+    milestones: [{ key: "tlReviewAndApproval", label: "TL Review and Approval" }],
+  },
+  {
+    label: "Finance",
+    milestones: [
+      { key: "financeValidation", label: "Finance Validation" },
+      { key: "financeProcessing", label: "Finance Processing" },
+      { key: "paymentPreparation", label: "Payment Preparation" },
+    ],
+  },
+  {
+    label: "Management Approval",
+    milestones: [{ key: "managementApproval", label: "CFO/CEO Sign-Off" }],
+  },
+  {
+    label: "Payment",
+    milestones: [
+      { key: "paymentRelease", label: "Payment Release" },
+      { key: "paymentDocumentation", label: "Payment Documentation" },
+    ],
+  },
+  {
+    label: "Completed",
+    milestones: [{ key: "recordsFiling", label: "Records Filing" }],
+  },
 ];
 
 function normalizeMilestone(value: string) {
   return value.toLowerCase().replace(/^finance\s+/, "").replace(/[^a-z0-9]+/g, " ").trim();
 }
 
-function formatStatusTimestamp(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Time unavailable";
-  return new Intl.DateTimeFormat("en-PH", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
+function getMilestoneTimestampDisplay(request: TrackedRfp, milestoneKey: RfpMilestoneKey): string {
+  const ts = request.milestoneTimestamps?.[milestoneKey];
+  if (ts) return ts;
+  return "Timestamp unavailable";
 }
 
 function RequestTimeline({ request }: { request: TrackedRfp }) {
@@ -57,50 +88,102 @@ function RequestTimeline({ request }: { request: TrackedRfp }) {
   return (
     <div className="border-b border-prime-rule bg-prime-white px-4 py-6 sm:px-7">
       <div className="overflow-x-auto pb-2">
-      <div className="grid min-w-[1040px] grid-cols-6 gap-3">
-        {WORKFLOW_STAGES.map((stage, index) => {
-          const complete = index < activeIndex;
-          const active = index === activeIndex;
-          const currentMilestoneIndex = Math.max(0, stage.milestones.findIndex(
-            (milestone) => normalizeMilestone(milestone) === normalizeMilestone(request.currentMilestone)
-          ));
-          return (
-            <div key={stage.label} className={`relative border px-3 py-4 ${active ? "border-prime-gold bg-prime-gold/5" : "border-prime-rule bg-prime-white"}`}>
-              {index < WORKFLOW_STAGES.length - 1 && (
-                <span className={`absolute left-full top-7 z-10 h-px w-3 ${complete ? "bg-prime-blue" : "bg-prime-rule"}`} aria-hidden="true" />
-              )}
-              <div className="flex items-center gap-2">
-                <span className={`relative z-20 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold ${active ? "border-prime-gold bg-prime-gold text-prime-blue" : complete ? "border-prime-blue bg-prime-blue text-prime-white" : "border-prime-rule bg-prime-white text-prime-ink"}`}>
-                  {complete ? <Check size={13} /> : active ? <Clock3 size={14} /> : index + 1}
-                </span>
-                <div className="min-w-0 text-left">
-                  <p className={`text-[10px] uppercase tracking-[0.15em] ${active ? "text-prime-blue" : "text-prime-ink/65"}`}>Stage {index + 1}</p>
-                  <p className={`text-xs font-semibold leading-tight ${active ? "text-prime-blue" : "text-prime-ink"}`}>{stage.label}</p>
+        <div className="grid min-w-[1040px] grid-cols-6 gap-3">
+          {WORKFLOW_STAGES.map((stage, index) => {
+            const complete = index < activeIndex;
+            const active = index === activeIndex;
+            const currentMilestoneIndex = Math.max(
+              0,
+              stage.milestones.findIndex(
+                (m) => normalizeMilestone(m.label) === normalizeMilestone(request.currentMilestone)
+              )
+            );
+            return (
+              <div
+                key={stage.label}
+                className={`relative border px-3 py-4 ${
+                  active ? "border-prime-gold bg-prime-gold/5" : "border-prime-rule bg-prime-white"
+                }`}
+              >
+                {index < WORKFLOW_STAGES.length - 1 && (
+                  <span
+                    className={`absolute left-full top-7 z-10 h-px w-3 ${
+                      complete ? "bg-prime-blue" : "bg-prime-rule"
+                    }`}
+                    aria-hidden="true"
+                  />
+                )}
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`relative z-20 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold ${
+                      active
+                        ? "border-prime-gold bg-prime-gold text-prime-blue"
+                        : complete
+                        ? "border-prime-blue bg-prime-blue text-prime-white"
+                        : "border-prime-rule bg-prime-white text-prime-ink"
+                    }`}
+                  >
+                    {complete ? <Check size={13} strokeWidth={2.5} /> : active ? <Clock3 size={14} /> : index + 1}
+                  </span>
+                  <div className="min-w-0 text-left">
+                    <p className={`text-[10px] uppercase tracking-[0.15em] ${active ? "text-prime-blue" : "text-prime-ink/65"}`}>
+                      Stage {index + 1}
+                    </p>
+                    <p className={`text-xs font-semibold leading-tight ${active ? "text-prime-blue" : "text-prime-ink"}`}>
+                      {stage.label}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 space-y-2 border-l border-prime-rule pl-3 text-left">
+                  {active && request.isRevisionRequested ? (
+                    <p className="text-[11px] font-medium text-prime-blue">Revision requested</p>
+                  ) : (
+                    stage.milestones.map((milestone, milestoneIndex) => {
+                      const milestoneComplete = complete || (active && milestoneIndex < currentMilestoneIndex);
+                      const milestoneActive = active && milestoneIndex === currentMilestoneIndex;
+                      const tsDisplay = getMilestoneTimestampDisplay(request, milestone.key);
+
+                      return (
+                        <div key={milestone.key} className="relative pl-2">
+                          <span
+                            className={`absolute -left-[17px] top-1 flex h-2.5 w-2.5 items-center justify-center rounded-full border ${
+                              milestoneActive
+                                ? "border-prime-gold bg-prime-gold text-prime-blue"
+                                : milestoneComplete
+                                ? "border-prime-blue bg-prime-blue text-prime-white"
+                                : "border-prime-rule bg-prime-white"
+                            }`}
+                            aria-hidden="true"
+                          >
+                            {milestoneComplete && <Check size={7} strokeWidth={3} />}
+                          </span>
+                          <p
+                            className={`text-[11px] leading-tight ${
+                              milestoneActive
+                                ? "font-semibold text-prime-blue"
+                                : milestoneComplete
+                                ? "font-medium text-prime-ink"
+                                : "text-prime-ink/55"
+                            }`}
+                          >
+                            {milestone.label}
+                          </p>
+                          <p className="mt-1 text-[9px] leading-tight text-prime-ink/65">
+                            {milestoneActive
+                              ? tsDisplay
+                              : milestoneComplete
+                              ? tsDisplay
+                              : "Pending"}
+                          </p>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
-              <div className="mt-4 space-y-2 border-l border-prime-rule pl-3 text-left">
-                {active && request.isRevisionRequested ? <p className="text-[11px] font-medium text-prime-blue">Revision requested</p> : stage.milestones.map((milestone, milestoneIndex) => {
-                  const milestoneComplete = complete || (active && milestoneIndex < currentMilestoneIndex);
-                  const milestoneActive = active && milestoneIndex === currentMilestoneIndex;
-                  return (
-                    <div key={milestone} className="relative pl-2">
-                      <span className={`absolute -left-[17px] top-1 h-2 w-2 rounded-full border ${milestoneActive ? "border-prime-gold bg-prime-gold" : milestoneComplete ? "border-prime-blue bg-prime-blue" : "border-prime-rule bg-prime-white"}`} aria-hidden="true" />
-                      <p className={`text-[11px] leading-tight ${milestoneActive ? "font-semibold text-prime-blue" : milestoneComplete ? "font-medium text-prime-ink" : "text-prime-ink/55"}`}>{milestone}</p>
-                      <p className="mt-1 text-[9px] leading-tight text-prime-ink/55">
-                        {milestoneActive
-                          ? `Updated ${formatStatusTimestamp(request.statusUpdatedAt)}`
-                          : milestoneComplete
-                            ? (index === 0 ? formatStatusTimestamp(request.dateCreated) : "Completed")
-                            : "Pending"}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -210,51 +293,104 @@ function RequestsContent() {
 
       {selectedRequest && (
         <section aria-label="Request details" className="mb-6 bg-prime-white border border-prime-rule shadow-none">
-          <div className="flex items-start justify-between gap-4 border-b border-prime-rule px-5 py-4">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-prime-ink">Request details</p>
-              <h2 className="text-lg font-semibold text-prime-blue mt-1">{selectedRequest.taskName}</h2>
-              <p className="text-xs text-prime-ink mt-1">{selectedRequest.requestId} · {selectedRequest.formType.toUpperCase()}</p>
+          {/* Header */}
+          <div className="border-b border-prime-rule px-5 py-4">
+            {/* First line: label and close control */}
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-prime-ink font-semibold">Request details</p>
+              <button
+                type="button"
+                aria-label="Close request details"
+                onClick={closeRequest}
+                className="p-1 text-prime-ink hover:text-prime-blue transition-colors"
+              >
+                <X size={18} />
+              </button>
             </div>
-            <button type="button" aria-label="Close request details" onClick={closeRequest} className="p-2 text-prime-ink hover:text-prime-blue">
-              <X size={18} />
-            </button>
+            {/* Second line: canonical name on left and formatted amount on right, baseline aligned */}
+            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 mt-1.5">
+              <h2 className="text-lg font-semibold text-prime-blue leading-tight break-words">
+                {selectedRequest.taskName}
+              </h2>
+              <div className="shrink-0 text-left sm:text-right">
+                <span className="font-bebas text-2xl text-prime-blue tracking-wider">
+                  ₱{Number(selectedRequest.totalAmount || 0).toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
+            </div>
           </div>
+
           <RequestTimeline request={selectedRequest} />
-          <div className="grid grid-cols-1 gap-px bg-prime-rule sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { label: "Department", value: selectedRequest.department, icon: Building2 },
-              { label: "Amount", value: `₱${Number(selectedRequest.totalAmount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: PhilippinePeso, emphasis: true },
-              { label: "Current stage", value: selectedRequest.stageLabel, icon: Milestone },
-              { label: "Requested by", value: selectedRequest.requestedBy, icon: UserRound },
-            ].map(({ label, value, icon: Icon, emphasis }) => (
-              <div key={label} className="bg-prime-white px-5 py-5">
-                <div className="flex items-center gap-2 text-prime-blue">
-                  <Icon size={14} aria-hidden="true" />
-                  <p className="text-[9px] uppercase tracking-[0.18em]">{label}</p>
-                </div>
-                <p className={`mt-2 leading-tight text-prime-ink ${emphasis ? "font-bebas text-2xl tracking-wider text-prime-blue" : "text-base font-medium"}`}>{value || "—"}</p>
+
+          {/* Compact details row: Department, Requestor, Approver, Purpose */}
+          <div className="border-b border-prime-rule px-5 py-4 bg-prime-white">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-prime-rule">
+              {/* Department */}
+              <div className="lg:col-span-2 sm:pr-4">
+                <p className="text-[9px] uppercase tracking-[0.18em] text-prime-ink font-semibold">Department</p>
+                <p className="mt-1 text-xs font-medium text-prime-blue truncate">
+                  {selectedRequest.department || "—"}
+                </p>
               </div>
-            ))}
-          </div>
-          <div className="px-5 py-4 space-y-4">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.16em] text-prime-ink mb-1">Purpose</p>
-              <p className="text-sm text-prime-ink whitespace-pre-wrap">{selectedRequest.purpose || "No purpose provided."}</p>
+              {/* Requestor */}
+              <div className="lg:col-span-3 sm:px-4 pt-2 sm:pt-0">
+                <p className="text-[9px] uppercase tracking-[0.18em] text-prime-ink font-semibold">Requestor</p>
+                <p className="mt-1 text-xs font-medium text-prime-blue truncate">
+                  {selectedRequest.requestedBy || "—"}
+                </p>
+                {selectedRequest.requestedByEmail && (
+                  <p className="text-[10px] text-prime-ink/75 truncate mt-0.5">
+                    {selectedRequest.requestedByEmail}
+                  </p>
+                )}
+              </div>
+              {/* Approver */}
+              <div className="lg:col-span-3 sm:px-4 pt-2 sm:pt-0">
+                <p className="text-[9px] uppercase tracking-[0.18em] text-prime-ink font-semibold">Approver</p>
+                <p className="mt-1 text-xs font-medium text-prime-blue truncate">
+                  {selectedRequest.approverName || "—"}
+                </p>
+                {selectedRequest.approverEmail && (
+                  <p className="text-[10px] text-prime-ink/75 truncate mt-0.5">
+                    {selectedRequest.approverEmail}
+                  </p>
+                )}
+              </div>
+              {/* Purpose */}
+              <div className="lg:col-span-4 sm:pl-4 pt-2 sm:pt-0">
+                <p className="text-[9px] uppercase tracking-[0.18em] text-prime-ink font-semibold">Purpose</p>
+                <p
+                  className="mt-1 text-xs text-prime-ink line-clamp-2"
+                  title={selectedRequest.purpose || "No purpose provided."}
+                >
+                  {selectedRequest.purpose || "No purpose provided."}
+                </p>
+              </div>
             </div>
-            {selectedRequest.attachments.length > 0 && (
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.16em] text-prime-ink mb-2">Attachments</p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedRequest.attachments.map((attachment) => (
-                    <a key={attachment.id} href={attachment.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 border border-prime-rule px-3 py-2 text-xs text-prime-blue hover:bg-prime-white">
-                      {attachment.name} <ExternalLink size={12} />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
+
+          {/* Attachments */}
+          {selectedRequest.attachments.length > 0 && (
+            <div className="px-5 py-4">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-prime-ink mb-2 font-semibold">Attachments</p>
+              <div className="flex flex-wrap gap-2">
+                {selectedRequest.attachments.map((attachment) => (
+                  <a
+                    key={attachment.id}
+                    href={attachment.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 border border-prime-rule px-3 py-2 text-xs text-prime-blue hover:bg-prime-white"
+                  >
+                    {attachment.name} <ExternalLink size={12} />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
       )}
 
