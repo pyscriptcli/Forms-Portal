@@ -9,6 +9,7 @@ import { sendApproverNotification } from "@/lib/email";
 import { fetchClickUpUser, getServerAuthSession } from "@/lib/auth";
 import { allocateRfpReference, readFormDestinationFromSupabase, readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
 import { formatSubmittedFilename, normalizeEntityCode, normalizePayeeToken } from "@/lib/rfpNaming";
+import { MAX_UPLOAD_FILE_BYTES } from "@/lib/submissionUploads";
 
 export const maxDuration = 60;
 
@@ -112,6 +113,9 @@ export async function POST(req: NextRequest) {
       if (supportingFiles && supportingFiles.length > 0) {
         for (const [index, file] of supportingFiles.entries()) {
           if (file && file.size > 0) {
+            if (file.size > MAX_UPLOAD_FILE_BYTES) {
+              throw new Error(`${file.name} exceeds the 4 MB per-file upload limit and cannot be attached.`);
+            }
             const filename = formType === "rfp" || formType === "gw-rfp"
               ? formatSubmittedFilename(data.rfpCodeSuffix, "SUP", data.payee || "Payee", undefined, index + 1)
               : file.name;

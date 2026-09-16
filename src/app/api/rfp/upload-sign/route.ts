@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerAuthSession } from "@/lib/auth";
-import { createStagingUpload, MAX_STAGING_FILE_BYTES, removeExpiredStagedFiles } from "@/lib/supabaseStorage";
+import { createStagingUpload, removeExpiredStagedFiles } from "@/lib/supabaseStorage";
+import { MAX_DIRECT_UPLOAD_FILE_BYTES } from "@/lib/submissionUploads";
 
 export const maxDuration = 60;
 const ALLOWED_TYPES = new Set(["application/pdf", "image/png", "image/jpeg", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"]);
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
     const extension = filename.split(".").pop()?.toLowerCase() || "";
     const mimeType = String(body.mimeType || MIME_BY_EXTENSION[extension] || "application/octet-stream");
     const fileSize = Number(body.fileSize || 0);
-    if (!fileSize || fileSize > MAX_STAGING_FILE_BYTES) return NextResponse.json({ success: false, message: "Files must be 50 MB or smaller." }, { status: 413 });
+    if (!fileSize || fileSize > MAX_DIRECT_UPLOAD_FILE_BYTES) return NextResponse.json({ success: false, message: "Files must be 4 MB or smaller." }, { status: 413 });
     if (!ALLOWED_TYPES.has(mimeType)) return NextResponse.json({ success: false, message: "This file type is not supported." }, { status: 415 });
     const upload = await createStagingUpload(filename);
     void removeExpiredStagedFiles().catch((error) => console.warn("Staged-file cleanup deferred:", error));
