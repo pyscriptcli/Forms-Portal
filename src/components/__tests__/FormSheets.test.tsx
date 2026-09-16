@@ -16,6 +16,11 @@ function RfpHarness({ variant }: { variant: "prime" | "gw" }) {
   return <><RfpSheet variant={variant} data={data} onChange={setData} rfpNumberStatus="loading" /><output data-testid="state">{JSON.stringify(data)}</output></>;
 }
 
+function TlApprovalHarness({ canEditTlApproval }: { canEditTlApproval: boolean }) {
+  const [data, setData] = useState(initialRfp);
+  return <><RfpSheet data={data} onChange={setData} canEditTlApproval={canEditTlApproval} /><output data-testid="state">{JSON.stringify(data)}</output></>;
+}
+
 describe.each(["prime", "gw"] as const)("%s RFP", (variant) => {
   it("keeps text and paired fields editable, and calculates a decimal unit price", () => {
     const { container } = render(<RfpHarness variant={variant} />);
@@ -67,11 +72,34 @@ describe.each(["prime", "gw"] as const)("%s RFP", (variant) => {
 
   it("keeps finance-only inputs and checkboxes locked", () => {
     const { container } = render(<RfpHarness variant={variant} />);
-    const finance = container.querySelector("fieldset")!;
-    expect(within(finance).getByPlaceholderText("Task ID")).toBeDisabled();
+    const taskId = screen.getByPlaceholderText("Task ID");
+    const finance = taskId.closest("fieldset")!;
+    expect(taskId).toBeDisabled();
     const checklist = finance.querySelector('[role="checkbox"]')!;
     fireEvent.click(checklist);
     expect(JSON.parse(screen.getByTestId("state").textContent || "{}").financeAccomplishedChecklist).toBeUndefined();
+  });
+
+  it("locks TL approval controls behind a portal-only overlay for requestors", () => {
+    const { container } = render(<TlApprovalHarness canEditTlApproval={false} />);
+    const overlay = screen.getByRole("note", { name: "Team Leader approval controls are locked" });
+    expect(overlay).toHaveAttribute("data-pdf-ignore", "true");
+    expect(overlay).toHaveClass("no-print");
+    const tlName = screen.getByPlaceholderText("Printed Name");
+    expect(tlName).toBeDisabled();
+    expect(container.querySelector('fieldset:has(input[placeholder="Printed Name"])')).toBeDisabled();
+  });
+
+  it("unlocks TL approval controls for approvers", () => {
+    render(<TlApprovalHarness canEditTlApproval />);
+    expect(screen.queryByRole("note", { name: "Team Leader approval controls are locked" })).not.toBeInTheDocument();
+    const tlName = screen.getByPlaceholderText("Printed Name");
+    expect(tlName).toBeEnabled();
+    fireEvent.change(tlName, { target: { value: "Alex Approver" } });
+    expect(JSON.parse(screen.getByTestId("state").textContent || "{}")).toMatchObject({
+      tlSignatureName: "Alex Approver",
+      approvedByName: "Alex Approver",
+    });
   });
 });
 

@@ -7,7 +7,7 @@ import { PrimeCheckbox } from "./PrimeCheckbox";
 import { AutoResizeTextarea } from "./AutoResizeTextarea";
 import { SignatureModal } from "./SignatureModal";
 import { PrimeDatePicker } from "./PrimeDatePicker";
-import { PenTool, Trash2, Plus, Check } from "lucide-react";
+import { PenTool, Trash2, Plus, Check, LockKeyhole } from "lucide-react";
 
 function timeInputValue(value?: string) {
   if (/^\d{1,2}:\d{2}$/.test(value ?? "")) {
@@ -39,9 +39,10 @@ interface RfpSheetProps {
   validationErrors?: Record<string, string>;
   variant?: "prime" | "gw";
   rfpNumberStatus?: "loading" | "ready" | "unavailable";
+  canEditTlApproval?: boolean;
 }
 
-export function RfpSheet({ data, onChange, validationErrors, variant = "prime", rfpNumberStatus = "loading" }: RfpSheetProps) {
+export function RfpSheet({ data, onChange, validationErrors, variant = "prime", rfpNumberStatus = "loading", canEditTlApproval = false }: RfpSheetProps) {
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [isTlSignatureModalOpen, setIsTlSignatureModalOpen] = useState(false);
 
@@ -719,63 +720,86 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
               />
             </div>
 
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
-                TL Signature over Printed Name:
-              </span>
-              <input
-                type="text"
-                value={data.tlSignatureName ?? data.approvedByName ?? ""}
-                onChange={(e) => updateFields({ tlSignatureName: e.target.value, approvedByName: e.target.value })}
-                placeholder="Printed Name"
-                className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
-              />
-            </div>
+            <div className="relative">
+              <fieldset disabled={!canEditTlApproval} className="space-y-2.5">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                    TL Signature over Printed Name:
+                  </span>
+                  <input
+                    type="text"
+                    value={data.tlSignatureName ?? data.approvedByName ?? ""}
+                    onChange={(e) => updateFields({ tlSignatureName: e.target.value, approvedByName: e.target.value })}
+                    placeholder="Printed Name"
+                    className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
+                  />
+                </div>
 
-            {/* TL Signature E-Sig Pad / Draw / Upload Preview */}
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
-                TL Signature:
-              </span>
-              <div className="flex-1 flex items-center justify-between border-b border-[#0f172a] pb-0.5 min-h-[32px]">
-                {data.tlSignatureDataUrl ? (
-                  <div className="flex items-center gap-2">
-                    <img
-                      src={data.tlSignatureDataUrl}
-                      alt="TL Signature"
-                      className="h-8 max-w-[150px] object-contain"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setIsTlSignatureModalOpen(true)}
-                      className="text-[10px] text-[#003366] underline print:hidden no-print"
-                      data-pdf-ignore="true"
-                    >
-                      Change
-                    </button>
+                {/* TL Signature E-Sig Pad / Draw / Upload Preview */}
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                    TL Signature:
+                  </span>
+                  <div className="flex-1 flex items-center justify-between border-b border-[#0f172a] pb-0.5 min-h-[32px]">
+                    {data.tlSignatureDataUrl ? (
+                      <div className="flex items-center gap-2">
+                        <img
+                          src={data.tlSignatureDataUrl}
+                          alt="TL Signature"
+                          className="h-8 max-w-[150px] object-contain"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setIsTlSignatureModalOpen(true)}
+                          className="text-[10px] text-[#003366] underline print:hidden no-print"
+                          data-pdf-ignore="true"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIsTlSignatureModalOpen(true)}
+                        className="text-[11px] text-[#003366] hover:underline flex items-center gap-1 py-1 font-medium print:hidden no-print"
+                        data-pdf-ignore="true"
+                      >
+                        <PenTool size={12} /> Click to Sign / Upload
+                      </button>
+                    )}
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsTlSignatureModalOpen(true)}
-                    className="text-[11px] text-[#003366] hover:underline flex items-center gap-1 py-1 font-medium print:hidden no-print"
-                    data-pdf-ignore="true"
-                  >
-                    <PenTool size={12} /> Click to Sign / Upload
-                  </button>
-                )}
-              </div>
-            </div>
+                </div>
 
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
-                Date (MM/DD/YYYY):
-              </span>
-              <PrimeDatePicker
-                value={data.tlSignatureDate ?? ""}
-                onChange={(val) => updateField("tlSignatureDate", val)}
-                className="flex-1"
-              />
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                    Date (MM/DD/YYYY):
+                  </span>
+                  <PrimeDatePicker
+                    value={data.tlSignatureDate ?? ""}
+                    onChange={(val) => updateField("tlSignatureDate", val)}
+                    className="flex-1"
+                  />
+                </div>
+              </fieldset>
+
+              {!canEditTlApproval && (
+                <div
+                  className="no-print absolute -inset-1 z-10 flex items-center justify-center border border-[#003366]/20 bg-white/75 px-3 backdrop-blur-[1px]"
+                  data-pdf-ignore="true"
+                  role="note"
+                  aria-label="Team Leader approval controls are locked"
+                >
+                  <div className="flex items-center gap-2 border border-[#c7a94a] bg-[#fffdf7] px-3 py-2 text-[#003366] shadow-sm">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#003366] text-white">
+                      <LockKeyhole size={13} aria-hidden="true" />
+                    </span>
+                    <span className="leading-tight">
+                      <span className="block text-[10px] font-bold uppercase tracking-[0.14em]">TL approval only</span>
+                      <span className="block text-[9px] text-[#475569]">Completed by the assigned approver</span>
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
