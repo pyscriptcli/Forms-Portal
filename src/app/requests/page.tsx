@@ -17,6 +17,9 @@ import {
   X,
   Clock3,
   Check,
+  PhilippinePeso,
+  Milestone,
+  UserRound,
 } from "lucide-react";
 import { TrackedRfp } from "../api/rfp/track/route";
 import { DEPARTMENT_NAMES } from "@/types/rfp";
@@ -32,32 +35,72 @@ const WORKFLOW_STAGES = [
   { label: "Completed", milestones: ["Records Filing"] },
 ];
 
+function normalizeMilestone(value: string) {
+  return value.toLowerCase().replace(/^finance\s+/, "").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function formatStatusTimestamp(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Time unavailable";
+  return new Intl.DateTimeFormat("en-PH", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
 function RequestTimeline({ request }: { request: TrackedRfp }) {
   const activeIndex = Math.max(0, Math.min(request.stageIndex, WORKFLOW_STAGES.length - 1));
 
   return (
     <div className="border-b border-prime-rule bg-prime-white px-4 py-6 sm:px-7">
-      <div className="grid grid-cols-2 gap-y-7 sm:grid-cols-6 sm:gap-0">
+      <div className="overflow-x-auto pb-2">
+      <div className="grid min-w-[1040px] grid-cols-6 gap-3">
         {WORKFLOW_STAGES.map((stage, index) => {
           const complete = index < activeIndex;
           const active = index === activeIndex;
+          const currentMilestoneIndex = Math.max(0, stage.milestones.findIndex(
+            (milestone) => normalizeMilestone(milestone) === normalizeMilestone(request.currentMilestone)
+          ));
           return (
-            <div key={stage.label} className="relative flex flex-col items-center text-center px-2">
+            <div key={stage.label} className={`relative border px-3 py-4 ${active ? "border-prime-gold bg-prime-gold/5" : "border-prime-rule bg-prime-white"}`}>
               {index < WORKFLOW_STAGES.length - 1 && (
-                <span className={`hidden sm:block absolute left-1/2 right-[-50%] top-4 h-px ${complete ? "bg-prime-blue" : "bg-prime-rule"}`} aria-hidden="true" />
+                <span className={`absolute left-full top-7 z-10 h-px w-3 ${complete ? "bg-prime-blue" : "bg-prime-rule"}`} aria-hidden="true" />
               )}
-              <span className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold ${active ? "border-prime-gold bg-prime-gold text-prime-blue" : complete ? "border-prime-blue bg-prime-blue text-prime-white" : "border-prime-rule bg-prime-white text-prime-ink"}`}>
-                {complete ? <Check size={14} /> : active ? <Clock3 size={15} /> : index + 1}
-              </span>
-              <p className={`relative z-10 mt-2 text-xs font-semibold ${active ? "text-prime-blue" : "text-prime-ink"}`}>{stage.label}</p>
-              <div className="relative z-10 mt-0.5 max-w-[160px] text-[10px] leading-tight text-prime-ink/70">
-                {active && request.isRevisionRequested ? <p>Revision requested</p> : stage.milestones.map((milestone) => (
-                  <p key={milestone}>{milestone}</p>
-                ))}
+              <div className="flex items-center gap-2">
+                <span className={`relative z-20 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold ${active ? "border-prime-gold bg-prime-gold text-prime-blue" : complete ? "border-prime-blue bg-prime-blue text-prime-white" : "border-prime-rule bg-prime-white text-prime-ink"}`}>
+                  {complete ? <Check size={13} /> : active ? <Clock3 size={14} /> : index + 1}
+                </span>
+                <div className="min-w-0 text-left">
+                  <p className={`text-[10px] uppercase tracking-[0.15em] ${active ? "text-prime-blue" : "text-prime-ink/65"}`}>Stage {index + 1}</p>
+                  <p className={`text-xs font-semibold leading-tight ${active ? "text-prime-blue" : "text-prime-ink"}`}>{stage.label}</p>
+                </div>
+              </div>
+              <div className="mt-4 space-y-2 border-l border-prime-rule pl-3 text-left">
+                {active && request.isRevisionRequested ? <p className="text-[11px] font-medium text-prime-blue">Revision requested</p> : stage.milestones.map((milestone, milestoneIndex) => {
+                  const milestoneComplete = complete || (active && milestoneIndex < currentMilestoneIndex);
+                  const milestoneActive = active && milestoneIndex === currentMilestoneIndex;
+                  return (
+                    <div key={milestone} className="relative pl-2">
+                      <span className={`absolute -left-[17px] top-1 h-2 w-2 rounded-full border ${milestoneActive ? "border-prime-gold bg-prime-gold" : milestoneComplete ? "border-prime-blue bg-prime-blue" : "border-prime-rule bg-prime-white"}`} aria-hidden="true" />
+                      <p className={`text-[11px] leading-tight ${milestoneActive ? "font-semibold text-prime-blue" : milestoneComplete ? "font-medium text-prime-ink" : "text-prime-ink/55"}`}>{milestone}</p>
+                      <p className="mt-1 text-[9px] leading-tight text-prime-ink/55">
+                        {milestoneActive
+                          ? `Updated ${formatStatusTimestamp(request.statusUpdatedAt)}`
+                          : milestoneComplete
+                            ? (index === 0 ? formatStatusTimestamp(request.dateCreated) : "Completed")
+                            : "Pending"}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );
@@ -178,16 +221,19 @@ function RequestsContent() {
             </button>
           </div>
           <RequestTimeline request={selectedRequest} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-prime-rule">
+          <div className="grid grid-cols-1 gap-px bg-prime-rule sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ["Department", selectedRequest.department],
-              ["Amount", `₱${Number(selectedRequest.totalAmount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
-              ["Stage", selectedRequest.stageLabel],
-              ["Requested by", selectedRequest.requestedBy],
-            ].map(([label, value]) => (
-              <div key={label} className="bg-prime-white px-5 py-4">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-prime-ink">{label}</p>
-                <p className="text-sm text-prime-ink mt-1">{value || "—"}</p>
+              { label: "Department", value: selectedRequest.department, icon: Building2 },
+              { label: "Amount", value: `₱${Number(selectedRequest.totalAmount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: PhilippinePeso, emphasis: true },
+              { label: "Current stage", value: selectedRequest.stageLabel, icon: Milestone },
+              { label: "Requested by", value: selectedRequest.requestedBy, icon: UserRound },
+            ].map(({ label, value, icon: Icon, emphasis }) => (
+              <div key={label} className="bg-prime-white px-5 py-5">
+                <div className="flex items-center gap-2 text-prime-blue">
+                  <Icon size={14} aria-hidden="true" />
+                  <p className="text-[9px] uppercase tracking-[0.18em]">{label}</p>
+                </div>
+                <p className={`mt-2 leading-tight text-prime-ink ${emphasis ? "font-bebas text-2xl tracking-wider text-prime-blue" : "text-base font-medium"}`}>{value || "—"}</p>
               </div>
             ))}
           </div>
@@ -208,9 +254,6 @@ function RequestsContent() {
                 </div>
               </div>
             )}
-            <a href={selectedRequest.taskUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-prime-blue hover:underline">
-              Open in ClickUp <ExternalLink size={12} />
-            </a>
           </div>
         </section>
       )}

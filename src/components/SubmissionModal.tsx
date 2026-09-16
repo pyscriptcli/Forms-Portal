@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { CheckCircle2, ExternalLink, Download, Copy, Check } from "lucide-react";
+import { CheckCircle2, Download, Copy, Check } from "lucide-react";
 import { SubmissionResponse } from "@/types/rfp";
 import { PrimeDialog } from "./PrimeDialog";
 import { downloadPdfBlob } from "@/lib/pdfGenerator";
@@ -49,14 +49,13 @@ export function SubmissionModal({
       actions={<button type="button" onClick={onClose} className="prime-button">Done</button>}>
       <div className="space-y-6">
         <div className="flex items-start gap-3"><CheckCircle2 className="text-prime-blue shrink-0 mt-1" /><p>{response.message || "Your request has been processed."}</p></div>
-        <div className="border-y border-prime-rule py-5 flex flex-wrap items-center justify-between gap-4">
+        <div className="border-y border-prime-rule py-5">
           <div>
             <p className="prime-label text-xs">Request name</p>
-            <p className="text-sm font-semibold text-prime-blue mt-2 max-w-xl">{response.requestName || response.taskData?.name || response.requestId}</p>
+            <p className="text-sm font-semibold text-prime-blue mt-2 max-w-xl">{response.requestName || response.requestId}</p>
             <p className="prime-label text-xs mt-4">Request ID</p>
             <p className="font-bebas text-3xl text-prime-blue mt-1">{response.requestId ?? `RFP-${response.taskId}`}</p>
           </div>
-          {response.taskUrl && !response.isMock && <a className="prime-button secondary" href={response.taskUrl} target="_blank" rel="noreferrer">View request <ExternalLink size={16} /></a>}
         </div>
         <p className="text-sm">Follow the review and payment stages on the request status page.</p>
         <div className="flex flex-wrap gap-3">

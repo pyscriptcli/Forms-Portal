@@ -139,12 +139,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       taskId: taskResult.id,
-      taskUrl: taskResult.url,
       isMock: false,
       requestId: data.rfpCodeSuffix || "Pending Finance number",
       requestName: taskResult.name,
       message: isRevision ? `${docName} revised and updated in ClickUp successfully!` : `${docName} submitted and created in ClickUp successfully!`,
-      taskData: taskResult,
     });
   } catch (error: any) {
     console.error("Error in /api/rfp/submit:", error);

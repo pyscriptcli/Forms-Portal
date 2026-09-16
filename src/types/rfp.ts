@@ -234,11 +234,9 @@ export interface ClickUpTaskResponse {
 export interface SubmissionResponse {
   success: boolean;
   taskId: string;
-  taskUrl: string;
   message: string;
   isMock: boolean;
   requestId?: string;
   requestName?: string;
-  taskData?: any;
 }
 

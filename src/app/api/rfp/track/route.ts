@@ -13,7 +13,6 @@ export interface TrackedRfp {
   taskId: string;
   requestId: string;
   taskName: string;
-  taskUrl: string;
   formType: "rfp" | "gw-rfp" | "travel-budget" | "po" | "pcv";
   payee: string;
   department: string;
@@ -33,6 +32,7 @@ export interface TrackedRfp {
     | "revision_requested";
   stageLabel: string;
   currentMilestone: string;
+  statusUpdatedAt: string;
   stageIndex: number; // 0 to 5
   isRevisionRequested: boolean;
   revisionReason?: string;
@@ -210,7 +210,6 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
     taskId: task.id,
     requestId: requestId || "RFP ID unavailable",
     taskName: task.name,
-    taskUrl: task.url || `https://app.clickup.com/t/${task.id}`,
     formType,
     payee,
     department: department || "General",
@@ -223,6 +222,11 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
     currentStage,
     stageLabel,
     currentMilestone,
+    statusUpdatedAt: task.date_updated
+      ? new Date(Number(task.date_updated)).toISOString()
+      : task.date_created
+        ? new Date(Number(task.date_created)).toISOString()
+        : new Date().toISOString(),
     stageIndex,
     isRevisionRequested,
     revisionReason,
