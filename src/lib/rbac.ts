@@ -108,22 +108,6 @@ export const DEFAULT_USERS: UserAccessRecord[] = [
     role: "requestor",
     status: "active",
   },
-  {
-    id: "usr-5",
-    name: "Operations Team Lead",
-    email: "tl.operations@primephilippines.com",
-    department: "Operations",
-    role: "approver",
-    status: "active",
-  },
-  {
-    id: "usr-6",
-    name: "Marketing Team Lead",
-    email: "tl.marketing@primephilippines.com",
-    department: "MARKETING",
-    role: "approver",
-    status: "active",
-  },
 ];
 
 export const RBAC_STORAGE_KEY = "prime_rbac_users";
@@ -143,27 +127,4 @@ export function getLocalRbacUsers(): UserAccessRecord[] {
 export function saveLocalRbacUsers(users: UserAccessRecord[]): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(RBAC_STORAGE_KEY, JSON.stringify(users));
-}
-
-/**
- * Resolves the designated Team Leader / Approver for a department.
- */
-export function getDepartmentApprover(
-  department?: string,
-  users: UserAccessRecord[] = getLocalRbacUsers()
-): UserAccessRecord | undefined {
-  if (!department) return undefined;
-  const clean = department.trim().toLowerCase();
-  // Exact or partial department match
-  const match = users.find(
-    (u) =>
-      u.status === "active" &&
-      u.role === "approver" &&
-      (u.department.toLowerCase() === clean ||
-        clean.includes(u.department.toLowerCase()) ||
-        u.department.toLowerCase().includes(clean))
-  );
-  if (match) return match;
-  // Fallback to first active approver if any
-  return users.find((u) => u.status === "active" && u.role === "approver");
 }

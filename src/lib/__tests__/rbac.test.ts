@@ -6,7 +6,6 @@ import {
   saveLocalRbacUsers,
   RBAC_STORAGE_KEY,
   UserAccessRecord,
-  getDepartmentApprover,
 } from "@/lib/rbac";
 
 describe("RBAC definitions and storage", () => {
@@ -46,16 +45,5 @@ describe("RBAC definitions and storage", () => {
     saveLocalRbacUsers(customUsers);
     const retrieved = getLocalRbacUsers();
     expect(retrieved).toEqual(customUsers);
-  });
-
-  it("resolves the designated department approver correctly", () => {
-    const isdApprover = getDepartmentApprover("ISD");
-    expect(isdApprover).toBeDefined();
-    expect(isdApprover?.role).toBe("approver");
-    expect(isdApprover?.department).toBe("ISD");
-
-    const opsApprover = getDepartmentApprover("Operations / 4010");
-    expect(opsApprover).toBeDefined();
-    expect(opsApprover?.department).toBe("Operations");
   });
 });

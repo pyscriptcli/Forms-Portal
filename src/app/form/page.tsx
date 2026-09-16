@@ -30,8 +30,6 @@ import {
 } from "@/lib/rfpValidation";
 import { AlertCircle } from "lucide-react";
 import { getAdminSettings } from "@/lib/adminSettings";
-import { PrototypeRoleSwitcher } from "@/components/PrototypeRoleSwitcher";
-import { UserRole, getDepartmentApprover } from "@/lib/rbac";
 
 const getInitialFormData = (): RfpFormData => {
   const now = new Date();
@@ -114,8 +112,6 @@ function RfpAppContent() {
   const [formData, setFormData] = useState<RfpFormData>(getInitialFormData);
   const [rfpNumberStatus, setRfpNumberStatus] = useState<"loading" | "ready" | "unavailable">("loading");
   const [selectedForm, setSelectedForm] = useState<string>(formParam ?? "rfp");
-  const [simulatedRole, setSimulatedRole] = useState<UserRole>("requestor");
-  const assignedApprover = getDepartmentApprover(formData.departmentCostCenter || formData.department);
   const [previousDraft, setPreviousDraft] = useState<RfpFormData | null>(null);
   const [extractedBanner, setExtractedBanner] = useState<{
     vendorName: string;
@@ -551,8 +547,6 @@ function RfpAppContent() {
 
       const sanitizedFormData = {
         ...formData,
-        approverName: formData.approverName || assignedApprover?.name || formData.tlSignatureName || "",
-        approverEmail: formData.approverEmail || assignedApprover?.email || "",
         supportingFiles: (formData.supportingFiles || []).map((f) => ({
           id: f.id,
           name: f.name,
@@ -633,15 +627,6 @@ function RfpAppContent() {
             />
           }
         />
-        {/* Prototype Role Simulator */}
-        <PrototypeRoleSwitcher
-          currentRole={simulatedRole}
-          onRoleChange={setSimulatedRole}
-          assignedApproverName={assignedApprover?.name}
-          assignedApproverEmail={assignedApprover?.email}
-          department={formData.departmentCostCenter || formData.department}
-        />
-
         {/* Form controls */}
         <Toolbar
           onPreviewPdf={handlePreviewPdf}
@@ -695,19 +680,7 @@ function RfpAppContent() {
 
         {/* Document First Paper Sheet */}
         <section id="rfp-sheet-container" className="prime-form-scroll mb-8" aria-label="Form document">
-          {selectedForm === "travel-budget" ? (
-            <TravelBudgetSheet data={formData as any} onChange={setFormData as any} />
-          ) : (
-            <RfpSheet
-              data={formData}
-              onChange={setFormData}
-              validationErrors={validationErrors}
-              variant={selectedForm === "gw-rfp" ? "gw" : "prime"}
-              rfpNumberStatus={rfpNumberStatus}
-              userRole={simulatedRole}
-              onSimulateApprover={() => setSimulatedRole("approver")}
-            />
-          )}
+          {selectedForm === "travel-budget" ? <TravelBudgetSheet data={formData as any} onChange={setFormData as any} /> : <RfpSheet data={formData} onChange={setFormData} validationErrors={validationErrors} variant={selectedForm === "gw-rfp" ? "gw" : "prime"} rfpNumberStatus={rfpNumberStatus} />}
         </section>
 
         {/* Supporting Documents Section */}
