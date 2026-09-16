@@ -7,7 +7,8 @@ import { PrimeCheckbox } from "./PrimeCheckbox";
 import { AutoResizeTextarea } from "./AutoResizeTextarea";
 import { SignatureModal } from "./SignatureModal";
 import { PrimeDatePicker } from "./PrimeDatePicker";
-import { PenTool, Trash2, Plus, Check } from "lucide-react";
+import { PenTool, Trash2, Plus, Check, Lock, ShieldCheck } from "lucide-react";
+import { UserRole, getDepartmentApprover } from "@/lib/rbac";
 
 function timeInputValue(value?: string) {
   if (/^\d{1,2}:\d{2}$/.test(value ?? "")) {
@@ -39,11 +40,25 @@ interface RfpSheetProps {
   validationErrors?: Record<string, string>;
   variant?: "prime" | "gw";
   rfpNumberStatus?: "loading" | "ready" | "unavailable";
+  userRole?: UserRole;
+  onSimulateApprover?: () => void;
 }
 
-export function RfpSheet({ data, onChange, validationErrors, variant = "prime", rfpNumberStatus = "loading" }: RfpSheetProps) {
+export function RfpSheet({
+  data,
+  onChange,
+  validationErrors,
+  variant = "prime",
+  rfpNumberStatus = "loading",
+  userRole = "requestor",
+  onSimulateApprover,
+}: RfpSheetProps) {
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [isTlSignatureModalOpen, setIsTlSignatureModalOpen] = useState(false);
+
+  const isApproverOrAdmin = userRole === "approver" || userRole === "admin";
+  const isLockedForApprover = !isApproverOrAdmin;
+  const assignedApprover = getDepartmentApprover(data.departmentCostCenter || data.department);
 
   // Auto-fill time on load if not set
   useEffect(() => {
@@ -705,77 +720,148 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
 
           {/* Right: Department & TL Column */}
           <div className="space-y-2.5">
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
-                Department / Cost Center:
-              </span>
-              <input
-                type="text"
-                value={data.departmentCostCenter ?? data.department}
-                onChange={(e) => updateFields({ departmentCostCenter: e.target.value, department: e.target.value })}
-                className={`border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1 ${
-                  hasError("department") ? "border-red-500 bg-red-50/50" : ""
-                }`}
-              />
+            <div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                  Department / Cost Center:
+                </span>
+                <input
+                  type="text"
+                  value={data.departmentCostCenter ?? data.department}
+                  onChange={(e) => updateFields({ departmentCostCenter: e.target.value, department: e.target.value })}
+                  className={`border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1 ${
+                    hasError("department") ? "border-red-500 bg-red-50/50" : ""
+                  }`}
+                />
+              </div>
+              {assignedApprover && (
+                <p className="text-[10px] text-slate-500 font-medium mt-0.5 pl-1 print:hidden no-print flex items-center gap-1">
+                  <span className="text-slate-400">Assigned Approver:</span>
+                  <span className="font-semibold text-[#003366]">{assignedApprover.name}</span>
+                  <span className="text-slate-400">({assignedApprover.email})</span>
+                </p>
+              )}
             </div>
 
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
-                TL Signature over Printed Name:
-              </span>
-              <input
-                type="text"
-                value={data.tlSignatureName ?? data.approvedByName ?? ""}
-                onChange={(e) => updateFields({ tlSignatureName: e.target.value, approvedByName: e.target.value })}
-                placeholder="Printed Name"
-                className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
-              />
-            </div>
-
-            {/* TL Signature E-Sig Pad / Draw / Upload Preview */}
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
-                TL Signature:
-              </span>
-              <div className="flex-1 flex items-center justify-between border-b border-[#0f172a] pb-0.5 min-h-[32px]">
-                {data.tlSignatureDataUrl ? (
-                  <div className="flex items-center gap-2">
-                    <img
-                      src={data.tlSignatureDataUrl}
-                      alt="TL Signature"
-                      className="h-8 max-w-[150px] object-contain"
-                    />
+            {/* TL Signature Block Container with Role-Based Overlay */}
+            <div className="relative border border-dashed border-slate-300 rounded p-2 bg-slate-50/40 space-y-2.5 transition-all">
+              {/* Locked Overlay for Requestor / Non-Approver View */}
+              {isLockedForApprover && (
+                <div
+                  className="absolute inset-0 z-10 bg-white/92 backdrop-blur-[1.5px] border-2 border-dashed border-[#003366]/40 rounded flex flex-col items-center justify-center p-3 text-center print:hidden no-print select-none shadow-xs transition-all"
+                  data-pdf-ignore="true"
+                >
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#003366] text-white text-[11px] font-bold tracking-wider uppercase mb-1.5 shadow-sm">
+                    <Lock className="w-3.5 h-3.5 text-amber-300" />
+                    <span>For TL / Approver Only</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 max-w-[230px] font-medium leading-tight mb-2">
+                    This section is reserved for Department Team Leader endorsement and signature upon submission review.
+                  </p>
+                  {onSimulateApprover && (
                     <button
                       type="button"
-                      onClick={() => setIsTlSignatureModalOpen(true)}
-                      className="text-[10px] text-[#003366] underline print:hidden no-print"
-                      data-pdf-ignore="true"
+                      onClick={onSimulateApprover}
+                      className="inline-flex items-center gap-1.5 text-[11px] text-[#003366] font-semibold bg-blue-50 hover:bg-blue-100 border border-[#003366]/30 px-2.5 py-1 rounded shadow-2xs transition hover:border-[#003366]"
                     >
-                      Change
+                      <span>Simulate Approver View</span>
+                      <span aria-hidden="true">&rarr;</span>
                     </button>
-                  </div>
-                ) : (
+                  )}
+                </div>
+              )}
+
+              {/* Unlocked Approver Banner */}
+              {isApproverOrAdmin && (
+                <div className="flex items-center justify-between bg-purple-50 border border-purple-200 px-2 py-1 rounded text-purple-900 text-[10px] font-semibold print:hidden no-print mb-1">
+                  <span className="flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
+                    Approver Endorsement Mode (Unlocked)
+                  </span>
                   <button
                     type="button"
-                    onClick={() => setIsTlSignatureModalOpen(true)}
-                    className="text-[11px] text-[#003366] hover:underline flex items-center gap-1 py-1 font-medium print:hidden no-print"
-                    data-pdf-ignore="true"
+                    onClick={() => {
+                      const today = new Date();
+                      const mm = String(today.getMonth() + 1).padStart(2, "0");
+                      const dd = String(today.getDate()).padStart(2, "0");
+                      const yyyy = String(today.getFullYear());
+                      const approverName = assignedApprover?.name || "Department Team Leader";
+                      updateFields({
+                        tlSignatureName: data.tlSignatureName || approverName,
+                        tlSignatureDate: data.tlSignatureDate || `${mm}/${dd}/${yyyy}`,
+                        approvedByName: data.approvedByName || approverName,
+                      });
+                    }}
+                    className="text-[10px] text-purple-700 hover:text-purple-900 underline font-medium"
                   >
-                    <PenTool size={12} /> Click to Sign / Upload
+                    Quick-fill TL info
                   </button>
-                )}
-              </div>
-            </div>
+                </div>
+              )}
 
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
-                Date (MM/DD/YYYY):
-              </span>
-              <PrimeDatePicker
-                value={data.tlSignatureDate ?? ""}
-                onChange={(val) => updateField("tlSignatureDate", val)}
-                className="flex-1"
-              />
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                  TL Signature over Printed Name:
+                </span>
+                <input
+                  type="text"
+                  disabled={isLockedForApprover}
+                  value={data.tlSignatureName ?? data.approvedByName ?? ""}
+                  onChange={(e) => updateFields({ tlSignatureName: e.target.value, approvedByName: e.target.value })}
+                  placeholder="Printed Name"
+                  className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1 disabled:opacity-50"
+                />
+              </div>
+
+              {/* TL Signature E-Sig Pad / Draw / Upload Preview */}
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                  TL Signature:
+                </span>
+                <div className="flex-1 flex items-center justify-between border-b border-[#0f172a] pb-0.5 min-h-[32px]">
+                  {data.tlSignatureDataUrl ? (
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={data.tlSignatureDataUrl}
+                        alt="TL Signature"
+                        className="h-8 max-w-[150px] object-contain"
+                      />
+                      {!isLockedForApprover && (
+                        <button
+                          type="button"
+                          onClick={() => setIsTlSignatureModalOpen(true)}
+                          className="text-[10px] text-[#003366] underline print:hidden no-print"
+                          data-pdf-ignore="true"
+                        >
+                          Change
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={isLockedForApprover}
+                      onClick={() => setIsTlSignatureModalOpen(true)}
+                      className="text-[11px] text-[#003366] hover:underline flex items-center gap-1 py-1 font-medium print:hidden no-print disabled:opacity-50"
+                      data-pdf-ignore="true"
+                    >
+                      <PenTool size={12} /> Click to Sign / Upload
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
+                  Date (MM/DD/YYYY):
+                </span>
+                <PrimeDatePicker
+                  value={data.tlSignatureDate ?? ""}
+                  onChange={(val) => updateField("tlSignatureDate", val)}
+                  className="flex-1"
+                  disabled={isLockedForApprover}
+                />
+              </div>
             </div>
           </div>
         </div>
