@@ -127,6 +127,8 @@ begin
   return query select 'RFP-' || p_reference_month || '-' || lpad(next_number::text, 4, '0'), next_number;
 end; $$;
 
+grant execute on function public.forms_portal_allocate_rfp_sequence(varchar, varchar, varchar) to service_role;
+
 insert into "forms-portal-RBAC"
   (user_id, name, email, department, role, status)
 values

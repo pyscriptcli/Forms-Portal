@@ -32,6 +32,7 @@ export interface TrackedRfp {
     | "completed"
     | "revision_requested";
   stageLabel: string;
+  currentMilestone: string;
   stageIndex: number; // 0 to 5
   isRevisionRequested: boolean;
   revisionReason?: string;
@@ -160,24 +161,27 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
     }
   }
 
-  const legacy: Record<string, { currentStage: TrackedRfp["currentStage"]; stageLabel: string; stageIndex: number }> = {
-    submitted: { currentStage: "submitted", stageLabel: "Submission", stageIndex: 0 },
-    "for tl approval": { currentStage: "endorsed", stageLabel: "TL Approval", stageIndex: 1 },
-    "approval team leader": { currentStage: "endorsed", stageLabel: "TL Approval", stageIndex: 1 },
-    "finance verification": { currentStage: "finance_verification", stageLabel: "Finance", stageIndex: 2 },
-    "disbursement prep": { currentStage: "disbursement_prep", stageLabel: "Payment", stageIndex: 4 },
-    "executive sign off": { currentStage: "executive_signoff", stageLabel: "Management Approval", stageIndex: 3 },
-    completed: { currentStage: "completed", stageLabel: "Completed", stageIndex: 5 },
+  const legacy: Record<string, { currentStage: TrackedRfp["currentStage"]; stageLabel: string; currentMilestone: string; stageIndex: number }> = {
+    submitted: { currentStage: "submitted", stageLabel: "Submission", currentMilestone: "Requestor Form Submission", stageIndex: 0 },
+    "for tl approval": { currentStage: "endorsed", stageLabel: "TL Approval", currentMilestone: "TL Review and Approval", stageIndex: 1 },
+    "approval team leader": { currentStage: "endorsed", stageLabel: "TL Approval", currentMilestone: "TL Review and Approval", stageIndex: 1 },
+    "finance verification": { currentStage: "finance_verification", stageLabel: "Finance", currentMilestone: "Finance Validation", stageIndex: 2 },
+    "disbursement prep": { currentStage: "disbursement_prep", stageLabel: "Payment", currentMilestone: "Payment Release", stageIndex: 4 },
+    "executive sign off": { currentStage: "executive_signoff", stageLabel: "Management Approval", currentMilestone: "CFO/CEO Review and Sign-off", stageIndex: 3 },
+    completed: { currentStage: "completed", stageLabel: "Completed", currentMilestone: "Records Filing", stageIndex: 5 },
   };
   const resolved = (isDone ? legacy.completed : legacy[normalizedStatus] || resolveRfpMilestone(statusStr, DEFAULT_WORKFLOW_STATUSES)) as {
     currentStage?: TrackedRfp["currentStage"];
     stageLabel: string;
+    currentMilestone?: string;
+    key?: string;
     stageIndex: number;
   };
   let currentStage: TrackedRfp["currentStage"] = resolved.currentStage || (
     resolved.stageIndex === 5 ? "completed" : resolved.stageIndex === 4 ? "disbursement_prep" : resolved.stageIndex === 3 ? "executive_signoff" : resolved.stageIndex === 2 ? "finance_verification" : resolved.stageIndex === 1 ? "endorsed" : "submitted"
   );
   let stageLabel = resolved.stageLabel;
+  let currentMilestone = resolved.currentMilestone || resolved.key || "Requestor Form Submission";
   let stageIndex = resolved.stageIndex;
 
   if (isRevisionRequested) {
@@ -189,6 +193,7 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
     if (revisionBy === "finance" && stageIndex < 2) {
       stageIndex = 2;
     }
+    currentMilestone = "Revision Requested";
   }
 
   // Attachments
@@ -217,6 +222,7 @@ function parseTaskToTrackedRfp(task: any): TrackedRfp {
     requestedByEmail,
     currentStage,
     stageLabel,
+    currentMilestone,
     stageIndex,
     isRevisionRequested,
     revisionReason,

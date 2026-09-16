@@ -24,12 +24,12 @@ import { DEPARTMENT_NAMES } from "@/types/rfp";
 const DEPARTMENTS = ["All Departments", ...DEPARTMENT_NAMES];
 
 const WORKFLOW_STAGES = [
-  { label: "Submitted", description: "Request received" },
-  { label: "Approval Team Leader", description: "Awaiting Team Leader approval" },
-  { label: "Finance Verification", description: "Zoho & Top Sheet Prepared" },
-  { label: "Disbursement Prep", description: "UnionBank / Check Prepared" },
-  { label: "Executive Sign-Off", description: "CFO & CEO Signed Off" },
-  { label: "Completed", description: "Payment Released & Filed" },
+  { label: "Submission", milestones: ["Requestor form submission"] },
+  { label: "TL Approval", milestones: ["TL Review and Approval"] },
+  { label: "Finance", milestones: ["Validation", "Processing", "Payment Preparation"] },
+  { label: "Management Approval", milestones: ["CFO/CEO review and sign-off"] },
+  { label: "Payment", milestones: ["Payment Release", "Payment Documentation"] },
+  { label: "Completed", milestones: ["Records Filing"] },
 ];
 
 function RequestTimeline({ request }: { request: TrackedRfp }) {
@@ -50,7 +50,11 @@ function RequestTimeline({ request }: { request: TrackedRfp }) {
                 {complete ? <Check size={14} /> : active ? <Clock3 size={15} /> : index + 1}
               </span>
               <p className={`relative z-10 mt-2 text-xs font-semibold ${active ? "text-prime-blue" : "text-prime-ink"}`}>{stage.label}</p>
-              <p className="relative z-10 mt-0.5 max-w-[150px] text-[10px] leading-tight text-prime-ink/70">{active && request.isRevisionRequested ? "Revision requested" : stage.description}</p>
+              <div className="relative z-10 mt-0.5 max-w-[160px] text-[10px] leading-tight text-prime-ink/70">
+                {active && request.isRevisionRequested ? <p>Revision requested</p> : stage.milestones.map((milestone) => (
+                  <p key={milestone}>{milestone}</p>
+                ))}
+              </div>
             </div>
           );
         })}
