@@ -576,6 +576,9 @@ function RfpAppContent() {
         })),
       };
 
+      // Reject oversized attachments before creating the ClickUp task.
+      assertUploadSizes(rawSupportingFiles.map((file, index) => ({ key: `support-${index}`, file })));
+
       const submissionData = new FormData();
       submissionData.append("formType", selectedForm);
       const dataPayload = JSON.stringify(sanitizedFormData);
