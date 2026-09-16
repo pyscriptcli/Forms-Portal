@@ -22,6 +22,20 @@ describe("split ClickUp attachment uploads", () => {
     document.cookie = "clickup_auth_token=; Max-Age=0";
   });
 
+  it("falls back to the authenticated relay when ClickUp blocks browser CORS", async () => {
+    document.cookie = "clickup_auth_token=oauth-token";
+    const fetchMock = vi.fn()
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ success: true }) });
+    vi.stubGlobal("fetch", fetchMock);
+    const file = new File(["pdf"], "RFP-092026-0003_RFP_BestPrint.pdf", { type: "application/pdf" });
+
+    await uploadSubmissionFiles("task-123", [{ key: "pdf", file }], new Set(), vi.fn());
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1][0]).toBe("/api/rfp/upload");
+  });
+
   it("sends one request per attachment and keeps the task ID", async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ success: true }) });
     vi.stubGlobal("fetch", fetchMock);
