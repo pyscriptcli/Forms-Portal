@@ -12,6 +12,7 @@ import {
   readWorkflowStatusesFromSupabase,
   saveWorkflowStatusesToSupabase,
   readPortalSettingsFromSupabase,
+  readFormDestinationsFromSupabase,
   savePortalSettingsToSupabase,
   saveFormDestinationsToSupabase,
 } from "@/lib/supabaseAdmin";
@@ -29,11 +30,13 @@ export async function GET() {
   const flags = await readFlags();
   if (isSupabaseAdminConfigured()) {
     try {
-      const [workflowStatuses, portalSettings] = await Promise.all([
+      const [workflowStatuses, portalSettings, destinations] = await Promise.all([
         readWorkflowStatusesFromSupabase(),
         readPortalSettingsFromSupabase(),
+        readFormDestinationsFromSupabase(),
       ]);
       if (workflowStatuses) flags.workflowStatuses = workflowStatuses;
+      if (destinations) flags.destinations = destinations;
       Object.assign(flags, portalSettings);
     } catch (error) {
       console.error("Failed to read workflow statuses from Supabase:", error);

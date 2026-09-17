@@ -83,9 +83,9 @@ import {
 } from "@/lib/rbac";
 
 const DEFAULT_FORM_DESTINATIONS: FormDestinations = {
-  rfp: { listId: "901420772915", workspaceId: "9014981136", label: "PRIME RFP submissions", enabled: true },
-  "gw-rfp": { listId: "901420772915", workspaceId: "9014981136", label: "GW RFP submissions", enabled: true },
-  "travel-budget": { listId: "901420772915", workspaceId: "9014981136", label: "Travel Budget requests", enabled: true },
+  rfp: { listId: "", workspaceId: "", label: "PRIME RFP submissions", enabled: false },
+  "gw-rfp": { listId: "", workspaceId: "", label: "GW RFP submissions", enabled: false },
+  "travel-budget": { listId: "", workspaceId: "", label: "Travel Budget requests", enabled: false },
 };
 
 const DEFAULT_WORKFLOW_STATUSES: WorkflowStatuses = {
@@ -599,7 +599,7 @@ export default function AdminPage() {
             <div>
               <h2 className="prime-heading text-3xl">Form destinations</h2>
               <p className="text-sm text-prime-ink/80 mt-1">
-                Choose the ClickUp List that receives each form submission. PRIME RFP defaults to List 901420772915.
+                Configure the ClickUp Lists used by the portal. Values shown here are read from Supabase.
               </p>
             </div>
             <button

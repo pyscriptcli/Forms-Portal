@@ -101,6 +101,29 @@ export async function readFormDestinationFromSupabase(
   };
 }
 
+export async function readFormDestinationsFromSupabase(): Promise<Record<FormDestinationKey, FormDestination>> {
+  const { url, key, isConfigured } = getSupabaseConfig();
+  if (!isConfigured) throw new Error("Supabase is required for shared form destination configuration.");
+  const response = await fetch(
+    `${url}/rest/v1/${encodeURIComponent(DESTINATIONS_TABLE)}?select=form_type,clickup_list_id,clickup_workspace_id,display_name,enabled&order=form_type.asc`,
+    { headers: supabaseHeaders(key), cache: "no-store" },
+  );
+  if (!response.ok) throw new Error(`Supabase form destinations read failed (${response.status}): ${await response.text()}`);
+  const rows = await response.json() as Array<{
+    form_type: FormDestinationKey;
+    clickup_list_id?: string;
+    clickup_workspace_id?: string;
+    display_name?: string;
+    enabled?: boolean;
+  }>;
+  return Object.fromEntries(rows.map((row) => [row.form_type, {
+    listId: row.clickup_list_id || "",
+    workspaceId: row.clickup_workspace_id || "",
+    label: row.display_name || row.form_type,
+    enabled: row.enabled !== false,
+  }])) as Record<FormDestinationKey, FormDestination>;
+}
+
 export async function readPortalSettingsFromSupabase(): Promise<{
   rfpAutofillEnabled?: boolean;
   clickupFieldMapping?: ClickUpFieldIdMapping;
