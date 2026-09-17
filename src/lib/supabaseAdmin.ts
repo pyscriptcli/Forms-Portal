@@ -209,6 +209,7 @@ export async function readRbacUsersFromSupabase(): Promise<UserAccessRecord[]> {
     department: String(row.department || ""), role: row.role as UserAccessRecord["role"],
     status: row.status as UserAccessRecord["status"], updatedAt: row.updated_at ? String(row.updated_at) : undefined,
     clickUpTaskId: row.clickup_task_id ? String(row.clickup_task_id) : undefined,
+    permissions: Array.isArray(row.permissions) ? row.permissions as UserAccessRecord["permissions"] : undefined,
   }));
 }
 
@@ -219,6 +220,7 @@ export async function saveRbacUsersToSupabase(users: UserAccessRecord[]): Promis
     user_id: user.id, name: user.name, email: user.email, department: user.department,
     role: user.role, status: user.status, updated_at: new Date().toISOString(),
     clickup_task_id: user.clickUpTaskId || null,
+    permissions: user.permissions || null,
   }));
   const response = await fetch(`${url}/rest/v1/${encodeURIComponent(RBAC_TABLE)}?on_conflict=user_id`, {
     method: "POST", headers: supabaseHeaders(key, { Prefer: "resolution=merge-duplicates,return=minimal" }),

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME, USER_COOKIE_NAME, getServerAuthSession } from "@/lib/auth";
-import { resolveUserRole } from "@/lib/rbacServer";
+import { resolveUserAccess } from "@/lib/rbacServer";
 
 export async function GET() {
   const session = await getServerAuthSession();
-  const role = await resolveUserRole(session.user);
+  const access = await resolveUserAccess(session.user);
   return NextResponse.json({
     ...session,
-    user: session.user ? { ...session.user, role } : null,
+    user: session.user ? { ...session.user, role: access.role, permissions: access.permissions } : null,
   });
 }
 

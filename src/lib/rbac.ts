@@ -1,4 +1,5 @@
 export type UserRole = "admin" | "approver" | "finance" | "requestor";
+export type PortalPermission = "forms" | "requests" | "approvals" | "settings";
 
 export interface RoleDefinition {
   id: UserRole;
@@ -73,6 +74,7 @@ export interface UserAccessRecord {
   status: "active" | "inactive";
   updatedAt?: string;
   clickUpTaskId?: string;
+  permissions?: PortalPermission[];
 }
 
 export const DEFAULT_USERS: UserAccessRecord[] = [

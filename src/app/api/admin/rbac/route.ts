@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ADMIN_TOKEN } from "@/lib/adminSettings";
-import { ROLE_DEFINITIONS, UserAccessRecord } from "@/lib/rbac";
+import { ROLE_DEFINITIONS, UserAccessRecord, PortalPermission } from "@/lib/rbac";
 import { readRbacUsersFromSupabase, saveRbacUsersToSupabase } from "@/lib/supabaseAdmin";
 
 
@@ -45,6 +45,9 @@ export async function POST(req: NextRequest) {
       status: u.status === "inactive" ? "inactive" : "active",
       updatedAt: new Date().toISOString(),
       clickUpTaskId: u.clickUpTaskId || undefined,
+      permissions: Array.isArray(u.permissions)
+        ? u.permissions.filter((p: unknown): p is PortalPermission => ["forms", "requests", "approvals", "settings"].includes(String(p)))
+        : undefined,
     }));
 
     await saveRbacUsersToSupabase(validatedUsers);

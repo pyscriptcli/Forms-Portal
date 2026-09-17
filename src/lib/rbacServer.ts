@@ -1,9 +1,9 @@
 import "server-only";
 
 import { readRbacUsersFromSupabase } from "@/lib/supabaseAdmin";
-import type { UserRole } from "@/lib/rbac";
+import type { UserRole, PortalPermission } from "@/lib/rbac";
 
-export async function resolveUserRole(user: { email?: string; username?: string } | null): Promise<UserRole> {
+export async function resolveUserAccess(user: { email?: string; username?: string } | null): Promise<{ role: UserRole; permissions: PortalPermission[] }> {
   const email = (user?.email || "").trim().toLowerCase();
   const username = (user?.username || "").trim().toLowerCase();
   const users = await readRbacUsersFromSupabase();
@@ -13,5 +13,9 @@ export async function resolveUserRole(user: { email?: string; username?: string 
       (candidate.email.trim().toLowerCase() === email || candidate.name.trim().toLowerCase() === username),
   );
 
-  return record?.role || "requestor";
+  return { role: record?.role || "requestor", permissions: record?.permissions || ["forms", "requests"] };
+}
+
+export async function resolveUserRole(user: { email?: string; username?: string } | null): Promise<UserRole> {
+  return (await resolveUserAccess(user)).role;
 }

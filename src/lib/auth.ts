@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import type { UserRole } from "@/lib/rbac";
+import type { UserRole, PortalPermission } from "@/lib/rbac";
 
 export interface ClickUpUser {
   id: string;
@@ -9,6 +9,7 @@ export interface ClickUpUser {
   profilePicture?: string;
   workspaceName?: string;
   role?: UserRole;
+  permissions?: PortalPermission[];
 }
 
 export interface AuthSession {

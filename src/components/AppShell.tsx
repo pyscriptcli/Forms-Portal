@@ -67,6 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return "requests";
   };
   const activeKey = getActiveKey();
+  const allowedPages = user.permissions;
 
   const handleSelectView = (view: string) => {
     setMobileOpen(false);
@@ -105,6 +106,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               isAdmin={isAdmin}
               onSignOut={signOut}
               items={NAV_ITEMS}
+              allowedPages={allowedPages}
               isPinned={true}
               className="!w-64"
             />
@@ -134,6 +136,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           isAdmin={isAdmin}
           onSignOut={signOut}
           items={NAV_ITEMS}
+          allowedPages={allowedPages}
           onExpandedChange={(expanded) => setIsSidebarExpanded(expanded)}
         />
       </div>

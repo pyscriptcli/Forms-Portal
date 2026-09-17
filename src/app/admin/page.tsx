@@ -65,6 +65,7 @@ import {
   DEFAULT_USERS,
   type UserAccessRecord,
   type UserRole,
+  type PortalPermission,
 } from "@/lib/rbac";
 
 const DEFAULT_FORM_DESTINATIONS: FormDestinations = {
@@ -411,6 +412,15 @@ export default function AdminPage() {
           : u
       )
     );
+  };
+
+  const togglePermission = (userId: string, permission: PortalPermission) => {
+    setUsers((prev) => prev.map((u) => {
+      if (u.id !== userId) return u;
+      const current = u.permissions || (u.role === "admin" ? ["forms", "requests", "approvals", "settings"] : ["forms", "requests"]);
+      const permissions = current.includes(permission) ? current.filter((p) => p !== permission) : [...current, permission];
+      return { ...u, permissions };
+    }));
   };
 
   const handleDeleteUser = (userId: string) => {
@@ -1002,6 +1012,7 @@ export default function AdminPage() {
                     <th className="p-3">Member</th>
                     <th className="p-3">Department</th>
                     <th className="p-3">Assigned Role</th>
+                    <th className="p-3">Portal Access</th>
                     <th className="p-3">Status</th>
                     <th className="p-3 text-right">Actions</th>
                   </tr>
@@ -1026,6 +1037,18 @@ export default function AdminPage() {
                             <option value="finance">Finance & Accounting</option>
                             <option value="requestor">Requestor / Staff</option>
                           </select>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex flex-wrap gap-x-2 gap-y-1 max-w-[260px]">
+                            {(["forms", "requests", "approvals", "settings"] as PortalPermission[]).map((permission) => {
+                              const defaults = u.role === "admin" ? ["forms", "requests", "approvals", "settings"] : ["forms", "requests"];
+                              const enabled = (u.permissions || defaults).includes(permission);
+                              return <label key={permission} className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide cursor-pointer">
+                                <input type="checkbox" checked={enabled} onChange={() => togglePermission(u.id, permission)} />
+                                {permission}
+                              </label>;
+                            })}
+                          </div>
                         </td>
                         <td className="p-3">
                           <button
