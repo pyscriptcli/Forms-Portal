@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FormType } from "@/types/rfp";
-import { createClickUpTask, deleteClickUpTask, readNextRfpReferenceFromClickUp, updateClickUpTask, uploadAttachmentToTask } from "@/lib/clickup";
+import { createClickUpTask, deleteClickUpTask, getClickUpConfig, readNextRfpReferenceFromClickUp, updateClickUpTask, uploadAttachmentToTask } from "@/lib/clickup";
 import { sendApproverNotification } from "@/lib/email";
 import { fetchClickUpUser, getServerAuthSession } from "@/lib/auth";
 import { readFormDestinationFromSupabase, readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
@@ -82,7 +82,9 @@ export async function POST(req: NextRequest) {
       const submissionDate = new Date(data.date || Date.now());
       const referenceMonth = `${String(submissionDate.getMonth() + 1).padStart(2, "0")}${submissionDate.getFullYear()}`;
       data.entityCode = data.entityCode || (formType === "gw-rfp" ? "GW" : "PRIME");
-      data.rfpCodeSuffix = (await readNextRfpReferenceFromClickUp(referenceMonth, accessToken, destinationListId)).reference;
+      const serverClickUp = getClickUpConfig("rfp", undefined, destinationListId);
+      if (!serverClickUp.isConfigured) throw new Error("The server-side ClickUp API token is not configured for RFP numbering.");
+      data.rfpCodeSuffix = (await readNextRfpReferenceFromClickUp(referenceMonth, serverClickUp.token, destinationListId)).reference;
     }
 
     const host = req.headers.get("host") || "localhost:3000";
