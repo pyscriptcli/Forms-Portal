@@ -220,7 +220,7 @@ export async function saveRbacUsersToSupabase(users: UserAccessRecord[]): Promis
     role: user.role, status: user.status, updated_at: new Date().toISOString(),
     clickup_task_id: user.clickUpTaskId || null,
   }));
-  const response = await fetch(`${url}/rest/v1/${encodeURIComponent(RBAC_TABLE)}`, {
+  const response = await fetch(`${url}/rest/v1/${encodeURIComponent(RBAC_TABLE)}?on_conflict=user_id`, {
     method: "POST", headers: supabaseHeaders(key, { Prefer: "resolution=merge-duplicates,return=minimal" }),
     body: JSON.stringify(rows),
   });
