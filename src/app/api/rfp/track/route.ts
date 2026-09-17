@@ -85,11 +85,12 @@ export async function GET(req: NextRequest) {
       if (!viewer.canViewAll && !taskBelongsToViewer(parsed, viewer)) {
         return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
       }
-      await persistPendingBackfills([parsed], rfpClickUp.token);
+      const timestampSyncFailures = await persistPendingBackfills([parsed], rfpClickUp.token);
       return NextResponse.json({
         success: true,
         requests: [parsed],
         viewerCanViewAll: viewer.canViewAll,
+        timestampSyncFailures,
       });
     }
 
@@ -145,13 +146,14 @@ export async function GET(req: NextRequest) {
     // Sort by creation date descending
     parsed.sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime());
 
-    await persistPendingBackfills(parsed, rfpClickUp.token);
+    const timestampSyncFailures = await persistPendingBackfills(parsed, rfpClickUp.token);
 
     return NextResponse.json({
       success: true,
       requests: parsed,
       count: parsed.length,
       viewerCanViewAll: viewer.canViewAll,
+      timestampSyncFailures,
     });
   } catch (error: any) {
     console.error("Error in /api/rfp/track:", error);
@@ -173,7 +175,8 @@ function taskBelongsToViewer(request: TrackedRfp, viewer: ViewerAccess): boolean
   return request.requestedBy.trim().toLowerCase() === viewerName;
 }
 
-export async function persistPendingBackfills(requests: TrackedRfp[], token?: string): Promise<void> {
+export async function persistPendingBackfills(requests: TrackedRfp[], token?: string): Promise<string[]> {
+  const failures: string[] = [];
   const writes = requests
     .filter((request) => request.pendingClickUpBackfill?.length)
     .map(async (request) => {
@@ -183,9 +186,11 @@ export async function persistPendingBackfills(requests: TrackedRfp[], token?: st
         token
       );
       if (!saved) {
-        throw new Error(`ClickUp milestone timestamps could not be synchronized for ${request.taskId}.`);
+        failures.push(request.taskId);
+        console.warn(`ClickUp milestone timestamps could not be synchronized for ${request.taskId}.`);
       }
     });
   await Promise.all(writes);
+  return failures;
 }
 

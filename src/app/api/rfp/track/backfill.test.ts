@@ -40,12 +40,12 @@ describe("ClickUp milestone backfill", () => {
     expect(completed).toBe(true);
   });
 
-  it("fails instead of displaying timestamps ClickUp did not save", async () => {
+  it("reports a failed repair without hiding otherwise valid ClickUp requests", async () => {
     vi.mocked(backfillMilestoneTimestampsToClickUp).mockResolvedValue(false);
 
     await expect(persistPendingBackfills([{
       taskId: "task-1",
       pendingClickUpBackfill: [{ fieldId: "field-1", timestamp: 1789616700000 }],
-    } as never], "pk_test")).rejects.toThrow(/task-1/);
+    } as never], "pk_test")).resolves.toEqual(["task-1"]);
   });
 });
