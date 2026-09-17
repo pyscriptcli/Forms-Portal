@@ -11,13 +11,21 @@ import { mapClickUpTaskToTrackedRfp } from "@/lib/rfpTrackerMapping";
 import { ADMIN_TOKEN } from "@/lib/adminSettings";
 import { promises as fs } from "fs";
 import path from "path";
-import { isSupabaseAdminConfigured, readPortalSettingsFromSupabase, savePortalSettingsToSupabase } from "@/lib/supabaseAdmin";
+import {
+  isSupabaseAdminConfigured,
+  readFormDestinationFromSupabase,
+  readPortalSettingsFromSupabase,
+  savePortalSettingsToSupabase,
+} from "@/lib/supabaseAdmin";
 
 const FLAGS_PATH = path.join(process.cwd(), "src", "lib", "featureFlags.json");
 
 export async function GET(req: NextRequest) {
   try {
-    const { token, listId, isConfigured } = getClickUpConfig("rfp");
+    const destination = isSupabaseAdminConfigured()
+      ? await readFormDestinationFromSupabase("rfp")
+      : null;
+    const { token, listId, isConfigured } = getClickUpConfig("rfp", undefined, destination?.listId);
     if (!isConfigured) {
       return NextResponse.json(
         { success: false, message: "ClickUp token or RFP list ID not configured in environment." },
@@ -54,7 +62,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const action = body.action || "discover_and_save";
 
-    const { token, listId, isConfigured } = getClickUpConfig("rfp");
+    const destination = isSupabaseAdminConfigured()
+      ? await readFormDestinationFromSupabase("rfp")
+      : null;
+    const { token, listId, isConfigured } = getClickUpConfig("rfp", undefined, destination?.listId);
     if (!isConfigured) {
       return NextResponse.json(
         { success: false, message: "ClickUp token or RFP list ID not configured." },
