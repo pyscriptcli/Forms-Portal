@@ -6,9 +6,10 @@ import {
   CLICKUP_AUDIT_FIELDS,
   resolveFieldIdMapping,
 } from "@/lib/clickupFields";
-import { resolveRfpMilestone, ORDERED_MILESTONE_KEYS } from "@/lib/rfpWorkflow";
+import { getMilestoneEntries, ORDERED_MILESTONE_KEYS } from "@/lib/rfpWorkflow";
 import { DEFAULT_WORKFLOW_STATUSES } from "@/lib/adminSettings";
-import { getAdminSettings } from "@/lib/adminSettings";
+import { readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
+import { invalidateRfpCache } from "@/lib/rfpCache";
 
 /**
  * Verifies ClickUp HMAC SHA-256 webhook signature from X-Signature header.
@@ -98,32 +99,22 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Resolve Status to Milestone
-  const resolved = resolveRfpMilestone(newStatus, DEFAULT_WORKFLOW_STATUSES);
-  const milestoneKey = resolved.key;
+  const workflowStatuses = await readWorkflowStatusesFromSupabase().then((s) => s || DEFAULT_WORKFLOW_STATUSES);
+  const entries = getMilestoneEntries(workflowStatuses);
+  const matchedEntry = entries.find((entry) => entry.status.trim().toLowerCase() === newStatus.trim().toLowerCase());
+
+  if (!matchedEntry) {
+    console.log(`Unknown ClickUp status "${newStatus}" ignored by webhook.`);
+    return NextResponse.json({ success: true, ignored: true, reason: `Unknown status "${newStatus}"` });
+  }
+
+  const milestoneKey = matchedEntry.key;
   const milestoneFieldName = CLICKUP_MILESTONE_FIELDS[milestoneKey];
   const milestoneFieldId = fieldMapping[milestoneFieldName];
 
   // 3. Write Authoritative Milestone Timestamp (Unix ms)
   if (milestoneFieldId) {
     await setTaskCustomFieldValue(taskId, milestoneFieldId, eventDate);
-  }
-
-  // 3b. Backfill any preceding milestones that are currently empty
-  const currentIdx = ORDERED_MILESTONE_KEYS.indexOf(milestoneKey);
-  if (currentIdx > 0) {
-    const priorKeys = ORDERED_MILESTONE_KEYS.slice(0, currentIdx);
-    for (let p = 0; p < priorKeys.length; p++) {
-      const pKey = priorKeys[p];
-      const pFieldName = CLICKUP_MILESTONE_FIELDS[pKey];
-      const pFieldId = fieldMapping[pFieldName];
-      if (pFieldId) {
-        const existingVal = availableFields.find((f: any) => f.id === pFieldId)?.value;
-        if (!existingVal) {
-          const ts = p === 0 ? (Number(task.date_created) || eventDate) : eventDate;
-          await setTaskCustomFieldValue(taskId, pFieldId, ts);
-        }
-      }
-    }
   }
 
   // 4. Append to Process History and Update Last Status Event ID
@@ -149,6 +140,9 @@ export async function POST(req: NextRequest) {
     if (revAtId) await setTaskCustomFieldValue(taskId, revAtId, eventDate);
     if (revById) await setTaskCustomFieldValue(taskId, revById, actor);
   }
+
+  // 6. Invalidate read cache
+  invalidateRfpCache(task.team_id, task.list?.id);
 
   return NextResponse.json({
     success: true,

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import RequestsPage from "./page";
 
@@ -52,16 +52,22 @@ describe("request details", () => {
     render(<RequestsPage />);
 
     await waitFor(() => expect(screen.getByRole("region", { name: "Request details" })).toBeInTheDocument());
+
+    // Click on Finance stage in the compact workflow rail
+    const financeStageBtn = screen.getByRole("button", { name: /Finance/i });
+    fireEvent.click(financeStageBtn);
+
     expect(screen.getByText("Finance Validation")).toBeInTheDocument();
     expect(screen.getByText("Finance Processing")).toBeInTheDocument();
     expect(screen.getByText("Payment Preparation")).toBeInTheDocument();
     expect(screen.getByText("Sep 16, 2026, 8:45 AM")).toBeInTheDocument();
-    expect(screen.getByText("Sep 16, 2026, 9:25 AM")).toBeInTheDocument();
-    expect(screen.queryByText("Timestamp unavailable")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Sep 16, 2026, 9:25 AM").length).toBeGreaterThan(0);
+    expect(screen.queryByText(/RFP ID unavailable/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Open in ClickUp/i)).not.toBeInTheDocument();
     expect(screen.getAllByText("Tarpaulin installation").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "View status for ABC Company" })).toBeInTheDocument();
     expect(screen.getAllByText("Completed").length).toBeGreaterThan(0);
     expect(screen.getByText("Team Lead")).toBeInTheDocument();
+    expect(screen.getAllByText("₱15,000.00").length).toBeGreaterThan(0);
   });
 });

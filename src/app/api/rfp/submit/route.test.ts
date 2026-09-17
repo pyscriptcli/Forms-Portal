@@ -6,6 +6,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 vi.mock("@/lib/clickup", () => ({
+  getClickUpConfig: vi.fn(() => ({ isConfigured: true, token: "oauth-token" })),
   createClickUpTask: vi.fn(),
   updateClickUpTask: vi.fn(),
   uploadAttachmentToTask: vi.fn(),

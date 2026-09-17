@@ -16,6 +16,7 @@ import {
   savePortalSettingsToSupabase,
   saveFormDestinationsToSupabase,
 } from "@/lib/supabaseAdmin";
+import { invalidateRfpCache } from "@/lib/rfpCache";
 
 async function readFlags() {
   return {
@@ -96,6 +97,8 @@ export async function POST(req: NextRequest) {
       ? { clickupFieldMapping: normalizeFieldMapping(body.clickupFieldMapping) }
       : {}),
   };
+
+  invalidateRfpCache();
 
   // Vercel has a read-only deployment filesystem. Supabase is authoritative
   // for workflow statuses in production; JSON remains the local-dev fallback.

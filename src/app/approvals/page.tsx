@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { SignatureModal } from "@/components/SignatureModal";
 import { PrimeDatePicker } from "@/components/PrimeDatePicker";
 
-import React, { useState, useEffect, useCallback, Suspense } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   ShieldCheck,
@@ -18,10 +18,12 @@ import {
   Building2,
   Loader2,
   AlertCircle,
+  AlertTriangle,
   Eye,
   Check,
   Send,
   PenTool,
+  RefreshCw,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { TrackedRfp } from "../api/rfp/track/route";
@@ -34,16 +36,36 @@ function todayMMDDYYYY() {
   return `${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")}/${now.getFullYear()}`;
 }
 
+function formatRelativeTime(isoString?: string | null): string {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("en-PH", {
+    timeZone: "Asia/Manila",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 function ApprovalsContent() {
   const searchParams = useSearchParams();
   const directTaskId = searchParams.get("taskId") || "";
 
   const [searchQuery, setSearchQuery] = useState(directTaskId);
   const [selectedDept, setSelectedDept] = useState("All Departments");
-  const [requests, setRequests] = useState<TrackedRfp[]>([]);
+  const [allRequests, setAllRequests] = useState<TrackedRfp[]>([]);
   const [approvalTab, setApprovalTab] = useState<"pending" | "approved">("pending");
   const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [activeRequest, setActiveRequest] = useState<TrackedRfp | null>(null);
+  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
+  const [isStale, setIsStale] = useState(false);
+  const [staleWarning, setStaleWarning] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const lastFetchTimeRef = useRef<number>(0);
+  const activeTaskIdRef = useRef<string | null>(directTaskId || null);
 
   // Approval modal states
   const [approverName, setApproverName] = useState("Team Leader");
@@ -63,42 +85,118 @@ function ApprovalsContent() {
 
   const [actionSuccessMessage, setActionSuccessMessage] = useState("");
 
-  const fetchPendingRequests = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (searchQuery.trim()) params.append("query", searchQuery.trim());
-      if (selectedDept !== "All Departments") params.append("dept", selectedDept);
+  const fetchQueue = useCallback(async (forceRefresh = false) => {
+    if (forceRefresh) {
+      setIsUpdating(true);
+    } else if (lastFetchTimeRef.current === 0) {
+      setIsLoading(true);
+    } else {
+      setIsUpdating(true);
+    }
 
-      const res = await fetch(`/api/rfp/track?${params.toString()}`);
+    try {
+      const url = `/api/rfp/track${forceRefresh ? "?forceRefresh=true" : ""}`;
+      const res = await fetch(url);
       const data = await res.json();
 
       if (res.ok && data.success) {
-        const all: TrackedRfp[] = data.requests || [];
-        const visible = all.filter((request) => approvalTab === "pending"
-          ? request.currentStage === "submitted" || request.currentStage === "revision_requested"
-          : request.currentStage !== "submitted" && request.currentStage !== "revision_requested");
-        setRequests(visible);
+        const list: TrackedRfp[] = data.requests || [];
+        setAllRequests(list);
+        setFetchedAt(data.fetchedAt || new Date().toISOString());
+        setIsStale(Boolean(data.isStale));
+        setStaleWarning(data.warning || null);
+        setFetchError(null);
+        lastFetchTimeRef.current = Date.now();
 
-        // If directTaskId provided in URL, auto-select it
-        if (directTaskId) {
-          const direct = all.find((r) => r.taskId === directTaskId);
-          if (direct) setActiveRequest(direct);
-          else setActiveRequest(visible[0] || null);
+        // Keep active selection synchronized with fresh data
+        const currentActiveId = activeTaskIdRef.current;
+        if (currentActiveId) {
+          const matching = list.find((r) => r.taskId === currentActiveId);
+          if (matching) setActiveRequest(matching);
+        }
+      } else {
+        if (allRequests.length === 0) {
+          setFetchError(data.message || "Failed to load approval requests.");
         } else {
-          setActiveRequest((current) => visible.find((request) => request.taskId === current?.taskId) || visible[0] || null);
+          setIsStale(true);
+          setStaleWarning("Unable to refresh approval queue from ClickUp.");
         }
       }
-    } catch (err) {
-      console.error("Error loading pending approvals:", err);
+    } catch (err: any) {
+      if (allRequests.length === 0) {
+        setFetchError(err.message || "Network error loading approval requests.");
+      } else {
+        setIsStale(true);
+        setStaleWarning("Unable to refresh approval queue from ClickUp.");
+      }
     } finally {
       setIsLoading(false);
+      setIsUpdating(false);
     }
-  }, [searchQuery, selectedDept, directTaskId, approvalTab]);
+  }, [allRequests.length]);
 
   useEffect(() => {
-    fetchPendingRequests();
-  }, [fetchPendingRequests]);
+    fetchQueue(false);
+  }, []);
+
+  // Revalidate on focus only if at least 15 seconds old
+  useEffect(() => {
+    const handleFocus = () => {
+      if (Date.now() - lastFetchTimeRef.current >= 15_000) {
+        fetchQueue(false);
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [fetchQueue]);
+
+  // Local filtering without network calls
+  const requests = useMemo(() => {
+    let list = allRequests.filter((request) =>
+      approvalTab === "pending"
+        ? request.currentStage === "submitted" || request.currentStage === "revision_requested"
+        : request.currentStage !== "submitted" && request.currentStage !== "revision_requested"
+    );
+
+    if (selectedDept !== "All Departments") {
+      list = list.filter((r) => r.department.toLowerCase() === selectedDept.toLowerCase());
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (r) =>
+          r.taskId.toLowerCase().includes(q) ||
+          r.requestId.toLowerCase().includes(q) ||
+          r.taskName.toLowerCase().includes(q) ||
+          r.payee.toLowerCase().includes(q) ||
+          r.department.toLowerCase().includes(q) ||
+          r.purpose.toLowerCase().includes(q) ||
+          r.requestedBy.toLowerCase().includes(q)
+      );
+    }
+
+    return list;
+  }, [allRequests, approvalTab, selectedDept, searchQuery]);
+
+  // Automatic active card selection from local filtered list
+  useEffect(() => {
+    if (!activeRequest && requests.length > 0) {
+      if (directTaskId) {
+        const direct = requests.find((r) => r.taskId === directTaskId);
+        if (direct) {
+          setActiveRequest(direct);
+          activeTaskIdRef.current = direct.taskId;
+          return;
+        }
+      }
+      setActiveRequest(requests[0]);
+      activeTaskIdRef.current = requests[0].taskId;
+    } else if (activeRequest && !requests.some((r) => r.taskId === activeRequest.taskId)) {
+      setActiveRequest(requests[0] || null);
+      activeTaskIdRef.current = requests[0]?.taskId || null;
+    }
+  }, [requests, activeRequest, directTaskId]);
 
   const handleApprove = async () => {
     if (!activeRequest) return;
@@ -131,9 +229,10 @@ function ApprovalsContent() {
 
       // Refresh list
       setTimeout(() => {
-        fetchPendingRequests();
+        fetchQueue(true);
         setActiveRequest(null);
-      }, 1500);
+        activeTaskIdRef.current = null;
+      }, 1000);
     } catch (err: any) {
       alert(`Approval error: ${err.message}`);
     } finally {
@@ -167,9 +266,10 @@ function ApprovalsContent() {
 
       // Refresh list
       setTimeout(() => {
-        fetchPendingRequests();
+        fetchQueue(true);
         setActiveRequest(null);
-      }, 1500);
+        activeTaskIdRef.current = null;
+      }, 1000);
     } catch (err: any) {
       alert(`Revision request error: ${err.message}`);
     } finally {
@@ -192,15 +292,72 @@ function ApprovalsContent() {
 
   return (
     <div className="prime-page">
-      <PageHeader title="Approvals" description="Review requests and supporting documents before endorsing payment." actions={
-        <select aria-label="Filter approvals by department" value={selectedDept} onChange={e => setSelectedDept(e.target.value)} className="prime-field">
-          {DEPARTMENTS.map(dept => <option key={dept} value={dept}>{dept}</option>)}
-        </select>
-      } />
-      {actionSuccessMessage && <div role="status" className="prime-notice mb-6 flex items-center justify-between gap-4">
-        <span>{actionSuccessMessage}</span>
-        <button type="button" aria-label="Dismiss confirmation" onClick={() => setActionSuccessMessage("")}>Dismiss</button>
-      </div>}
+      <PageHeader
+        title="Approvals"
+        description="Review requests and supporting documents before endorsing payment."
+        actions={
+          <div className="flex items-center gap-3">
+            {isUpdating && (
+              <span className="text-xs font-medium text-prime-blue flex items-center gap-1">
+                <Loader2 size={13} className="animate-spin" />
+                Updating...
+              </span>
+            )}
+            {fetchedAt && !isUpdating && (
+              <span className="text-[11px] text-prime-ink/60">
+                Last updated: {formatRelativeTime(fetchedAt)}
+              </span>
+            )}
+            <select
+              aria-label="Filter approvals by department"
+              value={selectedDept}
+              onChange={(e) => setSelectedDept(e.target.value)}
+              className="prime-field"
+            >
+              {DEPARTMENTS.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="prime-button secondary"
+              onClick={() => fetchQueue(true)}
+              disabled={isLoading || isUpdating}
+            >
+              <RefreshCw size={14} className={isUpdating ? "animate-spin" : ""} />
+              <span>Refresh</span>
+            </button>
+          </div>
+        }
+      />
+
+      {/* Stale Warning Banner */}
+      {isStale && staleWarning && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={15} className="text-amber-600 shrink-0" />
+            <span>{staleWarning}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => fetchQueue(true)}
+            className="text-xs font-semibold text-amber-800 underline hover:no-underline"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {actionSuccessMessage && (
+        <div role="status" className="prime-notice mb-6 flex items-center justify-between gap-4">
+          <span>{actionSuccessMessage}</span>
+          <button type="button" aria-label="Dismiss confirmation" onClick={() => setActionSuccessMessage("")}>
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div className="mb-5 flex border-b border-prime-rule" role="tablist" aria-label="Approval queues">
         {(["pending", "approved"] as const).map((tab) => (
@@ -209,7 +366,10 @@ function ApprovalsContent() {
             type="button"
             role="tab"
             aria-selected={approvalTab === tab}
-            onClick={() => { setApprovalTab(tab); setActiveRequest(null); }}
+            onClick={() => {
+              setApprovalTab(tab);
+              setActiveRequest(null);
+            }}
             className={`min-w-32 border-b-2 px-5 py-3 text-xs font-semibold uppercase tracking-[0.14em] ${
               approvalTab === tab ? "border-prime-blue text-prime-blue" : "border-transparent text-prime-ink/60"
             }`}
@@ -223,6 +383,20 @@ function ApprovalsContent() {
         <div className="bg-prime-white border border-prime-rule p-12 text-center">
           <Loader2 className="w-6 h-6 animate-spin text-prime-blue mx-auto mb-2" />
           <p className="text-xs font-medium text-prime-ink">Loading {approvalTab} requests...</p>
+        </div>
+      ) : fetchError ? (
+        <div className="bg-prime-white border border-prime-rule p-12 text-center">
+          <AlertTriangle className="w-8 h-8 text-amber-600 mx-auto mb-3" />
+          <h3 className="font-serif italic font-medium text-lg text-prime-ink">Failed to load approvals</h3>
+          <p className="text-xs text-prime-ink mt-1 mb-5">{fetchError}</p>
+          <button
+            type="button"
+            onClick={() => fetchQueue(true)}
+            className="prime-button secondary"
+          >
+            <RefreshCw size={14} />
+            <span>Retry</span>
+          </button>
         </div>
       ) : requests.length === 0 ? (
         <div className="bg-prime-white border border-prime-rule p-12 text-center shadow-none">

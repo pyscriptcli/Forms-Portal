@@ -6,6 +6,7 @@ import { fetchClickUpUser, getServerAuthSession } from "@/lib/auth";
 import { readFormDestinationFromSupabase, readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
 import { formatSubmittedFilename } from "@/lib/rfpNaming";
 import { getSubmissionPayloadSize, MAX_SUBMISSION_PAYLOAD_BYTES } from "@/lib/submissionUploads";
+import { invalidateRfpCache } from "@/lib/rfpCache";
 
 export const maxDuration = 60;
 
@@ -136,6 +137,8 @@ export async function POST(req: NextRequest) {
         console.warn("Could not dispatch approver notification email:", emailError);
       }
     }
+
+    invalidateRfpCache(destination?.workspaceId, destination?.listId);
 
     const docName = formType === "po" ? "Purchase Order (PO)" : formType === "pcv" ? "Petty Cash Voucher (PCV)" : formType === "gw-rfp" ? "GW Request for Payment (RFP)" : formType === "travel-budget" ? "Travel Budget Request Form" : "Request for Payment (RFP)";
     return NextResponse.json({

@@ -8,6 +8,7 @@ import { sendRequestorRevisionNotification } from "@/lib/email";
 import { RfpFormData } from "@/types/rfp";
 import { getServerAuthSession } from "@/lib/auth";
 import { readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
+import { invalidateRfpCache } from "@/lib/rfpCache";
 
 export async function POST(req: NextRequest) {
   try {
@@ -57,6 +58,8 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      invalidateRfpCache();
+
       return NextResponse.json({
         success: true,
           message: `Request #${taskId} endorsed successfully! Advanced to Finance Validation.`,
@@ -84,6 +87,8 @@ export async function POST(req: NextRequest) {
           { status: 500 }
         );
       }
+
+      invalidateRfpCache();
 
       // Fetch task details to notify requestor via Outlook email
       try {

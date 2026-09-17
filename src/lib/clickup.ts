@@ -990,7 +990,8 @@ export async function approveTaskByApprover(
       if (approverNameId && approverName) {
         const ok = await setTaskCustomFieldValue(taskId, approverNameId, approverName, token);
         if (!ok) {
-          console.warn(`Could not set approver name custom field ${approverNameId}, proceeding with status transition.`);
+          console.error(`Failed to persist approver name to custom field ${approverNameId}`);
+          return false;
         }
       }
 

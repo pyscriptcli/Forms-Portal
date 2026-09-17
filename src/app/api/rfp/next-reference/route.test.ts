@@ -5,6 +5,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 vi.mock("@/lib/clickup", () => ({
+  getClickUpConfig: vi.fn(() => ({ isConfigured: true, token: "oauth-token" })),
   readNextRfpReferenceFromClickUp: vi.fn(),
 }));
 

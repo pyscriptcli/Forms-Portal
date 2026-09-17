@@ -282,12 +282,9 @@ export function mapClickUpTaskToTrackedRfp(
     currentMilestone = "Revision Requested";
   }
 
-  // 5. Milestone Timestamps Mapping with Self-Healing Fallbacks
+  // 5. Milestone Timestamps Mapping (Authoritative ClickUp Date fields only; no date_updated inference)
   const milestoneTimestamps: MilestoneTimestamps = {};
-  const pendingClickUpBackfill: Array<{ fieldId: string; timestamp: number }> = [];
 
-  const createdMs = Number(task.date_created) || Date.now();
-  const updatedMs = Number(task.date_updated) || createdMs;
   const activeMilestoneIdx = ORDERED_MILESTONE_KEYS.indexOf(resolved.key);
   const effectiveMilestoneIdx = isDone ? ORDERED_MILESTONE_KEYS.length - 1 : activeMilestoneIdx;
 
@@ -295,20 +292,12 @@ export function mapClickUpTaskToTrackedRfp(
     const key = ORDERED_MILESTONE_KEYS[idx];
     const fieldName = CLICKUP_MILESTONE_FIELDS[key];
     const rawVal = getFieldValue(fieldName);
-    const fieldId = fieldMapping[fieldName];
 
     if (rawVal !== undefined && rawVal !== null && rawVal !== "") {
       milestoneTimestamps[key] = formatMilestoneTimestamp(rawVal);
     } else if (idx <= effectiveMilestoneIdx && effectiveMilestoneIdx >= 0) {
-      // Milestone is complete or currently active, but custom field was empty in ClickUp.
-      // Infer authoritative timestamp: submission uses date_created, subsequent milestones use date_updated.
-      const inferredMs = idx === 0 ? createdMs : updatedMs;
-      milestoneTimestamps[key] = formatMilestoneTimestamp(inferredMs);
-
-      // Flag for background persistence into ClickUp custom field placeholder
-      if (fieldId) {
-        pendingClickUpBackfill.push({ fieldId, timestamp: inferredMs });
-      }
+      // Reached milestone without an authoritative timestamp custom field
+      milestoneTimestamps[key] = "Timestamp unavailable";
     }
   }
 
@@ -353,6 +342,5 @@ export function mapClickUpTaskToTrackedRfp(
     attachments,
     milestoneTimestamps,
     dataSource,
-    pendingClickUpBackfill: pendingClickUpBackfill.length > 0 ? pendingClickUpBackfill : undefined,
   };
 }

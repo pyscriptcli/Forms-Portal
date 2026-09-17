@@ -48,6 +48,11 @@ async function getSettingsMappingAndStatuses() {
   };
 }
 
+import {
+  getRfpQueueFromCacheOrFetch,
+  findTaskInRfpCache,
+} from "@/lib/rfpCache";
+
 export async function GET(req: NextRequest) {
   try {
     const { accessToken, user } = await getServerAuthSession();
@@ -64,6 +69,7 @@ export async function GET(req: NextRequest) {
     const query = (searchParams.get("query") || "").toLowerCase().trim();
     const dept = (searchParams.get("dept") || "").toLowerCase().trim();
     const email = (searchParams.get("email") || "").toLowerCase().trim();
+    const forceRefresh = searchParams.get("forceRefresh") === "true";
 
     const settings = await getSettingsMappingAndStatuses();
     const rfpDestination = await readFormDestinationFromSupabase("rfp");
@@ -75,44 +81,54 @@ export async function GET(req: NextRequest) {
       throw new Error("The server-side ClickUp API token is not configured for the Supabase RFP destination.");
     }
 
+    const workspaceId = rfpDestination.workspaceId || "default";
+    const listId = rfpDestination.listId;
+
     // 1. Direct ID lookup
     if (id) {
-      const task = await getClickUpTask(id, rfpClickUp.token);
-      if (!task) {
-        return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
+      // Check cache first
+      let parsed = findTaskInRfpCache(id, workspaceId, listId);
+      let source: "clickup" | "cache" = "cache";
+
+      if (!parsed) {
+        const task = await getClickUpTask(id, rfpClickUp.token);
+        if (!task) {
+          return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
+        }
+        parsed = mapClickUpTaskToTrackedRfp(task, settings.fieldMapping, settings.workflowStatuses);
+        source = "clickup";
       }
-      const parsed = mapClickUpTaskToTrackedRfp(task, settings.fieldMapping, settings.workflowStatuses);
+
       if (!viewer.canViewAll && !taskBelongsToViewer(parsed, viewer)) {
         return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
       }
-      const timestampSyncFailures = await persistPendingBackfills([parsed], rfpClickUp.token);
+
       return NextResponse.json({
         success: true,
         requests: [parsed],
         viewerCanViewAll: viewer.canViewAll,
-        timestampSyncFailures,
+        fetchedAt: new Date().toISOString(),
+        isStale: false,
+        source,
       });
     }
 
-    // 2. The Requests page is the RFP tracking view. Its sole data source is
-    // the RFP ClickUp List selected in the Supabase destination configuration.
-    const formTypes: FormDestinationKey[] = ["rfp"];
-    const taskGroups = await Promise.all(
-      formTypes.map(async (formType) => {
-        const destination = await readFormDestinationFromSupabase(formType);
-        if (!destination?.enabled || !destination.listId) return [];
-        const clickUp = getClickUpConfig(formType, undefined, destination.listId);
-        if (!clickUp.isConfigured) throw new Error(`The server-side ClickUp API token is not configured for ${formType}.`);
-        return getListTasks(true, formType, clickUp.token, destination.listId);
-      })
-    );
-    const allTasks = Array.from(
-      new Map(taskGroups.flat().map((task) => [task.id, task])).values()
-    );
-    let parsed = allTasks.map((task) => mapClickUpTaskToTrackedRfp(task, settings.fieldMapping, settings.workflowStatuses));
+    // 2. Read through cache or fetch deduplicated from ClickUp
+    const cacheResult = await getRfpQueueFromCacheOrFetch({
+      workspaceId,
+      listId,
+      forceRefresh,
+      fetcher: async () => {
+        const rawTasks = await getListTasks(true, "rfp", rfpClickUp.token, listId);
+        return rawTasks.map((task) =>
+          mapClickUpTaskToTrackedRfp(task, settings.fieldMapping, settings.workflowStatuses)
+        );
+      },
+    });
 
-    // Requestors are restricted server-side. Admins, approvers, and finance
-    // users retain the complete queue needed for review and processing.
+    let parsed = [...cacheResult.requests];
+
+    // Requestors are restricted server-side.
     if (!viewer.canViewAll) {
       parsed = parsed.filter((request) => taskBelongsToViewer(request, viewer));
     }
@@ -146,14 +162,15 @@ export async function GET(req: NextRequest) {
     // Sort by creation date descending
     parsed.sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime());
 
-    const timestampSyncFailures = await persistPendingBackfills(parsed, rfpClickUp.token);
-
     return NextResponse.json({
       success: true,
       requests: parsed,
       count: parsed.length,
       viewerCanViewAll: viewer.canViewAll,
-      timestampSyncFailures,
+      fetchedAt: cacheResult.fetchedAt,
+      isStale: cacheResult.isStale,
+      source: cacheResult.source,
+      warning: cacheResult.warning,
     });
   } catch (error: any) {
     console.error("Error in /api/rfp/track:", error);

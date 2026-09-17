@@ -105,7 +105,7 @@ describe("rfpTrackerMapping", () => {
       expect(result.dataSource).toBe("legacy_fallback");
     });
 
-    it("infers missing milestone timestamps from task dates and queues them for ClickUp backfill", () => {
+    it("marks reached milestones with no custom field timestamp as 'Timestamp unavailable' without inferring dates", () => {
       const mockTask = {
         id: "task-missing-ts",
         name: "[RFP-092026-0004] PRIME – Bestprints – Quotation printing",
@@ -122,14 +122,11 @@ describe("rfpTrackerMapping", () => {
       const result = mapClickUpTaskToTrackedRfp(mockTask);
 
       expect(result.milestoneTimestamps.requestorFormSubmission).toBeTruthy();
-      expect(result.milestoneTimestamps.tlReviewAndApproval).toBeTruthy();
-      expect(result.milestoneTimestamps.financeValidation).toBeTruthy();
-      expect(result.pendingClickUpBackfill).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ fieldId: "f-ts-tl" }),
-          expect.objectContaining({ fieldId: "f-ts-val" }),
-        ])
-      );
+      expect(result.milestoneTimestamps.tlReviewAndApproval).toBe("Timestamp unavailable");
+      expect(result.milestoneTimestamps.financeValidation).toBe("Timestamp unavailable");
+      // Unreached milestones remain undefined (UI will render Pending)
+      expect(result.milestoneTimestamps.financeProcessing).toBeUndefined();
+      expect((result as any).pendingClickUpBackfill).toBeUndefined();
     });
   });
 });
