@@ -34,12 +34,10 @@ describe("adminSettings utilities", () => {
   });
 
   describe("saveAdminSettings", () => {
-    it("persists settings to localStorage", () => {
+    it("does not persist configuration to localStorage", () => {
       saveAdminSettings({ rfpAutofillEnabled: false });
       const raw = localStorage.getItem("prime_admin_settings");
-      expect(raw).not.toBeNull();
-      const parsed = JSON.parse(raw!);
-      expect(parsed.rfpAutofillEnabled).toBe(false);
+      expect(raw).toBeNull();
     });
   });
 
