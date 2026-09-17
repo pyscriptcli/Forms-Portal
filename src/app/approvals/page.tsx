@@ -1,6 +1,8 @@
 "use client";
 import { PrimeDialog } from "@/components/PrimeDialog";
 import { PageHeader } from "@/components/PageHeader";
+import { SignatureModal } from "@/components/SignatureModal";
+import { PrimeDatePicker } from "@/components/PrimeDatePicker";
 
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -19,12 +21,18 @@ import {
   Eye,
   Check,
   Send,
+  PenTool,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { TrackedRfp } from "../api/rfp/track/route";
 import { DEPARTMENT_NAMES } from "@/types/rfp";
 
 const DEPARTMENTS = ["All Departments", ...DEPARTMENT_NAMES];
+
+function todayMMDDYYYY() {
+  const now = new Date();
+  return `${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")}/${now.getFullYear()}`;
+}
 
 function ApprovalsContent() {
   const searchParams = useSearchParams();
@@ -39,6 +47,9 @@ function ApprovalsContent() {
   // Approval modal states
   const [approverName, setApproverName] = useState("Team Leader");
   const [approvalNotes, setApprovalNotes] = useState("");
+  const [approvalDate, setApprovalDate] = useState(todayMMDDYYYY);
+  const [approverSignature, setApproverSignature] = useState("");
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
 
   // Revision modal states
@@ -100,6 +111,8 @@ function ApprovalsContent() {
           taskId: activeRequest.taskId,
           action: "approve",
           approverName,
+          approvalDate,
+          signatureDataUrl: approverSignature,
           notes: approvalNotes,
         }),
       });
@@ -112,6 +125,9 @@ function ApprovalsContent() {
       // Celebrate!
       confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 }, colors: ["#003366", "#C9A84C"] });
       setActionSuccessMessage(`✅ Endorsed #${activeRequest.taskId}! Advanced to Finance Validation.`);
+      setApprovalNotes("");
+      setApproverSignature("");
+      setApprovalDate(todayMMDDYYYY());
 
       // Refresh list
       setTimeout(() => {
@@ -398,12 +414,17 @@ function ApprovalsContent() {
                 </div>
               </div>
 
-              {/* Approver Name & Action Controls */}
+              {/* Approver endorsement */}
               <div className="pt-4 border-t border-prime-rule">
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 mb-4">
-                  <div className="sm:col-span-6">
+                <div className="mb-4 border border-prime-rule bg-prime-white">
+                  <div className="border-b border-prime-rule px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-prime-gold">TL / Approver only</p>
+                    <p className="mt-1 text-sm font-medium text-prime-blue">Complete the endorsement before advancing this request.</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 p-4 lg:grid-cols-3">
+                  <div>
                     <label className="text-[11px] font-medium text-prime-ink block mb-1">
-                      Approver Name / Title:
+                      Approver name / title
                     </label>
                     <input
                       type="text"
@@ -413,9 +434,27 @@ function ApprovalsContent() {
                       className="w-full bg-prime-white border border-prime-rule text-xs px-2.5 h-8 focus:outline-none focus:border-prime-blue"
                     />
                   </div>
-                  <div className="sm:col-span-6">
+                  <div>
+                    <label className="text-[11px] font-medium text-prime-ink block mb-1">Signature</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsSignatureModalOpen(true)}
+                      className="flex h-14 w-full items-center justify-center gap-2 border border-prime-rule bg-prime-white px-3 text-xs font-medium text-prime-blue hover:border-prime-gold"
+                    >
+                      {approverSignature ? (
+                        <><img src={approverSignature} alt="Approver signature" className="max-h-11 max-w-[180px] object-contain" /><span className="sr-only">Change signature</span></>
+                      ) : (
+                        <><PenTool className="h-4 w-4" /> Sign or upload</>
+                      )}
+                    </button>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-medium text-prime-ink block mb-1">Approval date</label>
+                    <PrimeDatePicker value={approvalDate} onChange={setApprovalDate} className="w-full" />
+                  </div>
+                  <div className="lg:col-span-3">
                     <label className="text-[11px] font-medium text-prime-ink block mb-1">
-                      Optional Endorsement Note:
+                      Optional endorsement note
                     </label>
                     <input
                       type="text"
@@ -424,6 +463,7 @@ function ApprovalsContent() {
                       placeholder="e.g. Budget verified under Q4 promo allocation"
                       className="w-full bg-prime-white border border-prime-rule text-xs px-2.5 h-8 focus:outline-none focus:border-prime-blue"
                     />
+                  </div>
                   </div>
                 </div>
 
@@ -442,7 +482,7 @@ function ApprovalsContent() {
                   <button
                     type="button"
                     onClick={handleApprove}
-                    disabled={isApproving}
+                    disabled={isApproving || !approverName.trim() || !approverSignature || !approvalDate.trim()}
                     className="w-full sm:w-auto h-10 px-8 bg-prime-blue hover:bg-prime-blue text-prime-white text-xs font-medium flex items-center justify-center gap-2 shadow-none transition-colors cursor-pointer disabled:opacity-50"
                   >
                     {isApproving ? (
@@ -476,6 +516,13 @@ function ApprovalsContent() {
         <label htmlFor="revision-reason" className="prime-label text-xs block mb-2">Revision instructions</label>
         <textarea id="revision-reason" rows={5} value={revisionReason} onChange={event => setRevisionReason(event.target.value)} className="prime-field" />
       </PrimeDialog>
+      <SignatureModal
+        isOpen={isSignatureModalOpen}
+        onClose={() => setIsSignatureModalOpen(false)}
+        currentSignature={approverSignature}
+        title="Add TL / approver signature"
+        onSave={(dataUrl) => setApproverSignature(dataUrl)}
+      />
     </div>
   );
 }

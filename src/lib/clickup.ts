@@ -921,8 +921,8 @@ export async function readNextRfpReferenceFromClickUp(
 /**
  * Posts an audit comment on a ClickUp task.
  */
-export async function postTaskComment(taskId: string, commentText: string): Promise<boolean> {
-  const { token, isConfigured } = getClickUpConfig();
+export async function postTaskComment(taskId: string, commentText: string, oauthToken?: string): Promise<boolean> {
+  const { token, isConfigured, isOAuth } = getClickUpConfig("rfp", oauthToken);
 
   if (!isConfigured || taskId.startsWith("MOCK-")) {
     console.log(`[Mock Comment on ${taskId}]: ${commentText}`);
@@ -933,7 +933,7 @@ export async function postTaskComment(taskId: string, commentText: string): Prom
     const res = await fetch(`${CLICKUP_API_BASE}/task/${taskId}/comment`, {
       method: "POST",
       headers: {
-        Authorization: token,
+        Authorization: authorizationHeader(token, isOAuth),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -956,18 +956,46 @@ export async function approveTaskByApprover(
   taskId: string,
   approverName: string = "Team Leader",
   notes?: string,
-  approverEmail?: string
+  approverEmail?: string,
+  options: {
+    oauthToken?: string;
+    workflowStatuses?: WorkflowStatuses;
+    signatureDataUrl?: string;
+    approvalDate?: string;
+  } = {}
 ): Promise<boolean> {
-  const { token, isConfigured } = getClickUpConfig();
-  const workflowStatuses = getConfiguredWorkflowStatuses();
+  const { token, isConfigured, isOAuth } = getClickUpConfig("rfp", options.oauthToken);
+  const workflowStatuses = options.workflowStatuses || getConfiguredWorkflowStatuses();
 
   if (!isConfigured || taskId.startsWith("MOCK-")) {
     return true;
   }
 
   try {
-    const currentTask = await getClickUpTask(taskId);
+    const currentTask = await getClickUpTask(taskId, options.oauthToken);
     if (!currentTask) return false;
+
+    if (!options.signatureDataUrl?.startsWith("data:image/") || !options.approvalDate) {
+      console.error("Approval requires a signature and approval date.");
+      return false;
+    }
+
+    const signatureMatch = options.signatureDataUrl.match(/^data:(image\/(?:png|jpeg|webp));base64,(.+)$/);
+    if (!signatureMatch) {
+      console.error("Approval signature is not a supported image data URL.");
+      return false;
+    }
+    const extension = signatureMatch[1] === "image/jpeg" ? "jpg" : signatureMatch[1].split("/")[1];
+    const signatureUpload = await uploadAttachmentToTask(
+      taskId,
+      new Blob([Buffer.from(signatureMatch[2], "base64")], { type: signatureMatch[1] }),
+      `TL_APPROVAL_SIGNATURE_${options.approvalDate.replace(/\D/g, "")}.${extension}`,
+      options.oauthToken
+    );
+    if (!signatureUpload.success) {
+      console.error(`Failed to persist approval signature: ${signatureUpload.error}`);
+      return false;
+    }
 
     // Persist approver metadata custom fields BEFORE advancing to Finance Validation
     if (Array.isArray(currentTask.custom_fields)) {
@@ -1034,7 +1062,7 @@ export async function approveTaskByApprover(
     const updateRes = await fetch(`${CLICKUP_API_BASE}/task/${taskId}`, {
       method: "PUT",
       headers: {
-        Authorization: token,
+        Authorization: authorizationHeader(token, isOAuth),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -1050,10 +1078,10 @@ export async function approveTaskByApprover(
     }
 
     const commentMsg = notes
-      ? `✅ **Endorsed by ${approverName}**\nNotes: ${notes}\n\n*Status advanced to Finance Validation.*`
-      : `✅ **Endorsed by ${approverName}**\n\n*Status advanced to Finance Validation.*`;
+      ? `✅ **Endorsed by ${approverName}**\nApproval date: ${options.approvalDate}\nNotes: ${notes}\n\n*Status advanced to Finance Validation.*`
+      : `✅ **Endorsed by ${approverName}**\nApproval date: ${options.approvalDate}\n\n*Status advanced to Finance Validation.*`;
 
-    await postTaskComment(taskId, commentMsg);
+    await postTaskComment(taskId, commentMsg, options.oauthToken);
     return true;
   } catch (err) {
     console.error(`Error approving task ${taskId}:`, err);

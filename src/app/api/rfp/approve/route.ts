@@ -6,11 +6,13 @@ import {
 } from "@/lib/clickup";
 import { sendRequestorRevisionNotification } from "@/lib/email";
 import { RfpFormData } from "@/types/rfp";
+import { getServerAuthSession } from "@/lib/auth";
+import { readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { taskId, action, approverName, approverEmail, notes, revisionReason, actorRole } = body;
+    const { taskId, action, approverName, approverEmail, notes, revisionReason, actorRole, signatureDataUrl, approvalDate } = body;
 
     if (!taskId || !action) {
       return NextResponse.json(
@@ -24,11 +26,28 @@ export async function POST(req: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
 
     if (action === "approve") {
+      if (!approverName?.trim() || !signatureDataUrl?.startsWith("data:image/") || !approvalDate?.trim()) {
+        return NextResponse.json(
+          { success: false, message: "Approver name, signature, and approval date are required" },
+          { status: 400 }
+        );
+      }
+
+      const [{ accessToken, user }, workflowStatuses] = await Promise.all([
+        getServerAuthSession(),
+        readWorkflowStatusesFromSupabase(),
+      ]);
       const success = await approveTaskByApprover(
         taskId,
-        approverName || "Team Leader",
+        approverName.trim(),
         notes,
-        approverEmail
+        approverEmail || user?.email,
+        {
+          oauthToken: accessToken || undefined,
+          workflowStatuses: workflowStatuses || undefined,
+          signatureDataUrl,
+          approvalDate: approvalDate.trim(),
+        }
       );
 
       if (!success) {

@@ -110,6 +110,7 @@ function RfpAppContent() {
 
   const [formData, setFormData] = useState<RfpFormData>(getInitialFormData);
   const [rfpNumberStatus, setRfpNumberStatus] = useState<"loading" | "ready" | "unavailable">("loading");
+  const [rfpNumberRefreshKey, setRfpNumberRefreshKey] = useState(0);
   const [selectedForm, setSelectedForm] = useState<string>(formParam ?? "rfp");
   const [previousDraft, setPreviousDraft] = useState<RfpFormData | null>(null);
   const [extractedBanner, setExtractedBanner] = useState<{
@@ -161,7 +162,7 @@ function RfpAppContent() {
       })
       .finally(() => window.clearTimeout(timeout));
     return () => { cancelled = true; controller.abort(); window.clearTimeout(timeout); };
-  }, [selectedForm, taskIdParam]);
+  }, [selectedForm, taskIdParam, rfpNumberRefreshKey]);
 
   const [rawSupportingFiles, setRawSupportingFiles] = useState<File[]>([]);
   const [supportingFilesList, setSupportingFilesList] = useState<SupportingFile[]>([]);
@@ -178,6 +179,7 @@ function RfpAppContent() {
   // Success dialog state
   const [submissionResponse, setSubmissionResponse] = useState<SubmissionResponse | null>(null);
   const [lastGeneratedPdf, setLastGeneratedPdf] = useState<Blob | null>(null);
+  const [lastSubmittedPayee, setLastSubmittedPayee] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Feature flag: admin can disable RFP autofill
@@ -584,9 +586,22 @@ function RfpAppContent() {
         throw new Error(json?.message || "Failed to submit Request for Payment to ClickUp");
       }
       setSubmissionStage("finalizing");
+      setLastSubmittedPayee(formData.payee);
       setSubmissionResponse(json);
       setIsModalOpen(true);
       localStorage.removeItem("prime_rfp_draft");
+      setFormData({
+        ...getInitialFormData(),
+        requestedByName: user?.username || "",
+        requestedByEmail: user?.email || "",
+      });
+      setRawSupportingFiles([]);
+      setSupportingFilesList([]);
+      setPreviousDraft(null);
+      setExtractedBanner(null);
+      setValidationErrors({});
+      setMissingFieldsList([]);
+      setRfpNumberRefreshKey((key) => key + 1);
       confetti({
         particleCount: 80,
         spread: 70,
@@ -709,7 +724,7 @@ function RfpAppContent() {
         onClose={() => setIsModalOpen(false)}
         response={submissionResponse}
         pdfBlob={lastGeneratedPdf}
-        payeeName={activePayeeName}
+        payeeName={lastSubmittedPayee || activePayeeName}
       />
     </div>
   );

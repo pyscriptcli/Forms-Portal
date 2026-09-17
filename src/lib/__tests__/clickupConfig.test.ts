@@ -110,19 +110,22 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
   it("does not advance approval when the Finance Validation timestamp field is missing", async () => {
     process.env.CLICKUP_API_TOKEN = "pk_test_token_123";
     const fetchMock = vi.fn()
-      .mockResolvedValue(new Response(null, { status: 200 }))
       .mockResolvedValueOnce(Response.json({
         id: "task-1",
         description: "Request",
         custom_fields: [
           { id: "approver-name", name: "RFP Approver Name", type: "short_text" },
         ],
-      }));
+      }))
+      .mockResolvedValue(new Response(null, { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(approveTaskByApprover("task-1", "Team Lead")).resolves.toBe(false);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(String(fetchMock.mock.calls[1][0])).toContain("/field/approver-name");
+    await expect(approveTaskByApprover("task-1", "Team Lead", undefined, undefined, {
+      signatureDataUrl: "data:image/png;base64,c2ln",
+      approvalDate: "09/17/2026",
+    })).resolves.toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(String(fetchMock.mock.calls[2][0])).toContain("/field/approver-name");
     expect(fetchMock.mock.calls.some(([, init]) => init?.method === "PUT")).toBe(false);
   });
 
