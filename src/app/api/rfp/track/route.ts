@@ -20,6 +20,7 @@ interface ViewerAccess {
   username: string;
   role: UserRole;
   canViewAll: boolean;
+  department: string;
 }
 
 async function getViewerAccess(user: { email?: string; username?: string } | null): Promise<ViewerAccess> {
@@ -34,7 +35,13 @@ async function getViewerAccess(user: { email?: string; username?: string } | nul
     )
   );
   const role = record?.role || "requestor";
-  return { email, username, role, canViewAll: role !== "requestor" };
+  return {
+    email,
+    username,
+    role,
+    department: record?.department?.trim().toLowerCase() || "",
+    canViewAll: role === "admin" || role === "finance",
+  };
 }
 
 async function getSettingsMappingAndStatuses() {
@@ -183,6 +190,9 @@ export async function GET(req: NextRequest) {
 
 function taskBelongsToViewer(request: TrackedRfp, viewer: ViewerAccess): boolean {
   if (viewer.canViewAll) return true;
+  if (viewer.role === "approver") {
+    return Boolean(viewer.department) && request.department.trim().toLowerCase() === viewer.department;
+  }
   const viewerEmail = viewer.email;
   const viewerName = viewer.username.replace(/\s+/g, " ").trim();
   if (request.requestedByEmail && viewerEmail) {

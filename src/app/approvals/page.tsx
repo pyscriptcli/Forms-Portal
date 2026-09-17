@@ -28,6 +28,7 @@ import {
 import confetti from "canvas-confetti";
 import { TrackedRfp } from "../api/rfp/track/route";
 import { DEPARTMENT_NAMES } from "@/types/rfp";
+import { useAuth } from "@/components/AuthProvider";
 
 const DEPARTMENTS = ["All Departments", ...DEPARTMENT_NAMES];
 
@@ -49,6 +50,7 @@ function formatRelativeTime(isoString?: string | null): string {
 }
 
 function ApprovalsContent() {
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const directTaskId = searchParams.get("taskId") || "";
 
@@ -308,7 +310,9 @@ function ApprovalsContent() {
                 Last updated: {formatRelativeTime(fetchedAt)}
               </span>
             )}
-            <select
+            {user?.role === "approver" ? (
+              <span className="prime-field inline-flex items-center text-sm">My department</span>
+            ) : <select
               aria-label="Filter approvals by department"
               value={selectedDept}
               onChange={(e) => setSelectedDept(e.target.value)}
@@ -319,7 +323,7 @@ function ApprovalsContent() {
                   {dept}
                 </option>
               ))}
-            </select>
+            </select>}
             <button
               type="button"
               className="prime-button secondary"
