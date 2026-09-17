@@ -69,8 +69,6 @@ import {
   isAdminAuthenticated,
   setAdminSession,
   clearAdminSession,
-  saveAdminSettings,
-  getAdminSettings,
   ADMIN_TOKEN,
   type AdminSettings,
   type FormDestinationKey,
@@ -80,8 +78,6 @@ import {
 import {
   ROLE_DEFINITIONS,
   DEFAULT_USERS,
-  getLocalRbacUsers,
-  saveLocalRbacUsers,
   type UserAccessRecord,
   type UserRole,
 } from "@/lib/rbac";
@@ -137,12 +133,9 @@ export default function AdminPage() {
       const data = await res.json();
       if (data && Array.isArray(data.users)) {
         setUsers(data.users);
-        saveLocalRbacUsers(data.users);
-      } else {
-        setUsers(getLocalRbacUsers());
       }
     } catch {
-      setUsers(getLocalRbacUsers());
+      setRbacSaveMsg("Could not load shared Supabase RBAC configuration.");
     } finally {
       setIsRefreshingRbac(false);
     }
@@ -311,10 +304,7 @@ export default function AdminPage() {
           }
         })
         .catch(() => {
-          const localSettings = getAdminSettings();
-          setSettings(localSettings);
-          if (localSettings.destinations) setDestinations(localSettings.destinations);
-          if (localSettings.workflowStatuses) setWorkflowStatuses(localSettings.workflowStatuses);
+          setSaveMsg("Could not load shared Supabase configuration.");
         });
 
       // Load RBAC users from the server-side RBAC database
@@ -346,7 +336,6 @@ export default function AdminPage() {
   async function handleToggle(key: "rfpAutofillEnabled") {
     const updated = { ...settings, [key]: !settings[key] };
     setSettings(updated);
-    saveAdminSettings(updated);
     setIsSaving(true);
     setSaveMsg("");
     try {
@@ -380,7 +369,6 @@ export default function AdminPage() {
     setSaveMsg("");
     const updated = { ...settings, destinations };
     setSettings(updated);
-    saveAdminSettings(updated);
     try {
       const res = await fetch("/api/admin/settings", {
         method: "POST",
@@ -405,7 +393,6 @@ export default function AdminPage() {
     setSaveMsg("");
     const updated = { ...settings, workflowStatuses };
     setSettings(updated);
-    saveAdminSettings(updated);
     try {
       const res = await fetch("/api/admin/settings", {
         method: "POST",
@@ -473,8 +460,6 @@ export default function AdminPage() {
   const handleSaveRbac = async () => {
     setIsSavingRbac(true);
     setRbacSaveMsg("");
-    saveLocalRbacUsers(users);
-
     try {
       const res = await fetch("/api/admin/rbac", {
         method: "POST",
@@ -490,12 +475,11 @@ export default function AdminPage() {
 
       if (data.users && Array.isArray(data.users)) {
         setUsers(data.users);
-        saveLocalRbacUsers(data.users);
       }
 
-      setRbacSaveMsg("Role assignments saved to the local RBAC database.");
+      setRbacSaveMsg("Role assignments saved to Supabase.");
     } catch (err: any) {
-      setRbacSaveMsg("Saved to local storage fallback.");
+      setRbacSaveMsg(err?.message || "Could not save RBAC configuration to Supabase.");
     } finally {
       setIsSavingRbac(false);
       setTimeout(() => setRbacSaveMsg(""), 4500);
@@ -942,7 +926,7 @@ export default function AdminPage() {
                 type="button"
                 onClick={loadRbacData}
                 disabled={isRefreshingRbac}
-                title="Refresh users from the local RBAC database"
+                title="Refresh users from Supabase"
                 className="prime-button secondary flex items-center justify-center gap-1.5 h-[38px] px-3 text-xs cursor-pointer"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingRbac ? "animate-spin" : ""}`} />

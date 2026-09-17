@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
 import {
   ADMIN_TOKEN,
   normalizeFormDestinations,
@@ -18,28 +16,13 @@ import {
   saveFormDestinationsToSupabase,
 } from "@/lib/supabaseAdmin";
 
-const FLAGS_PATH = path.join(process.cwd(), "src", "lib", "featureFlags.json");
-
 async function readFlags() {
-  try {
-    const raw = await fs.readFile(FLAGS_PATH, "utf8");
-    const parsed = JSON.parse(raw);
-    return {
-      ...parsed,
-      clickupFieldMapping: normalizeFieldMapping(parsed.clickupFieldMapping),
-    };
-  } catch {
-    return {
-      rfpAutofillEnabled: true,
-      destinations: getDefaultFormDestinations(),
-      workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
-      clickupFieldMapping: {},
-    };
-  }
-}
-
-async function writeFlags(flags: object) {
-  await fs.writeFile(FLAGS_PATH, JSON.stringify(flags, null, 2), "utf8");
+  return {
+    rfpAutofillEnabled: true,
+    destinations: getDefaultFormDestinations(),
+    workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
+    clickupFieldMapping: {},
+  };
 }
 
 export async function GET() {
@@ -78,6 +61,9 @@ export async function POST(req: NextRequest) {
   if (hasWorkflowStatuses && isSupabaseAdminConfigured()) {
     await saveWorkflowStatusesToSupabase(normalizeWorkflowStatuses(body.workflowStatuses));
   }
+  if (!isSupabaseAdminConfigured()) {
+    return NextResponse.json({ error: "Supabase is required for shared Admin configuration." }, { status: 503 });
+  }
   if (isSupabaseAdminConfigured()) {
     const portalSettings: Record<string, unknown> = {};
     if (typeof body.rfpAutofillEnabled === "boolean") portalSettings.rfpAutofillEnabled = body.rfpAutofillEnabled;
@@ -110,8 +96,5 @@ export async function POST(req: NextRequest) {
 
   // Vercel has a read-only deployment filesystem. Supabase is authoritative
   // for workflow statuses in production; JSON remains the local-dev fallback.
-  if (!isSupabaseAdminConfigured()) {
-    await writeFlags(updated);
-  }
   return NextResponse.json({ success: true, flags: updated });
 }

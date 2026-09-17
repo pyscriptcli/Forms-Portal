@@ -1,36 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
 import { ADMIN_TOKEN } from "@/lib/adminSettings";
-import { DEFAULT_USERS, ROLE_DEFINITIONS, UserAccessRecord } from "@/lib/rbac";
+import { ROLE_DEFINITIONS, UserAccessRecord } from "@/lib/rbac";
+import { readRbacUsersFromSupabase, saveRbacUsersToSupabase } from "@/lib/supabaseAdmin";
 
-const RBAC_FILE_PATH = path.join(process.cwd(), "src", "lib", "rbacData.json");
-
-async function readFallbackRbacUsers(): Promise<UserAccessRecord[]> {
-  try {
-    const raw = await fs.readFile(RBAC_FILE_PATH, "utf8");
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_USERS;
-  } catch {
-    return DEFAULT_USERS;
-  }
-}
-
-async function writeFallbackRbacUsers(users: UserAccessRecord[]) {
-  try {
-    await fs.writeFile(RBAC_FILE_PATH, JSON.stringify(users, null, 2), "utf8");
-  } catch {
-    // Non-critical fallback
-  }
-}
 
 export async function GET() {
-  const users = await readFallbackRbacUsers();
+  let users: UserAccessRecord[];
+  try {
+    users = await readRbacUsersFromSupabase();
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || "Supabase RBAC is not configured." }, { status: 503 });
+  }
 
   return NextResponse.json({
     users,
     roles: ROLE_DEFINITIONS,
-    source: "local",
+    source: "supabase",
   });
 }
 
@@ -62,12 +47,12 @@ export async function POST(req: NextRequest) {
       clickUpTaskId: u.clickUpTaskId || undefined,
     }));
 
-    await writeFallbackRbacUsers(validatedUsers);
+    await saveRbacUsersToSupabase(validatedUsers);
 
     return NextResponse.json({
       success: true,
       users: validatedUsers,
-      source: "local",
+      source: "supabase",
     });
   } catch (err: any) {
     return NextResponse.json(

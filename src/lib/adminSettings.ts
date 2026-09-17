@@ -142,32 +142,13 @@ export function normalizeFieldMapping(value: unknown): ClickUpFieldIdMapping {
   return mapping;
 }
 
-/** Read settings from localStorage (client-side only). Falls back to defaults. */
+/** Returns client defaults for rendering only. Server settings are authoritative. */
 export function getAdminSettings(): AdminSettings {
-  if (typeof window === "undefined") return { ...DEFAULT_SETTINGS };
-  try {
-    const raw = localStorage.getItem(ADMIN_SETTINGS_KEY);
-    if (!raw) return { ...DEFAULT_SETTINGS };
-    const parsed = JSON.parse(raw);
-    return {
-      rfpAutofillEnabled:
-        typeof parsed.rfpAutofillEnabled === "boolean"
-          ? parsed.rfpAutofillEnabled
-          : DEFAULT_SETTINGS.rfpAutofillEnabled,
-      destinations: normalizeFormDestinations(parsed.destinations),
-      workflowStatuses: normalizeWorkflowStatuses(parsed.workflowStatuses),
-      clickupFieldMapping: normalizeFieldMapping(parsed.clickupFieldMapping),
-    };
-  } catch {
-    return { ...DEFAULT_SETTINGS };
-  }
+  return { ...DEFAULT_SETTINGS };
 }
 
-/** Persist settings to localStorage. */
-export function saveAdminSettings(settings: AdminSettings): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(settings));
-}
+/** Configuration is persisted by the authenticated Admin API in Supabase. */
+export function saveAdminSettings(_settings: AdminSettings): void {}
 
 /** Check if the admin is currently authenticated (sessionStorage). */
 export function isAdminAuthenticated(): boolean {

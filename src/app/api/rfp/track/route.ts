@@ -3,10 +3,9 @@ import { getListTasks, getClickUpTask, backfillMilestoneTimestampsToClickUp } fr
 import { getServerAuthSession } from "@/lib/auth";
 import { readFormDestinationFromSupabase } from "@/lib/supabaseAdmin";
 import type { FormDestinationKey } from "@/lib/adminSettings";
-import { promises as fs } from "fs";
-import path from "path";
-import { DEFAULT_USERS, type UserRole } from "@/lib/rbac";
+import { type UserRole } from "@/lib/rbac";
 import { DEFAULT_WORKFLOW_STATUSES, type WorkflowStatuses } from "@/lib/adminSettings";
+import { readPortalSettingsFromSupabase, readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
 import { resolveRfpMilestone } from "@/lib/rfpWorkflow";
 import {
   mapClickUpTaskToTrackedRfp,
@@ -26,14 +25,7 @@ interface ViewerAccess {
 async function getViewerAccess(user: { email?: string; username?: string } | null): Promise<ViewerAccess> {
   const email = (user?.email || "").trim().toLowerCase();
   const username = (user?.username || "").trim().toLowerCase();
-  let users = DEFAULT_USERS;
-  try {
-    const raw = await fs.readFile(path.join(process.cwd(), "src", "lib", "rbacData.json"), "utf8");
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) users = parsed;
-  } catch {
-    // The checked-in defaults are the safe fallback on read-only deployments.
-  }
+  const users = await import("@/lib/supabaseAdmin").then(({ readRbacUsersFromSupabase }) => readRbacUsersFromSupabase());
 
   const record = users.find((candidate) =>
     candidate.status === "active" && (
@@ -46,19 +38,14 @@ async function getViewerAccess(user: { email?: string; username?: string } | nul
 }
 
 async function getSettingsMappingAndStatuses() {
-  try {
-    const raw = await fs.readFile(path.join(process.cwd(), "src", "lib", "featureFlags.json"), "utf8");
-    const parsed = JSON.parse(raw);
-    return {
-      fieldMapping: parsed.clickupFieldMapping || {},
-      workflowStatuses: parsed.workflowStatuses || DEFAULT_WORKFLOW_STATUSES,
-    };
-  } catch {
-    return {
-      fieldMapping: {},
-      workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
-    };
-  }
+  const [portalSettings, workflowStatuses] = await Promise.all([
+    readPortalSettingsFromSupabase(),
+    readWorkflowStatusesFromSupabase(),
+  ]);
+  return {
+    fieldMapping: portalSettings.clickupFieldMapping || {},
+    workflowStatuses: workflowStatuses || DEFAULT_WORKFLOW_STATUSES,
+  };
 }
 
 export async function GET(req: NextRequest) {

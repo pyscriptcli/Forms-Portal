@@ -9,16 +9,12 @@ import {
 import { resolveFieldIdMapping, validateFieldMapping } from "@/lib/clickupFields";
 import { mapClickUpTaskToTrackedRfp } from "@/lib/rfpTrackerMapping";
 import { ADMIN_TOKEN } from "@/lib/adminSettings";
-import { promises as fs } from "fs";
-import path from "path";
 import {
   isSupabaseAdminConfigured,
   readFormDestinationFromSupabase,
   readPortalSettingsFromSupabase,
   savePortalSettingsToSupabase,
 } from "@/lib/supabaseAdmin";
-
-const FLAGS_PATH = path.join(process.cwd(), "src", "lib", "featureFlags.json");
 
 export async function GET(req: NextRequest) {
   try {
@@ -81,11 +77,7 @@ export async function POST(req: NextRequest) {
 
       let workspaceId: string | undefined;
       const configuredWorkspaceId = destination?.workspaceId?.trim();
-      try {
-        const raw = await fs.readFile(FLAGS_PATH, "utf8");
-        const flags = JSON.parse(raw);
-        workspaceId = configuredWorkspaceId || flags.destinations?.rfp?.workspaceId || flags.workspaceId;
-      } catch {}
+      workspaceId = configuredWorkspaceId;
       const webhookResult = await createClickUpWebhook(listId, webhookEndpoint, token, workspaceId);
       if (isSupabaseAdminConfigured()) {
         await savePortalSettingsToSupabase({
@@ -93,17 +85,6 @@ export async function POST(req: NextRequest) {
           clickupWebhookEndpoint: webhookEndpoint,
         });
       }
-
-      // Persist webhook ID and secret
-      try {
-        const raw = await fs.readFile(FLAGS_PATH, "utf8");
-        const flags = JSON.parse(raw);
-        flags.clickupWebhookId = webhookResult.id;
-        if (webhookResult.secret) {
-          flags.clickupWebhookSecret = webhookResult.secret;
-        }
-        await fs.writeFile(FLAGS_PATH, JSON.stringify(flags, null, 2), "utf8");
-      } catch {}
 
       return NextResponse.json({
         success: true,
@@ -146,18 +127,6 @@ export async function POST(req: NextRequest) {
     const mapping = { ...(sharedSettings.clickupFieldMapping || {}), ...discoveredMapping };
     const validation = validateFieldMapping(mapping);
 
-    // Persist to featureFlags.json
-    try {
-      const raw = await fs.readFile(FLAGS_PATH, "utf8");
-      const flags = JSON.parse(raw);
-      flags.clickupFieldMapping = {
-        ...(flags.clickupFieldMapping || {}),
-        ...mapping,
-      };
-      await fs.writeFile(FLAGS_PATH, JSON.stringify(flags, null, 2), "utf8");
-    } catch {
-      // Ignore if read-only
-    }
     if (isSupabaseAdminConfigured()) {
       await savePortalSettingsToSupabase({ clickupFieldMapping: mapping });
     }
