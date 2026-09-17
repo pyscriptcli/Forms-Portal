@@ -5,14 +5,22 @@ import {
   createClickUpWebhook,
   getListTasks,
   backfillMilestoneTimestampsToClickUp,
+  getClickUpTaskTimeInStatus,
 } from "@/lib/clickup";
-import { resolveFieldIdMapping, validateFieldMapping } from "@/lib/clickupFields";
-import { mapClickUpTaskToTrackedRfp } from "@/lib/rfpTrackerMapping";
+import {
+  resolveFieldIdMapping,
+  validateFieldMapping,
+  CLICKUP_MILESTONE_FIELDS,
+} from "@/lib/clickupFields";
+import { ORDERED_MILESTONE_KEYS, resolveRfpMilestone, getMilestoneEntries } from "@/lib/rfpWorkflow";
+import { DEFAULT_WORKFLOW_STATUSES, normalizeWorkflowStatuses } from "@/lib/adminSettings";
+import { invalidateRfpCache } from "@/lib/rfpCache";
 import { ADMIN_TOKEN } from "@/lib/adminSettings";
 import {
   isSupabaseAdminConfigured,
   readFormDestinationFromSupabase,
   readPortalSettingsFromSupabase,
+  readWorkflowStatusesFromSupabase,
   savePortalSettingsToSupabase,
 } from "@/lib/supabaseAdmin";
 
@@ -38,32 +46,40 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       listId,
-      availableFields,
+      totalAvailable: availableFields.length,
+      availableFields: availableFields.map((f) => ({ id: f.id, name: f.name, type: f.type })),
       mapping,
       validation,
+      isConfigured: validation.isComplete,
+      webhookId: sharedSettings.clickupWebhookId || null,
+      webhookEndpoint: sharedSettings.clickupWebhookEndpoint || null,
     });
   } catch (err: any) {
-    console.error("Error in GET /api/admin/clickup-fields:", err);
-    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
+    console.error("Error checking ClickUp custom fields contract:", err);
+    return NextResponse.json(
+      { success: false, message: err.message || "Failed to inspect ClickUp custom fields." },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(req: NextRequest) {
-  const adminToken = req.headers.get("x-admin-token");
-  if (adminToken !== ADMIN_TOKEN) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
-    const body = await req.json();
+    const adminTokenHeader = req.headers.get("x-admin-token");
+    if (adminTokenHeader !== ADMIN_TOKEN) {
+      return NextResponse.json({ success: false, message: "Unauthorized." }, { status: 401 });
+    }
+
+    const body = await req.json().catch(() => ({}));
     const action = body.action || "discover_and_save";
 
     const destination = isSupabaseAdminConfigured()
       ? await readFormDestinationFromSupabase("rfp")
       : null;
     const { token, listId, isConfigured } = getClickUpConfig("rfp", undefined, destination?.listId);
-      if (!isConfigured) {
-        return NextResponse.json(
+
+    if (!isConfigured) {
+      return NextResponse.json(
         { success: false, message: "ClickUp API token or RFP List ID is not configured. Webhook registration requires a personal ClickUp API token from the same workspace; an OAuth token may return OAUTH_027." },
         { status: 400 }
       );
@@ -72,7 +88,7 @@ export async function POST(req: NextRequest) {
     if (action === "create_webhook") {
       const host = req.headers.get("host") || "localhost:3000";
       const protocol = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`).replace(/\/+$/, "");
       const webhookEndpoint = `${appUrl}/api/clickup/webhook`;
 
       let workspaceId: string | undefined;
@@ -83,6 +99,7 @@ export async function POST(req: NextRequest) {
         await savePortalSettingsToSupabase({
           clickupWebhookId: webhookResult.id || null,
           clickupWebhookEndpoint: webhookEndpoint,
+          clickupWebhookSecret: webhookResult.secret || null,
         });
       }
 
@@ -96,6 +113,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "sync_task_timestamps") {
+      const configuredStatuses = isSupabaseAdminConfigured()
+        ? await readWorkflowStatusesFromSupabase()
+        : null;
+      const workflowStatuses = normalizeWorkflowStatuses(configuredStatuses || DEFAULT_WORKFLOW_STATUSES);
+
       const tasks = await getListTasks(true, "rfp", token, listId);
       const availableFields = await getListCustomFields(listId, token);
       const mapping = resolveFieldIdMapping(availableFields);
@@ -104,13 +126,81 @@ export async function POST(req: NextRequest) {
       let syncedFieldsCount = 0;
 
       for (const task of tasks) {
-        const tracked = mapClickUpTaskToTrackedRfp(task, mapping);
-        if (tracked.pendingClickUpBackfill && tracked.pendingClickUpBackfill.length > 0) {
-          await backfillMilestoneTimestampsToClickUp(tracked.taskId, tracked.pendingClickUpBackfill, token);
-          syncedTasksCount++;
-          syncedFieldsCount += tracked.pendingClickUpBackfill.length;
+        const statusStr = (task.status?.status || "").toLowerCase();
+        const normalizedStatus = statusStr.replace(/[_-]/g, " ").replace(/\s+/g, " ").trim();
+        const isDone = ["done", "complete", "completed", "closed"].includes(normalizedStatus);
+        const resolved = resolveRfpMilestone(statusStr, workflowStatuses);
+
+        const activeMilestoneIdx = ORDERED_MILESTONE_KEYS.indexOf(resolved.key);
+        const effectiveMilestoneIdx = isDone ? ORDERED_MILESTONE_KEYS.length - 1 : activeMilestoneIdx;
+
+        if (effectiveMilestoneIdx < 0) continue;
+
+        const taskFields: Array<{ id: string; name?: string; value?: any }> = Array.isArray(task.custom_fields)
+          ? task.custom_fields
+          : [];
+        const taskFieldMap = new Map<string, any>();
+        for (const cf of taskFields) {
+          if (cf.id) taskFieldMap.set(cf.id, cf.value);
+        }
+
+        const missingBackfills: Array<{ fieldId: string; timestamp: number }> = [];
+        let timeInStatusData: any = null;
+
+        for (let idx = 0; idx <= effectiveMilestoneIdx; idx++) {
+          const milestoneKey = ORDERED_MILESTONE_KEYS[idx];
+          const fieldName = CLICKUP_MILESTONE_FIELDS[milestoneKey];
+          const fieldId = mapping[fieldName];
+          if (!fieldId) continue;
+
+          const existingValue = taskFieldMap.get(fieldId);
+          if (existingValue !== undefined && existingValue !== null && existingValue !== "") {
+            continue;
+          }
+
+          let timestamp: number = 0;
+          if (idx === 0) {
+            timestamp = Number(task.date_created) || Date.now();
+          } else {
+            if (timeInStatusData === null) {
+              timeInStatusData = await getClickUpTaskTimeInStatus(task.id, token);
+            }
+            const expectedMilestone = getMilestoneEntries(workflowStatuses).find((e) => e.key === milestoneKey);
+            const statusLabel = (expectedMilestone?.status || "").toLowerCase().trim();
+
+            if (timeInStatusData?.status_history && Array.isArray(timeInStatusData.status_history)) {
+              const histMatch = timeInStatusData.status_history.find(
+                (h: any) => (h.status || "").toLowerCase().trim() === statusLabel
+              );
+              if (histMatch?.total_time?.since) {
+                timestamp = Number(histMatch.total_time.since);
+              }
+            }
+
+            if (!timestamp && timeInStatusData?.current_status) {
+              if ((timeInStatusData.current_status.status || "").toLowerCase().trim() === statusLabel) {
+                timestamp = Number(timeInStatusData.current_status.total_time?.since || 0);
+              }
+            }
+
+            if (!timestamp || isNaN(timestamp)) {
+              timestamp = Number(task.date_updated) || Number(task.date_created) || Date.now();
+            }
+          }
+
+          missingBackfills.push({ fieldId, timestamp });
+        }
+
+        if (missingBackfills.length > 0) {
+          const success = await backfillMilestoneTimestampsToClickUp(task.id, missingBackfills, token);
+          if (success) {
+            syncedTasksCount++;
+            syncedFieldsCount += missingBackfills.length;
+          }
         }
       }
+
+      invalidateRfpCache(destination?.workspaceId, listId);
 
       return NextResponse.json({
         success: true,

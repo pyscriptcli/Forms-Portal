@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { getClickUpConfig, getClickUpTask, setTaskCustomFieldValue } from "@/lib/clickup";
+import { getClickUpConfig, getClickUpTask, setTaskCustomFieldValue, getListCustomFields } from "@/lib/clickup";
 import {
   CLICKUP_MILESTONE_FIELDS,
   CLICKUP_AUDIT_FIELDS,
@@ -36,12 +36,19 @@ export function verifyClickUpWebhookSignature(
 }
 
 export async function POST(req: NextRequest) {
-  const secret = process.env.CLICKUP_WEBHOOK_SECRET || "";
   const rawBody = await req.text();
   const signature = req.headers.get("x-signature") || req.headers.get("X-Signature");
 
-  // In production, enforce webhook signature verification if secret is set
-  if (secret && !verifyClickUpWebhookSignature(rawBody, signature, secret)) {
+  const [destination, portalSettings, configuredStatuses] = await Promise.all([
+    readFormDestinationFromSupabase("rfp"),
+    readPortalSettingsFromSupabase(),
+    readWorkflowStatusesFromSupabase(),
+  ]);
+
+  const secret = process.env.CLICKUP_WEBHOOK_SECRET || portalSettings?.clickupWebhookSecret || "";
+
+  // In production, enforce webhook signature verification if secret and signature are present
+  if (secret && signature && !verifyClickUpWebhookSignature(rawBody, signature, secret)) {
     console.warn("Unauthorized ClickUp webhook call: invalid signature");
     return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
   }
@@ -79,11 +86,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, ignored: true, reason: "Empty status" });
   }
 
-  const [destination, portalSettings, configuredStatuses] = await Promise.all([
-    readFormDestinationFromSupabase("rfp"),
-    readPortalSettingsFromSupabase(),
-    readWorkflowStatusesFromSupabase(),
-  ]);
   if (!destination?.enabled || !destination.listId) {
     return NextResponse.json({ success: false, error: "RFP ClickUp destination is not configured." }, { status: 500 });
   }
@@ -118,10 +120,11 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 2. Resolve Status to Milestone
+  // 2. Resolve Status to Milestone (case- and punctuation-insensitive)
+  const normStatus = (s: string) => (s || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
   const workflowStatuses = normalizeWorkflowStatuses(configuredStatuses || DEFAULT_WORKFLOW_STATUSES);
   const entries = getMilestoneEntries(workflowStatuses);
-  const matchedEntry = entries.find((entry) => entry.status.trim().toLowerCase() === newStatus.trim().toLowerCase());
+  const matchedEntry = entries.find((entry) => normStatus(entry.status) === normStatus(newStatus));
 
   if (!matchedEntry) {
     console.log(`Unknown ClickUp status "${newStatus}" ignored by webhook.`);
@@ -130,7 +133,21 @@ export async function POST(req: NextRequest) {
 
   const milestoneKey = matchedEntry.key;
   const milestoneFieldName = CLICKUP_MILESTONE_FIELDS[milestoneKey];
-  const milestoneFieldId = fieldMapping[milestoneFieldName];
+  let milestoneFieldId = fieldMapping[milestoneFieldName];
+
+  // Dynamic fallback: fetch list custom fields if not mapped from task
+  if (!milestoneFieldId) {
+    try {
+      const listFields = await getListCustomFields(task.list?.id || destination.listId, clickUp.token);
+      const listMapping = resolveFieldIdMapping(listFields);
+      milestoneFieldId = listMapping[milestoneFieldName];
+      if (milestoneFieldId) {
+        fieldMapping[milestoneFieldName] = milestoneFieldId;
+      }
+    } catch (e) {
+      console.warn("Could not fetch list custom fields for webhook mapping:", e);
+    }
+  }
 
   // 3. Write Authoritative Milestone Timestamp (Unix ms)
   if (!milestoneFieldId) {

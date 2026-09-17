@@ -278,19 +278,38 @@ export async function setTaskCustomFieldValue(
   if (!authToken || authToken === "mock" || taskId.startsWith("MOCK-")) return true;
 
   try {
+    const isTimestamp = typeof value === "number" && value > 1_000_000_000_000;
+    const bodyPayload = isTimestamp
+      ? { value: Math.round(value), value_options: { time: true } }
+      : { value };
+
     const res = await fetch(`${CLICKUP_API_BASE}/task/${taskId}/field/${fieldId}`, {
       method: "POST",
       headers: {
         Authorization: authToken.startsWith("Bearer ") ? authToken : authToken,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ value }),
+      body: JSON.stringify(bodyPayload),
     });
 
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
       console.warn(`ClickUp custom field ${fieldId} set failed (${res.status}): ${errText}`);
-      // If error is FIELD_018 (Value is not a valid string), retry with String(value)
+
+      // Fallback 1: If value_options rejected, try simple { value: Math.round(value) }
+      if (isTimestamp) {
+        const fallbackRes = await fetch(`${CLICKUP_API_BASE}/task/${taskId}/field/${fieldId}`, {
+          method: "POST",
+          headers: {
+            Authorization: authToken.startsWith("Bearer ") ? authToken : authToken,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ value: Math.round(value) }),
+        });
+        if (fallbackRes.ok) return true;
+      }
+
+      // Fallback 2: If error is FIELD_018 (Value is not a valid string), retry with String(value)
       if (errText.includes("FIELD_018") || errText.includes("not a valid string")) {
         const retryRes = await fetch(`${CLICKUP_API_BASE}/task/${taskId}/field/${fieldId}`, {
           method: "POST",
@@ -309,6 +328,33 @@ export async function setTaskCustomFieldValue(
   } catch (err) {
     console.error(`Error setting custom field ${fieldId} on task ${taskId}:`, err);
     return false;
+  }
+}
+
+/**
+ * Fetches time-in-status history for a ClickUp task.
+ */
+export async function getClickUpTaskTimeInStatus(
+  taskId: string,
+  token?: string
+): Promise<{
+  current_status?: { status: string; total_time?: { since?: string | number } };
+  status_history?: Array<{ status: string; total_time?: { since?: string | number } }>;
+} | null> {
+  const authToken = token || process.env.CLICKUP_API_TOKEN || "";
+  if (!authToken || authToken === "mock" || !taskId || taskId.startsWith("MOCK-")) return null;
+
+  try {
+    const res = await fetch(`${CLICKUP_API_BASE}/task/${taskId}/time_in_status`, {
+      headers: {
+        Authorization: authToken.startsWith("Bearer ") ? authToken : authToken,
+      },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.warn(`Failed to fetch time_in_status for task ${taskId}:`, err);
+    return null;
   }
 }
 
@@ -444,7 +490,12 @@ async function getMatchingCustomFields(listId: string, token: string, data: any,
       } else if (name.includes("accountnum") && data.accountNumber) {
         const val = formatCustomFieldValueForWrite(actualType, data.accountNumber);
         if (val !== null) customFieldsPayload.push({ id: field.id, value: val });
-      } else if (name.includes("edit") || name.includes("revision") || name.includes("formurl")) {
+      } else if (
+        (name.includes("edit") || name.includes("formurl")) &&
+        !name.includes("revision") &&
+        !name.includes("status") &&
+        !name.includes("ts")
+      ) {
         const val = formatCustomFieldValueForWrite(actualType, editUrl);
         if (val !== null) customFieldsPayload.push({ id: field.id, value: val });
       }
@@ -542,7 +593,8 @@ export async function createClickUpTask(
   }
 
   // Populate custom fields (metadata + submission milestone timestamp)
-  const customFields = await getMatchingCustomFields(listId, token, data, `${appUrl}/form?taskId=PENDING`);
+  const cleanedAppUrl = (appUrl || "").replace(/\/+$/, "");
+  const customFields = await getMatchingCustomFields(listId, token, data, `${cleanedAppUrl}/form?taskId=PENDING`);
   if (customFields.length > 0) {
     body.custom_fields = customFields;
   }

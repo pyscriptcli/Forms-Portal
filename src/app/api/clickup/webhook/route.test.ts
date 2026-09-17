@@ -93,4 +93,41 @@ describe("ClickUp status webhook timestamp persistence", () => {
     expect(body.success).toBe(false);
     expect(body.error).toMatch(/Finance Processing/i);
   });
+
+  it("handles mixed case status like Tl Review And Approval successfully", async () => {
+    vi.mocked(setTaskCustomFieldValue).mockResolvedValue(true);
+    vi.mocked(readPortalSettingsFromSupabase).mockResolvedValue({
+      clickupFieldMapping: {
+        "RFP TS - TL Review and Approval": "tl-field-id",
+      },
+    } as never);
+    vi.mocked(readWorkflowStatusesFromSupabase).mockResolvedValue({
+      tlReviewAndApproval: "TL Review and Approval",
+    } as never);
+
+    const req = new Request("http://localhost/api/clickup/webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: "taskStatusUpdated",
+        task_id: "task-1",
+        history_items: [{
+          id: "event-tl",
+          date: String(eventDate),
+          before: { status: "Requestor Form Submission" },
+          after: { status: "Tl Review And Approval" },
+          user: { username: "Dave Policarpio" },
+        }],
+      }),
+    }) as never;
+
+    const response = await POST(req);
+    expect(response.status).toBe(200);
+    expect(setTaskCustomFieldValue).toHaveBeenCalledWith(
+      "task-1",
+      "tl-field-id",
+      eventDate,
+      "pk_server_token"
+    );
+  });
 });

@@ -56,8 +56,9 @@ describe("request details", () => {
     // Click on Finance stage in the compact workflow rail
     const financeStageBtn = screen.getByRole("button", { name: /Finance/i });
     fireEvent.click(financeStageBtn);
-
-    expect(screen.getByText("Finance Validation")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Finance Validation")).toBeInTheDocument();
+    });
     expect(screen.getByText("Finance Processing")).toBeInTheDocument();
     expect(screen.getByText("Payment Preparation")).toBeInTheDocument();
     expect(screen.getByText("Sep 16, 2026, 8:45 AM")).toBeInTheDocument();

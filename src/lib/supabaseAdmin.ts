@@ -127,6 +127,9 @@ export async function readFormDestinationsFromSupabase(): Promise<Record<FormDes
 export async function readPortalSettingsFromSupabase(): Promise<{
   rfpAutofillEnabled?: boolean;
   clickupFieldMapping?: ClickUpFieldIdMapping;
+  clickupWebhookId?: string;
+  clickupWebhookEndpoint?: string;
+  clickupWebhookSecret?: string;
 }> {
   const { url, key, isConfigured } = getSupabaseConfig();
   if (!isConfigured) return {};
@@ -134,7 +137,7 @@ export async function readPortalSettingsFromSupabase(): Promise<{
     `${url}/rest/v1/${encodeURIComponent(SETTINGS_TABLE)}?select=setting_key,setting_value`,
     { headers: supabaseHeaders(key), cache: "no-store" },
   );
-  if (!response.ok) throw new Error(`Supabase portal settings read failed (${response.status}): ${await response.text()}`);
+  if (!response.ok) return {};
   const rows = await response.json() as Array<{ setting_key: string; setting_value: unknown }>;
   const values = Object.fromEntries(rows.map((row) => [row.setting_key, row.setting_value]));
   return {
@@ -143,6 +146,9 @@ export async function readPortalSettingsFromSupabase(): Promise<{
       values.clickupFieldMapping && typeof values.clickupFieldMapping === "object"
         ? values.clickupFieldMapping as ClickUpFieldIdMapping
         : undefined,
+    clickupWebhookId: typeof values.clickupWebhookId === "string" ? values.clickupWebhookId : undefined,
+    clickupWebhookEndpoint: typeof values.clickupWebhookEndpoint === "string" ? values.clickupWebhookEndpoint : undefined,
+    clickupWebhookSecret: typeof values.clickupWebhookSecret === "string" ? values.clickupWebhookSecret : undefined,
   };
 }
 
