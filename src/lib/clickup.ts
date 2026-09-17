@@ -48,7 +48,7 @@ function getConfiguredWorkflowStatuses(): WorkflowStatuses {
 
 export function getClickUpConfig(formType: FormType = "rfp", oauthToken?: string, listIdOverride?: string) {
   const token = oauthToken || process.env.CLICKUP_API_TOKEN || "";
-  const isOAuth = Boolean(oauthToken);
+  const isOAuth = Boolean(oauthToken && !oauthToken.startsWith("pk_"));
   let listId = listIdOverride?.trim() || "";
   const adminDestination = getAdminDestination(formType);
 

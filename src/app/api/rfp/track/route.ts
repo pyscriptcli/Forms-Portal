@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getListTasks, getClickUpTask, backfillMilestoneTimestampsToClickUp } from "@/lib/clickup";
+import { getClickUpConfig, getListTasks, getClickUpTask, backfillMilestoneTimestampsToClickUp } from "@/lib/clickup";
 import { getServerAuthSession } from "@/lib/auth";
 import { readFormDestinationFromSupabase } from "@/lib/supabaseAdmin";
 import type { FormDestinationKey } from "@/lib/adminSettings";
@@ -66,10 +66,18 @@ export async function GET(req: NextRequest) {
     const email = (searchParams.get("email") || "").toLowerCase().trim();
 
     const settings = await getSettingsMappingAndStatuses();
+    const rfpDestination = await readFormDestinationFromSupabase("rfp");
+    if (!rfpDestination?.enabled || !rfpDestination.listId) {
+      throw new Error("No enabled RFP ClickUp destination is configured in Supabase.");
+    }
+    const rfpClickUp = getClickUpConfig("rfp", undefined, rfpDestination.listId);
+    if (!rfpClickUp.isConfigured) {
+      throw new Error("The server-side ClickUp API token is not configured for the Supabase RFP destination.");
+    }
 
     // 1. Direct ID lookup
     if (id) {
-      const task = await getClickUpTask(id, accessToken);
+      const task = await getClickUpTask(id, rfpClickUp.token);
       if (!task) {
         return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
       }
@@ -77,7 +85,7 @@ export async function GET(req: NextRequest) {
       if (!viewer.canViewAll && !taskBelongsToViewer(parsed, viewer)) {
         return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
       }
-      scheduleBackfills([parsed], accessToken);
+      scheduleBackfills([parsed], rfpClickUp.token);
       return NextResponse.json({
         success: true,
         requests: [parsed],
@@ -85,13 +93,16 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 2. Fetch tasks from every configured form destination.
-    const formTypes: FormDestinationKey[] = ["rfp", "gw-rfp", "travel-budget"];
+    // 2. The Requests page is the RFP tracking view. Its sole data source is
+    // the RFP ClickUp List selected in the Supabase destination configuration.
+    const formTypes: FormDestinationKey[] = ["rfp"];
     const taskGroups = await Promise.all(
       formTypes.map(async (formType) => {
         const destination = await readFormDestinationFromSupabase(formType);
         if (!destination?.enabled || !destination.listId) return [];
-        return getListTasks(true, formType, accessToken, destination.listId);
+        const clickUp = getClickUpConfig(formType, undefined, destination.listId);
+        if (!clickUp.isConfigured) throw new Error(`The server-side ClickUp API token is not configured for ${formType}.`);
+        return getListTasks(true, formType, clickUp.token, destination.listId);
       })
     );
     const allTasks = Array.from(
@@ -134,7 +145,7 @@ export async function GET(req: NextRequest) {
     // Sort by creation date descending
     parsed.sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime());
 
-    scheduleBackfills(parsed, accessToken);
+    scheduleBackfills(parsed, rfpClickUp.token);
 
     return NextResponse.json({
       success: true,
