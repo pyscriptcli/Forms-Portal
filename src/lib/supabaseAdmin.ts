@@ -144,10 +144,23 @@ export async function saveFormDestinationsToSupabase(destinations: Record<FormDe
     clickup_list_id: destination.listId,
     enabled: destination.enabled,
   }));
-  const response = await fetch(`${url}/rest/v1/${encodeURIComponent(DESTINATIONS_TABLE)}`, {
-    method: "POST",
-    headers: supabaseHeaders(key, { Prefer: "resolution=merge-duplicates,return=minimal" }),
-    body: JSON.stringify(rows),
-  });
-  if (!response.ok) throw new Error(`Supabase form destination save failed (${response.status}): ${await response.text()}`);
+  for (const row of rows) {
+    const updateResponse = await fetch(
+      `${url}/rest/v1/${encodeURIComponent(DESTINATIONS_TABLE)}?form_type=eq.${encodeURIComponent(row.form_type)}`,
+      {
+        method: "PATCH",
+        headers: supabaseHeaders(key, { Prefer: "return=minimal" }),
+        body: JSON.stringify({
+          display_name: row.display_name,
+          clickup_workspace_id: row.clickup_workspace_id,
+          clickup_list_id: row.clickup_list_id,
+          enabled: row.enabled,
+          updated_at: new Date().toISOString(),
+        }),
+      },
+    );
+    if (!updateResponse.ok) {
+      throw new Error(`Supabase form destination save failed for ${row.form_type} (${updateResponse.status}): ${await updateResponse.text()}`);
+    }
+  }
 }

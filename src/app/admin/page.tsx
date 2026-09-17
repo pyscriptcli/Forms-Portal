@@ -360,8 +360,8 @@ export default function AdminPage() {
       });
       if (!res.ok) throw new Error("Save failed");
       setSaveMsg("Saved.");
-    } catch {
-      setSaveMsg("Error saving — changes applied locally only.");
+    } catch (error: any) {
+      setSaveMsg(error?.message || "Error saving feature settings.");
     } finally {
       setIsSaving(false);
       setTimeout(() => setSaveMsg(""), 2500);
@@ -392,8 +392,8 @@ export default function AdminPage() {
       });
       if (!res.ok) throw new Error("Save failed");
       setSaveMsg("Form destinations saved.");
-    } catch {
-      setSaveMsg("Error saving — changes applied locally only.");
+    } catch (error: any) {
+      setSaveMsg(error?.message || "Error saving form destinations.");
     } finally {
       setIsSaving(false);
       setTimeout(() => setSaveMsg(""), 3000);

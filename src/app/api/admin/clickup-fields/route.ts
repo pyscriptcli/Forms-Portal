@@ -66,9 +66,9 @@ export async function POST(req: NextRequest) {
       ? await readFormDestinationFromSupabase("rfp")
       : null;
     const { token, listId, isConfigured } = getClickUpConfig("rfp", undefined, destination?.listId);
-    if (!isConfigured) {
-      return NextResponse.json(
-        { success: false, message: "ClickUp token or RFP list ID not configured." },
+      if (!isConfigured) {
+        return NextResponse.json(
+        { success: false, message: "ClickUp API token or RFP List ID is not configured. Webhook registration requires a personal ClickUp API token from the same workspace; an OAuth token may return OAUTH_027." },
         { status: 400 }
       );
     }
@@ -167,8 +167,15 @@ export async function POST(req: NextRequest) {
       mapping,
       validation,
     });
-  } catch (err: any) {
-    console.error("Error in POST /api/admin/clickup-fields:", err);
-    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
+    } catch (err: any) {
+      console.error("Error in POST /api/admin/clickup-fields:", err);
+      const message = String(err?.message || "");
+      if (message.includes("OAUTH_027") || message.includes("Team not authorized")) {
+        return NextResponse.json({
+          success: false,
+          message: "ClickUp rejected webhook administration for this credential (OAUTH_027). Set CLICKUP_API_TOKEN to a personal API token created by an admin in the same ClickUp workspace, then redeploy.",
+        }, { status: 401 });
+      }
+      return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
 }
