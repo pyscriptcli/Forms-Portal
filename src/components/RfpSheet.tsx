@@ -787,14 +787,14 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
                   className="no-print absolute -inset-1 z-10 flex items-center justify-center border border-[#003366]/20 bg-white/75 px-3 backdrop-blur-[1px]"
                   data-pdf-ignore="true"
                   role="note"
-                  aria-label="Team Leader approval controls are locked"
+                  aria-label="For TL/Approver only"
                 >
                   <div className="flex items-center gap-2 border border-[#c7a94a] bg-[#fffdf7] px-3 py-2 text-[#003366] shadow-sm">
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#003366] text-white">
                       <LockKeyhole size={13} aria-hidden="true" />
                     </span>
                     <span className="leading-tight">
-                      <span className="block text-[10px] font-bold uppercase tracking-[0.14em]">TL approval only</span>
+                      <span className="block text-[10px] font-bold uppercase tracking-[0.14em]">For TL/Approver only</span>
                       <span className="block text-[9px] text-[#475569]">Completed by the assigned approver</span>
                     </span>
                   </div>

@@ -82,7 +82,7 @@ describe.each(["prime", "gw"] as const)("%s RFP", (variant) => {
 
   it("locks TL approval controls behind a portal-only overlay for requestors", () => {
     const { container } = render(<TlApprovalHarness canEditTlApproval={false} />);
-    const overlay = screen.getByRole("note", { name: "Team Leader approval controls are locked" });
+    const overlay = screen.getByRole("note", { name: "For TL/Approver only" });
     expect(overlay).toHaveAttribute("data-pdf-ignore", "true");
     expect(overlay).toHaveClass("no-print");
     const tlName = screen.getByPlaceholderText("Printed Name");
@@ -92,7 +92,7 @@ describe.each(["prime", "gw"] as const)("%s RFP", (variant) => {
 
   it("unlocks TL approval controls for approvers", () => {
     render(<TlApprovalHarness canEditTlApproval />);
-    expect(screen.queryByRole("note", { name: "Team Leader approval controls are locked" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("note", { name: "For TL/Approver only" })).not.toBeInTheDocument();
     const tlName = screen.getByPlaceholderText("Printed Name");
     expect(tlName).toBeEnabled();
     fireEvent.change(tlName, { target: { value: "Alex Approver" } });
