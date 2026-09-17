@@ -51,6 +51,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", close);
   }, [mobileOpen]);
 
+  useEffect(() => {
+    if (isLoading || !user || isAuthRoute || isAdmin || !user.permissions) return;
+    const pagePermission = pathname.startsWith("/admin") ? "settings" : pathname.startsWith("/approvals") ? "approvals" : pathname.startsWith("/form") ? "forms" : "requests";
+    if (!user.permissions.includes(pagePermission)) {
+      const fallback = user.permissions.includes("requests") ? "/requests" : user.permissions.includes("forms") ? "/form" : "/auth/signin";
+      router.replace(fallback);
+    }
+  }, [isAdmin, isAuthRoute, isLoading, pathname, router, user]);
+
   if (isAuthRoute) return <>{children}</>;
   if (isLoading || !user) {
     return (
@@ -69,14 +78,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const activeKey = getActiveKey();
   const allowedPages = user.permissions;
 
-  useEffect(() => {
-    if (!allowedPages || isAdmin) return;
-    const pagePermission = activeKey === "settings" ? "settings" : activeKey;
-    if (!allowedPages.includes(pagePermission as typeof allowedPages[number])) {
-      const fallback = allowedPages.includes("requests") ? "/requests" : allowedPages.includes("forms") ? "/form" : "/auth/signin";
-      router.replace(fallback);
-    }
-  }, [activeKey, allowedPages, isAdmin, router]);
 
   const handleSelectView = (view: string) => {
     setMobileOpen(false);
