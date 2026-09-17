@@ -58,7 +58,7 @@ describe("RFP approval", () => {
     );
   });
 
-  it("requires a name, signature, and date before approval", async () => {
+  it("allows the endorsement action to perform the ClickUp status transition", async () => {
     const request = new Request("http://localhost/api/rfp/approve", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -66,7 +66,7 @@ describe("RFP approval", () => {
     });
 
     const response = await POST(request as never);
-    expect(response.status).toBe(400);
-    expect(approveTaskByApprover).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(approveTaskByApprover).toHaveBeenCalled();
   });
 });

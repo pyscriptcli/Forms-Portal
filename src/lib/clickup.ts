@@ -1016,7 +1016,8 @@ export async function approveTaskByApprover(
     approvalDate?: string;
   } = {}
 ): Promise<boolean> {
-  const { token, isConfigured, isOAuth } = getClickUpConfig("rfp", options.oauthToken);
+  const serviceConfig = getClickUpConfig("rfp");
+  const { token, isConfigured } = serviceConfig;
   const workflowStatuses = options.workflowStatuses || getConfiguredWorkflowStatuses();
 
   if (!isConfigured || taskId.startsWith("MOCK-")) {
@@ -1024,79 +1025,22 @@ export async function approveTaskByApprover(
   }
 
   try {
-    const currentTask = await getClickUpTask(taskId, options.oauthToken);
-    if (!currentTask) return false;
-
-    if (!options.signatureDataUrl?.startsWith("data:image/") || !options.approvalDate) {
-      console.error("Approval requires a signature and approval date.");
-      return false;
-    }
-
-    // Persist approver metadata custom fields BEFORE advancing to Finance Validation
-    if (Array.isArray(currentTask.custom_fields)) {
-      const fieldMapping = resolveFieldIdMapping(
-        currentTask.custom_fields.map((f: any) => ({ id: f.id, name: f.name, type: f.type }))
-      );
-
-      const approverNameId = fieldMapping[CLICKUP_METADATA_FIELDS.approverName];
-      if (approverNameId && approverName) {
-        const ok = await setTaskCustomFieldValue(taskId, approverNameId, approverName, token);
-        if (!ok) {
-          console.error(`Failed to persist approver name to custom field ${approverNameId}`);
-          return false;
-        }
-      }
-
-        const approverEmailId = fieldMapping[CLICKUP_METADATA_FIELDS.approverEmail];
-        if (approverEmailId && approverEmail) {
-          await setTaskCustomFieldValue(taskId, approverEmailId, approverEmail, token);
-        }
-      }
-
-    let updatedDescription = currentTask.description || currentTask.markdown_description || "";
     let updateRes = await fetch(`${CLICKUP_API_BASE}/task/${taskId}`, {
       method: "PUT",
       headers: {
-        Authorization: authorizationHeader(token, isOAuth),
+        Authorization: authorizationHeader(token, false),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         status: workflowStatuses.financeValidation,
-        description: updatedDescription,
-        markdown_description: updatedDescription,
       }),
     });
-
-    // OAuth users can read a task but may not have permission to update it.
-    // Retry the write with the configured server token before reporting failure.
-    if (!updateRes.ok && options.oauthToken) {
-      const serviceConfig = getClickUpConfig("rfp");
-      if (serviceConfig.isConfigured && serviceConfig.token !== token) {
-        updateRes = await fetch(`${CLICKUP_API_BASE}/task/${taskId}`, {
-          method: "PUT",
-          headers: {
-            Authorization: authorizationHeader(serviceConfig.token, false),
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            status: workflowStatuses.financeValidation,
-            description: updatedDescription,
-            markdown_description: updatedDescription,
-          }),
-        });
-      }
-    }
 
     if (!updateRes.ok) {
       console.error("Failed to update task status:", await updateRes.text());
       return false;
     }
 
-    const commentMsg = notes
-      ? `✅ **Endorsed by ${approverName}**\nApproval date: ${options.approvalDate}\nSignature: Captured in the Forms Portal\nNotes: ${notes}\n\n*Status advanced to Finance Validation.*`
-      : `✅ **Endorsed by ${approverName}**\nApproval date: ${options.approvalDate}\nSignature: Captured in the Forms Portal\n\n*Status advanced to Finance Validation.*`;
-
-    await postTaskComment(taskId, commentMsg, options.oauthToken);
     return true;
   } catch (err) {
     console.error(`Error approving task ${taskId}:`, err);

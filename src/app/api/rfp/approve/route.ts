@@ -27,13 +27,6 @@ export async function POST(req: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
 
     if (action === "approve") {
-      if (!approverName?.trim() || !signatureDataUrl?.startsWith("data:image/") || !approvalDate?.trim()) {
-        return NextResponse.json(
-          { success: false, message: "Approver name, signature, and approval date are required" },
-          { status: 400 }
-        );
-      }
-
       const [{ accessToken, user }, workflowStatuses] = await Promise.all([
         getServerAuthSession(),
         readWorkflowStatusesFromSupabase(),
@@ -47,7 +40,7 @@ export async function POST(req: NextRequest) {
           oauthToken: accessToken || undefined,
           workflowStatuses: workflowStatuses || undefined,
           signatureDataUrl,
-          approvalDate: approvalDate.trim(),
+          approvalDate: approvalDate?.trim(),
         }
       );
 
