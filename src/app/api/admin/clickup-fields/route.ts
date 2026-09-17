@@ -11,6 +11,7 @@ import { mapClickUpTaskToTrackedRfp } from "@/lib/rfpTrackerMapping";
 import { ADMIN_TOKEN } from "@/lib/adminSettings";
 import { promises as fs } from "fs";
 import path from "path";
+import { isSupabaseAdminConfigured, readPortalSettingsFromSupabase, savePortalSettingsToSupabase } from "@/lib/supabaseAdmin";
 
 const FLAGS_PATH = path.join(process.cwd(), "src", "lib", "featureFlags.json");
 
@@ -25,7 +26,9 @@ export async function GET(req: NextRequest) {
     }
 
     const availableFields = await getListCustomFields(listId, token);
-    const mapping = resolveFieldIdMapping(availableFields);
+    const discoveredMapping = resolveFieldIdMapping(availableFields);
+    const sharedSettings = isSupabaseAdminConfigured() ? await readPortalSettingsFromSupabase() : {};
+    const mapping = { ...(sharedSettings.clickupFieldMapping || {}), ...discoveredMapping };
     const validation = validateFieldMapping(mapping);
 
     return NextResponse.json({
@@ -71,8 +74,13 @@ export async function POST(req: NextRequest) {
         const flags = JSON.parse(raw);
         workspaceId = flags.destinations?.rfp?.workspaceId || flags.workspaceId;
       } catch {}
-
       const webhookResult = await createClickUpWebhook(listId, webhookEndpoint, token, workspaceId);
+      if (isSupabaseAdminConfigured()) {
+        await savePortalSettingsToSupabase({
+          clickupWebhookId: webhookResult.id || null,
+          clickupWebhookEndpoint: webhookEndpoint,
+        });
+      }
 
       // Persist webhook ID and secret
       try {
@@ -121,7 +129,9 @@ export async function POST(req: NextRequest) {
 
     // Default: discover fields and save to settings
     const availableFields = await getListCustomFields(listId, token);
-    const mapping = resolveFieldIdMapping(availableFields);
+    const discoveredMapping = resolveFieldIdMapping(availableFields);
+    const sharedSettings = isSupabaseAdminConfigured() ? await readPortalSettingsFromSupabase() : {};
+    const mapping = { ...(sharedSettings.clickupFieldMapping || {}), ...discoveredMapping };
     const validation = validateFieldMapping(mapping);
 
     // Persist to featureFlags.json
@@ -135,6 +145,9 @@ export async function POST(req: NextRequest) {
       await fs.writeFile(FLAGS_PATH, JSON.stringify(flags, null, 2), "utf8");
     } catch {
       // Ignore if read-only
+    }
+    if (isSupabaseAdminConfigured()) {
+      await savePortalSettingsToSupabase({ clickupFieldMapping: mapping });
     }
 
     return NextResponse.json({

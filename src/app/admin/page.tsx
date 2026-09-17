@@ -39,7 +39,7 @@ export const CONTRACT_FIELD_GROUPS = [
     ],
   },
   {
-    title: "2. Milestone Timestamps (9 Fields)",
+    title: "2. Milestone Timestamps (10 Fields)",
     description: "Populated with authoritative event times when status transitions occur.",
     fields: [
       { name: "RFP TS - Requestor Form Submission", type: "Date & Time", desc: "Submission event timestamp" },
@@ -47,17 +47,17 @@ export const CONTRACT_FIELD_GROUPS = [
       { name: "RFP TS - Finance Validation", type: "Date & Time", desc: "Finance Validation milestone timestamp" },
       { name: "RFP TS - Finance Processing", type: "Date & Time", desc: "Finance Processing milestone timestamp" },
       { name: "RFP TS - Payment Preparation", type: "Date & Time", desc: "Payment Preparation milestone timestamp" },
-      { name: "RFP TS - CFO/CEO Sign-Off", type: "Date & Time", desc: "Executive sign-off milestone timestamp" },
+      { name: "RFP TS - CFO CEO Sign-Off", type: "Date & Time", desc: "Executive sign-off milestone timestamp" },
       { name: "RFP TS - Payment Release", type: "Date & Time", desc: "Disbursement milestone timestamp" },
       { name: "RFP TS - Payment Documentation", type: "Date & Time", desc: "Documentation milestone timestamp" },
       { name: "RFP TS - Records Filing", type: "Date & Time", desc: "Final filing milestone timestamp" },
+      { name: "RFP Revision Requested At", type: "Date & Time", desc: "Timestamp of the latest revision request" },
     ],
   },
   {
-    title: "3. Process Audit & Idempotency (4 Fields)",
+    title: "3. Process Audit & Idempotency (3 Fields)",
     description: "Enforces single-write idempotency and stores revision history.",
     fields: [
-      { name: "RFP Revision Reason", type: "Text", desc: "Notes explaining why a revision was requested" },
       { name: "RFP Revision Requested By", type: "Short Text", desc: "User or role who returned the request" },
       { name: "RFP Last Status Event ID", type: "Short Text", desc: "Webhook event ID to prevent duplicate writes" },
       { name: "RFP Process History", type: "Text / Long Text", desc: "Audit log of all milestone timestamps & events" },
@@ -90,8 +90,6 @@ const DEFAULT_FORM_DESTINATIONS: FormDestinations = {
   rfp: { listId: "901420772915", workspaceId: "9014981136", label: "PRIME RFP submissions", enabled: true },
   "gw-rfp": { listId: "901420772915", workspaceId: "9014981136", label: "GW RFP submissions", enabled: true },
   "travel-budget": { listId: "901420772915", workspaceId: "9014981136", label: "Travel Budget requests", enabled: true },
-  po: { listId: "", workspaceId: "9014981136", label: "Purchase Order requests", enabled: true },
-  pcv: { listId: "", workspaceId: "9014981136", label: "Petty Cash Voucher requests", enabled: true },
 };
 
 const DEFAULT_WORKFLOW_STATUSES: WorkflowStatuses = {
@@ -114,7 +112,6 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [settings, setSettings] = useState<AdminSettings>({
-    portalGuideEnabled: true,
     rfpAutofillEnabled: true,
     destinations: DEFAULT_FORM_DESTINATIONS,
   });
@@ -346,7 +343,7 @@ export default function AdminPage() {
     setPassword("");
   }
 
-  async function handleToggle(key: "portalGuideEnabled" | "rfpAutofillEnabled") {
+  async function handleToggle(key: "rfpAutofillEnabled") {
     const updated = { ...settings, [key]: !settings[key] };
     setSettings(updated);
     saveAdminSettings(updated);
@@ -529,13 +526,7 @@ export default function AdminPage() {
   }
 
   /* ── Admin Dashboard ── */
-  const toggles: { key: "portalGuideEnabled" | "rfpAutofillEnabled"; label: string; description: string }[] = [
-    {
-      key: "portalGuideEnabled",
-      label: "Portal Guide",
-      description:
-        "Show the portal guide and the step-by-step form walkthrough.",
-    },
+  const toggles: { key: "rfpAutofillEnabled"; label: string; description: string }[] = [
     {
       key: "rfpAutofillEnabled",
       label: "RFP AI Autofill",
@@ -653,8 +644,6 @@ export default function AdminPage() {
                   ["rfp", "PRIME RFP"],
                   ["gw-rfp", "GW RFP"],
                   ["travel-budget", "Travel Budget Request"],
-                  ["po", "Purchase Order"],
-                  ["pcv", "Petty Cash Voucher"],
                 ] as [FormDestinationKey, string][]).map(([key, label]) => (
                   <tr key={key} className="border-b border-prime-rule last:border-b-0">
                     <td className="p-3 font-medium whitespace-nowrap">{label}</td>
@@ -748,8 +737,8 @@ export default function AdminPage() {
         {/* CLICKUP CUSTOM FIELDS CONTRACT & MILESTONE TIMESTAMPS */}
         {/* ========================================================================= */}
         <section className="mt-12 pt-10 border-t border-prime-rule">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
-            <div>
+          <div className="grid gap-5 mb-6">
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <Clock className="w-5 h-5 text-prime-blue" />
                 <h2 className="prime-heading text-3xl">ClickUp Custom Fields Contract</h2>
@@ -758,7 +747,7 @@ export default function AdminPage() {
                 Binds the 22 canonical contract fields (metadata, milestone timestamps, audit) to your ClickUp list for real-time tracking, audit history, and exact milestone dates.
               </p>
             </div>
-            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+            <div className="grid gap-2 sm:grid-cols-3">
               <button
                 type="button"
                 onClick={handleDiscoverContractFields}
@@ -789,11 +778,18 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Native ClickUp Automation Guidance Banner */}
-          <div className="mb-6 p-3 bg-blue-50/70 border border-blue-200 text-xs text-blue-900 flex items-start gap-2.5">
-            <Clock className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
-            <div>
-              <strong>ClickUp Native Automation Option:</strong> For immediate zero-latency population directly inside ClickUp, you can also add a native automation in your ClickUp list: <em>When status changes to [Status] → Set Custom Field [RFP TS - ...] to Trigger date</em>.
+          <div className="mb-6 border border-prime-rule bg-prime-surface/30 p-4">
+            <div className="flex items-start gap-3">
+              <Database className="mt-0.5 h-5 w-5 shrink-0 text-prime-blue" />
+              <div>
+                <h3 className="text-sm font-semibold text-prime-blue">One-time administrator setup</h3>
+                <ol className="mt-2 grid gap-2 text-xs text-prime-ink/80 sm:grid-cols-3">
+                  <li><strong>1. Discover:</strong> map the contract fields already created in the RFP ClickUp List.</li>
+                  <li><strong>2. Register:</strong> connect status changes to the portal webhook.</li>
+                  <li><strong>3. Sync:</strong> backfill timestamps for existing test requests.</li>
+                </ol>
+                <p className="mt-3 text-xs font-medium text-prime-blue">Saved configuration is shared server-side. Requestors and approvers do not configure anything.</p>
+              </div>
             </div>
           </div>
 

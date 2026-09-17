@@ -12,7 +12,7 @@ vi.mock("@/lib/adminSettings", () => ({
   setAdminSession: vi.fn(),
   clearAdminSession: vi.fn(),
   saveAdminSettings: vi.fn(),
-  getAdminSettings: vi.fn(() => ({ portalGuideEnabled: true, rfpAutofillEnabled: true })),
+  getAdminSettings: vi.fn(() => ({ rfpAutofillEnabled: true })),
   ADMIN_TOKEN: "prime-admin-token-v1",
 }));
 
@@ -28,7 +28,7 @@ describe("Admin page — auth gate", () => {
     // Default GET settings mock
     vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
-      json: async () => ({ portalGuideEnabled: true, rfpAutofillEnabled: true }),
+      json: async () => ({ rfpAutofillEnabled: true }),
     } as Response);
   });
 
@@ -71,44 +71,22 @@ describe("Admin page — toggles (authenticated)", () => {
     vi.mocked(adminSettings.saveAdminSettings).mockClear();
   });
 
-  it("renders Portal Guide and RFP Autofill toggles", async () => {
+  it("renders only the RFP Autofill toggle", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
-      json: async () => ({ portalGuideEnabled: true, rfpAutofillEnabled: true }),
+      json: async () => ({ rfpAutofillEnabled: true }),
     } as Response);
 
     render(<AdminPage />);
-    await waitFor(() => screen.getByRole("heading", { name: "Portal Guide" }));
-
-    expect(screen.getByRole("heading", { name: "Portal Guide" })).toBeInTheDocument();
+    await waitFor(() => screen.getByRole("heading", { name: "RFP AI Autofill" }));
+    expect(screen.queryByRole("heading", { name: "Portal Guide" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "RFP AI Autofill" })).toBeInTheDocument();
-  });
-
-  it("fires POST to /api/admin/settings when Portal Guide is toggled off", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
-      ok: true,
-      json: async () => ({ portalGuideEnabled: true, rfpAutofillEnabled: true }),
-    } as Response);
-
-    render(<AdminPage />);
-    await waitFor(() => screen.getByLabelText(/Toggle Portal Guide/i));
-
-    fireEvent.click(screen.getByLabelText(/Toggle Portal Guide/i));
-
-    await waitFor(() => {
-      const postCall = fetchSpy.mock.calls.find(
-        (c) => c[0] === "/api/admin/settings" && (c[1] as RequestInit)?.method === "POST"
-      );
-      expect(postCall).toBeDefined();
-      const body = JSON.parse((postCall![1] as RequestInit).body as string);
-      expect(body.portalGuideEnabled).toBe(false);
-    });
   });
 
   it("fires POST to /api/admin/settings when RFP Autofill is toggled off", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
-      json: async () => ({ portalGuideEnabled: true, rfpAutofillEnabled: true }),
+      json: async () => ({ rfpAutofillEnabled: true }),
     } as Response);
 
     render(<AdminPage />);

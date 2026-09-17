@@ -32,7 +32,7 @@ const FORM_OPTIONS: FormOption[] = [
 
 interface FormSelectProps {
   value: string;
-  onChange: (value: "rfp" | "gw-rfp" | "travel-budget" | "po" | "pcv") => void;
+  onChange: (value: "rfp" | "gw-rfp" | "travel-budget") => void;
   className?: string;
   id?: string;
 }
@@ -77,12 +77,12 @@ export function FormSelect({
       e.preventDefault();
       const currentIndex = FORM_OPTIONS.findIndex((opt) => opt.value === value);
       const nextIndex = (currentIndex + 1) % FORM_OPTIONS.length;
-      onChange(FORM_OPTIONS[nextIndex].value as "rfp" | "gw-rfp" | "travel-budget" | "po" | "pcv");
+      onChange(FORM_OPTIONS[nextIndex].value as "rfp" | "gw-rfp" | "travel-budget");
     } else if (e.key === "ArrowUp" && isOpen) {
       e.preventDefault();
       const currentIndex = FORM_OPTIONS.findIndex((opt) => opt.value === value);
       const prevIndex = (currentIndex - 1 + FORM_OPTIONS.length) % FORM_OPTIONS.length;
-      onChange(FORM_OPTIONS[prevIndex].value as "rfp" | "gw-rfp" | "travel-budget" | "po" | "pcv");
+      onChange(FORM_OPTIONS[prevIndex].value as "rfp" | "gw-rfp" | "travel-budget");
     } else if (e.key === "Enter" || e.key === " ") {
       if (!isOpen) {
         e.preventDefault();
@@ -136,7 +136,7 @@ export function FormSelect({
                 role="option"
                 aria-selected={isSelected}
                 onClick={() => {
-                  onChange(option.value as "rfp" | "gw-rfp" | "travel-budget" | "po" | "pcv");
+                  onChange(option.value as "rfp" | "gw-rfp" | "travel-budget");
                   setIsOpen(false);
                   triggerRef.current?.focus();
                 }}

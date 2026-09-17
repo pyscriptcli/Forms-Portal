@@ -1,5 +1,4 @@
 {
-  "portalGuideEnabled": true,
   "rfpAutofillEnabled": true,
   "destinations": {
     "rfp": {
@@ -18,18 +17,6 @@
       "listId": "901420772915",
       "workspaceId": "9014981136",
       "label": "Travel Budget requests",
-      "enabled": true
-    },
-    "po": {
-      "listId": "",
-      "workspaceId": "9014981136",
-      "label": "Purchase Order requests",
-      "enabled": true
-    },
-    "pcv": {
-      "listId": "",
-      "workspaceId": "9014981136",
-      "label": "Petty Cash Voucher requests",
       "enabled": true
     }
   },

@@ -4,9 +4,11 @@ import {
   type WorkflowStatuses,
 } from "@/lib/adminSettings";
 import type { FormDestinationKey, FormDestination } from "@/lib/adminSettings";
+import type { ClickUpFieldIdMapping } from "@/lib/clickupFields";
 
 const WORKFLOW_TABLE = "forms-portal-workflow_statuses";
 const DESTINATIONS_TABLE = "forms-portal-form_destinations";
+const SETTINGS_TABLE = "forms-portal-settings";
 
 function getSupabaseConfig() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -95,4 +97,57 @@ export async function readFormDestinationFromSupabase(
     label: row.display_name || formType,
     enabled: row.enabled !== false,
   };
+}
+
+export async function readPortalSettingsFromSupabase(): Promise<{
+  rfpAutofillEnabled?: boolean;
+  clickupFieldMapping?: ClickUpFieldIdMapping;
+}> {
+  const { url, key, isConfigured } = getSupabaseConfig();
+  if (!isConfigured) return {};
+  const response = await fetch(
+    `${url}/rest/v1/${encodeURIComponent(SETTINGS_TABLE)}?select=setting_key,setting_value`,
+    { headers: supabaseHeaders(key), cache: "no-store" },
+  );
+  if (!response.ok) throw new Error(`Supabase portal settings read failed (${response.status}): ${await response.text()}`);
+  const rows = await response.json() as Array<{ setting_key: string; setting_value: unknown }>;
+  const values = Object.fromEntries(rows.map((row) => [row.setting_key, row.setting_value]));
+  return {
+    rfpAutofillEnabled: typeof values.rfpAutofillEnabled === "boolean" ? values.rfpAutofillEnabled : undefined,
+    clickupFieldMapping:
+      values.clickupFieldMapping && typeof values.clickupFieldMapping === "object"
+        ? values.clickupFieldMapping as ClickUpFieldIdMapping
+        : undefined,
+  };
+}
+
+export async function savePortalSettingsToSupabase(values: Record<string, unknown>): Promise<void> {
+  const { url, key, isConfigured } = getSupabaseConfig();
+  if (!isConfigured) throw new Error("Supabase is not configured on this deployment.");
+  const rows = Object.entries(values).map(([setting_key, setting_value]) => ({ setting_key, setting_value }));
+  if (rows.length === 0) return;
+  const response = await fetch(`${url}/rest/v1/${encodeURIComponent(SETTINGS_TABLE)}`, {
+    method: "POST",
+    headers: supabaseHeaders(key, { Prefer: "resolution=merge-duplicates,return=minimal" }),
+    body: JSON.stringify(rows),
+  });
+  if (!response.ok) throw new Error(`Supabase portal settings save failed (${response.status}): ${await response.text()}`);
+}
+
+export async function saveFormDestinationsToSupabase(destinations: Record<FormDestinationKey, FormDestination>): Promise<void> {
+  const { url, key, isConfigured } = getSupabaseConfig();
+  if (!isConfigured) throw new Error("Supabase is not configured on this deployment.");
+  const rows = Object.entries(destinations).map(([form_type, destination]) => ({
+    form_type,
+    display_name: destination.label,
+    clickup_workspace_id: destination.workspaceId,
+    clickup_list_id: destination.listId,
+    enabled: destination.enabled,
+  }));
+  const response = await fetch(`${url}/rest/v1/${encodeURIComponent(DESTINATIONS_TABLE)}`, {
+    method: "POST",
+    headers: supabaseHeaders(key, { Prefer: "resolution=merge-duplicates,return=minimal" }),
+    body: JSON.stringify(rows),
+  });
+  if (!response.ok) throw new Error(`Supabase form destination save failed (${response.status}): ${await response.text()}`);
 }

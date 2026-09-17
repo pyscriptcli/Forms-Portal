@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     const data: any = JSON.parse(dataStr);
     const [user, destination, workflowStatuses] = await Promise.all([
       fetchClickUpUser(accessToken),
-      readFormDestinationFromSupabase(formType as "rfp" | "gw-rfp" | "travel-budget" | "po" | "pcv"),
+      readFormDestinationFromSupabase(formType as "rfp" | "gw-rfp" | "travel-budget"),
       readWorkflowStatusesFromSupabase(),
     ]);
     if (user?.email && (formType === "rfp" || formType === "gw-rfp")) {

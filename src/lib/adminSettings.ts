@@ -1,4 +1,4 @@
-export type FormDestinationKey = "rfp" | "gw-rfp" | "travel-budget" | "po" | "pcv";
+export type FormDestinationKey = "rfp" | "gw-rfp" | "travel-budget";
 
 export type FormDestination = {
   listId: string;
@@ -54,24 +54,11 @@ export const DEFAULT_FORM_DESTINATIONS: FormDestinations = {
     label: "Travel Budget requests",
     enabled: true,
   },
-  po: {
-    listId: "",
-    workspaceId: "9014981136",
-    label: "Purchase Order requests",
-    enabled: true,
-  },
-  pcv: {
-    listId: "",
-    workspaceId: "9014981136",
-    label: "Petty Cash Voucher requests",
-    enabled: true,
-  },
 };
 
 import type { ClickUpFieldIdMapping } from "./clickupFields";
 
 export type AdminSettings = {
-  portalGuideEnabled: boolean;
   rfpAutofillEnabled: boolean;
   destinations?: FormDestinations;
   workflowStatuses?: WorkflowStatuses;
@@ -85,7 +72,6 @@ export const ADMIN_PASSWORD = "admin";
 export const ADMIN_TOKEN = "prime-admin-token-v1"; // fixed token for prototype
 
 export const DEFAULT_SETTINGS: AdminSettings = {
-  portalGuideEnabled: true,
   rfpAutofillEnabled: true,
   destinations: DEFAULT_FORM_DESTINATIONS,
   workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
@@ -164,10 +150,6 @@ export function getAdminSettings(): AdminSettings {
     if (!raw) return { ...DEFAULT_SETTINGS };
     const parsed = JSON.parse(raw);
     return {
-      portalGuideEnabled:
-        typeof parsed.portalGuideEnabled === "boolean"
-          ? parsed.portalGuideEnabled
-          : DEFAULT_SETTINGS.portalGuideEnabled,
       rfpAutofillEnabled:
         typeof parsed.rfpAutofillEnabled === "boolean"
           ? parsed.rfpAutofillEnabled

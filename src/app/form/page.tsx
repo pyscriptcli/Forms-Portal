@@ -29,7 +29,6 @@ import {
   scrollToFormField,
 } from "@/lib/rfpValidation";
 import { AlertCircle } from "lucide-react";
-import { getAdminSettings } from "@/lib/adminSettings";
 
 const getInitialFormData = (): RfpFormData => {
   const now = new Date();
@@ -182,12 +181,9 @@ function RfpAppContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Feature flag: admin can disable RFP autofill
-  const [rfpAutofillEnabled, setRfpAutofillEnabled] = useState(true);
+  const [rfpAutofillEnabled, setRfpAutofillEnabled] = useState(false);
   useEffect(() => {
-    // Client-side check
-    setRfpAutofillEnabled(getAdminSettings().rfpAutofillEnabled);
-    // Server-side flag (authoritative)
-    fetch("/api/admin/settings")
+    fetch("/api/admin/settings", { cache: "no-store" })
       .then((r) => r.json())
       .then((flags) => {
         if (typeof flags.rfpAutofillEnabled === "boolean") {
@@ -346,18 +342,20 @@ function RfpAppContent() {
 
   // Handle prefill query parameter (when triggered from other pages)
   useEffect(() => {
-    if (prefillParam === "true") {
+    if (rfpAutofillEnabled && prefillParam === "true") {
       handlePreFillDemo();
       window.history.replaceState(null, "", "/form");
     }
-  }, [prefillParam]);
+  }, [prefillParam, rfpAutofillEnabled]);
 
   // Listen for prefill-demo event from drawer when already on page
   useEffect(() => {
-    const onPrefill = () => handlePreFillDemo();
+    const onPrefill = () => {
+      if (rfpAutofillEnabled) handlePreFillDemo();
+    };
     window.addEventListener("prefill-demo", onPrefill);
     return () => window.removeEventListener("prefill-demo", onPrefill);
-  }, []);
+  }, [rfpAutofillEnabled]);
 
   const getValidationResult = () => {
     if (selectedForm === "travel-budget") return { isValid: true, errors: {}, items: [] } as ValidationResult;
@@ -655,11 +653,11 @@ function RfpAppContent() {
         )}
 
         {/* AI Supplier Quotation Scanner (Dedicated for RFP) */}
-        <div id="quotation-dropzone-section">
-          {rfpAutofillEnabled && selectedForm === "rfp" && (
+        {rfpAutofillEnabled && selectedForm === "rfp" && (
+          <div id="quotation-dropzone-section">
             <QuotationDropzone onDataExtracted={handleDataExtracted} />
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Extraction Review & Undo Banner */}
         {rfpAutofillEnabled && selectedForm === "rfp" && extractedBanner && (

@@ -23,8 +23,7 @@ describe("adminSettings utilities", () => {
     });
 
     it("returns parsed settings when saved in localStorage", () => {
-      saveAdminSettings({ portalGuideEnabled: false, rfpAutofillEnabled: true });
-      expect(getAdminSettings().portalGuideEnabled).toBe(false);
+      saveAdminSettings({ rfpAutofillEnabled: true });
       expect(getAdminSettings().rfpAutofillEnabled).toBe(true);
     });
 
@@ -36,11 +35,10 @@ describe("adminSettings utilities", () => {
 
   describe("saveAdminSettings", () => {
     it("persists settings to localStorage", () => {
-      saveAdminSettings({ portalGuideEnabled: false, rfpAutofillEnabled: false });
+      saveAdminSettings({ rfpAutofillEnabled: false });
       const raw = localStorage.getItem("prime_admin_settings");
       expect(raw).not.toBeNull();
       const parsed = JSON.parse(raw!);
-      expect(parsed.portalGuideEnabled).toBe(false);
       expect(parsed.rfpAutofillEnabled).toBe(false);
     });
   });

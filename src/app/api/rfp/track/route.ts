@@ -99,7 +99,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 2. Fetch tasks from every configured form destination.
-    const formTypes: FormDestinationKey[] = ["rfp", "gw-rfp", "travel-budget", "po", "pcv"];
+    const formTypes: FormDestinationKey[] = ["rfp", "gw-rfp", "travel-budget"];
     const taskGroups = await Promise.all(
       formTypes.map(async (formType) => {
         const destination = await readFormDestinationFromSupabase(formType);

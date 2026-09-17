@@ -12,20 +12,27 @@ create table if not exists "forms-portal-form_destinations" (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint forms_portal_form_destinations_type_check
-    check (form_type in ('rfp', 'gw-rfp', 'travel-budget', 'po', 'pcv'))
+    check (form_type in ('rfp', 'gw-rfp', 'travel-budget'))
 );
 
 create index if not exists forms_portal_form_destinations_enabled_idx
   on "forms-portal-form_destinations" (enabled);
+
+delete from "forms-portal-form_destinations"
+where form_type not in ('rfp', 'gw-rfp', 'travel-budget');
+
+alter table "forms-portal-form_destinations"
+  drop constraint if exists forms_portal_form_destinations_type_check;
+alter table "forms-portal-form_destinations"
+  add constraint forms_portal_form_destinations_type_check
+  check (form_type in ('rfp', 'gw-rfp', 'travel-budget'));
 
 insert into "forms-portal-form_destinations"
   (form_type, display_name, clickup_workspace_id, clickup_list_id, enabled)
 values
   ('rfp', 'PRIME RFP submissions', '9014981136', '901420772915', true),
   ('gw-rfp', 'GW RFP submissions', '9014981136', '901420772915', true),
-  ('travel-budget', 'Travel Budget requests', '9014981136', '901420772915', true),
-  ('po', 'Purchase Order requests', '9014981136', '', true),
-  ('pcv', 'Petty Cash Voucher requests', '9014981136', '', true)
+  ('travel-budget', 'Travel Budget requests', '9014981136', '901420772915', true)
 on conflict (form_type) do update set
   display_name = excluded.display_name,
   clickup_workspace_id = excluded.clickup_workspace_id,
@@ -87,6 +94,16 @@ on conflict (workflow_key) do update set
   display_name = excluded.display_name,
   clickup_status = excluded.clickup_status,
   updated_at = now();
+
+create table if not exists "forms-portal-settings" (
+  setting_key varchar(80) primary key,
+  setting_value jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+insert into "forms-portal-settings" (setting_key, setting_value)
+values ('rfpAutofillEnabled', 'true'::jsonb)
+on conflict (setting_key) do nothing;
 
 update "forms-portal-workflow_statuses" set display_name = 'REQUESTOR FORM SUBMISSION', clickup_status = 'REQUESTOR FORM SUBMISSION' where workflow_key = 'requestorFormSubmission';
 update "forms-portal-workflow_statuses" set display_name = 'TL REVIEW AND APPROVAL', clickup_status = 'TL REVIEW AND APPROVAL' where workflow_key = 'tlReviewAndApproval';
