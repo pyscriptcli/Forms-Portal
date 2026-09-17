@@ -124,9 +124,43 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
       signatureDataUrl: "data:image/png;base64,c2ln",
       approvalDate: "09/17/2026",
     })).resolves.toBe(false);
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(String(fetchMock.mock.calls[2][0])).toContain("/field/approver-name");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[1][0])).toContain("/field/approver-name");
     expect(fetchMock.mock.calls.some(([, init]) => init?.method === "PUT")).toBe(false);
+  });
+
+  it("does not consume ClickUp attachment storage to record an approval signature", async () => {
+    process.env.CLICKUP_API_TOKEN = "pk_test_token_123";
+    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const href = String(url);
+      if (href.includes("/task/task-approval?") && !init?.method) {
+        return Response.json({
+          id: "task-approval",
+          description: "Request",
+          date_created: "1789610000000",
+          custom_fields: [
+            { id: "approver-name", name: "RFP Approver Name", type: "short_text" },
+            { id: "ts-sub", name: "RFP TS - Requestor Form Submission", type: "date" },
+            { id: "ts-tl", name: "RFP TS - TL Review and Approval", type: "date" },
+            { id: "ts-fin", name: "RFP TS - Finance Validation", type: "date" },
+          ],
+        });
+      }
+      if (href.includes("/attachment")) {
+        return Response.json({ err: "Over allocated storage", ECODE: "GBUSED_005" }, { status: 400 });
+      }
+      return new Response(null, { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(approveTaskByApprover("task-approval", "Team Lead", undefined, undefined, {
+      signatureDataUrl: "data:image/png;base64,c2ln",
+      approvalDate: "09/17/2026",
+      workflowStatuses: { financeValidation: "FINANCE VALIDATION" } as never,
+    })).resolves.toBe(true);
+
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/attachment"))).toBe(false);
+    expect(fetchMock.mock.calls.some(([url, init]) => String(url).endsWith("/task/task-approval") && init?.method === "PUT")).toBe(true);
   });
 
   it("resolves PO_LIST_ID for PO forms", () => {

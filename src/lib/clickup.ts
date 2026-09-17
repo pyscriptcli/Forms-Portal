@@ -980,23 +980,6 @@ export async function approveTaskByApprover(
       return false;
     }
 
-    const signatureMatch = options.signatureDataUrl.match(/^data:(image\/(?:png|jpeg|webp));base64,(.+)$/);
-    if (!signatureMatch) {
-      console.error("Approval signature is not a supported image data URL.");
-      return false;
-    }
-    const extension = signatureMatch[1] === "image/jpeg" ? "jpg" : signatureMatch[1].split("/")[1];
-    const signatureUpload = await uploadAttachmentToTask(
-      taskId,
-      new Blob([Buffer.from(signatureMatch[2], "base64")], { type: signatureMatch[1] }),
-      `TL_APPROVAL_SIGNATURE_${options.approvalDate.replace(/\D/g, "")}.${extension}`,
-      options.oauthToken
-    );
-    if (!signatureUpload.success) {
-      console.error(`Failed to persist approval signature: ${signatureUpload.error}`);
-      return false;
-    }
-
     // Persist approver metadata custom fields BEFORE advancing to Finance Validation
     if (Array.isArray(currentTask.custom_fields)) {
       const fieldMapping = resolveFieldIdMapping(
@@ -1078,8 +1061,8 @@ export async function approveTaskByApprover(
     }
 
     const commentMsg = notes
-      ? `✅ **Endorsed by ${approverName}**\nApproval date: ${options.approvalDate}\nNotes: ${notes}\n\n*Status advanced to Finance Validation.*`
-      : `✅ **Endorsed by ${approverName}**\nApproval date: ${options.approvalDate}\n\n*Status advanced to Finance Validation.*`;
+      ? `✅ **Endorsed by ${approverName}**\nApproval date: ${options.approvalDate}\nSignature: Captured in the Forms Portal\nNotes: ${notes}\n\n*Status advanced to Finance Validation.*`
+      : `✅ **Endorsed by ${approverName}**\nApproval date: ${options.approvalDate}\nSignature: Captured in the Forms Portal\n\n*Status advanced to Finance Validation.*`;
 
     await postTaskComment(taskId, commentMsg, options.oauthToken);
     return true;

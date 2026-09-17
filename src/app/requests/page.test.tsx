@@ -59,9 +59,9 @@ describe("request details", () => {
     expect(screen.getByText("Sep 16, 2026, 9:25 AM")).toBeInTheDocument();
     expect(screen.queryByText("Timestamp unavailable")).not.toBeInTheDocument();
     expect(screen.queryByText(/Open in ClickUp/i)).not.toBeInTheDocument();
-    expect(screen.getByText("Tarpaulin installation")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "View status for ABC Company" })).not.toBeInTheDocument();
-    expect(screen.getAllByText("Completed")).toHaveLength(1);
+    expect(screen.getAllByText("Tarpaulin installation").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "View status for ABC Company" })).toBeInTheDocument();
+    expect(screen.getAllByText("Completed").length).toBeGreaterThan(0);
     expect(screen.getByText("Team Lead")).toBeInTheDocument();
   });
 });

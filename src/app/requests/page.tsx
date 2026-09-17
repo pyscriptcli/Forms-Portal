@@ -210,6 +210,8 @@ function RequestsContent() {
         setViewerCanViewAll(Boolean(data.viewerCanViewAll));
         if (initialId) {
           setSelectedRequest(nextRequests.find((request: TrackedRfp) => request.taskId === initialId) ?? null);
+        } else {
+          setSelectedRequest((current) => nextRequests.find((request: TrackedRfp) => request.taskId === current?.taskId) ?? nextRequests[0] ?? null);
         }
       }
     } catch {
@@ -223,7 +225,6 @@ function RequestsContent() {
 
   const openRequest = (request: TrackedRfp) => {
     setSelectedRequest(request);
-    setSearchQuery(request.taskId);
     window.history.pushState({}, "", `/requests?id=${encodeURIComponent(request.taskId)}`);
   };
 
@@ -287,8 +288,10 @@ function RequestsContent() {
         </div>}
       </div>
 
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+
       {selectedRequest && (
-        <section aria-label="Request details" className="mb-6 bg-prime-white border border-prime-rule shadow-none">
+        <section aria-label="Request details" className="bg-prime-white border border-prime-rule shadow-none lg:order-2 lg:col-span-8">
           {/* Header */}
           <div className="border-b border-prime-rule px-5 py-4">
             {/* First line: label and close control */}
@@ -390,8 +393,8 @@ function RequestsContent() {
         </section>
       )}
 
-      {/* Results stay out of the visual hierarchy while one request is open. */}
-      {!selectedRequest && (isLoading ? (
+      <div className="lg:order-1 lg:col-span-4">
+      {isLoading ? (
         <div className="bg-prime-white border border-prime-rule p-12 text-center">
           <Loader2 className="w-6 h-6 animate-spin text-prime-blue mx-auto mb-2" />
           <p className="text-xs font-medium text-prime-ink">Loading requests…</p>
@@ -413,7 +416,7 @@ function RequestsContent() {
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2 max-h-[calc(100vh-230px)] overflow-y-auto pr-1">
           {requests.map((req) => {
             const total = Number(req.totalAmount || 0).toLocaleString("en-US", {
               minimumFractionDigits: 2,
@@ -432,7 +435,7 @@ function RequestsContent() {
                   }
                 }}
                 aria-label={`View status for ${req.payee || req.requestId}`}
-                className={`group bg-prime-white border-l-4 ${stageColor(req.currentStage, req.isRevisionRequested)} border border-prime-rule px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-none cursor-pointer transition-all hover:border-prime-blue hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-prime-blue/30`}
+                className={`group bg-prime-white border-l-4 ${stageColor(req.currentStage, req.isRevisionRequested)} border px-4 py-3 shadow-none cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-prime-blue/30 ${selectedRequest?.taskId === req.taskId ? "border-prime-blue ring-1 ring-prime-blue" : "border-prime-rule hover:border-prime-blue"}`}
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-2">
@@ -470,7 +473,7 @@ function RequestsContent() {
                     <span className="line-clamp-1">{req.purpose || "No purpose provided"}</span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between sm:justify-end gap-5 shrink-0 sm:min-w-[190px]">
+                <div className="mt-3 flex items-center justify-between gap-4 border-t border-prime-rule pt-2">
                   <div className="text-left sm:text-right">
                     <p className="text-[10px] uppercase tracking-[0.16em] text-prime-ink">Total amount</p>
                     <p className="font-bebas text-2xl text-prime-blue tracking-wider">₱{total}</p>
@@ -489,7 +492,9 @@ function RequestsContent() {
             );
           })}
         </div>
-      ))}
+      )}
+      </div>
+      </div>
     </div>
   );
 }

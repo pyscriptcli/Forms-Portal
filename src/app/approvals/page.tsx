@@ -41,6 +41,7 @@ function ApprovalsContent() {
   const [searchQuery, setSearchQuery] = useState(directTaskId);
   const [selectedDept, setSelectedDept] = useState("All Departments");
   const [requests, setRequests] = useState<TrackedRfp[]>([]);
+  const [approvalTab, setApprovalTab] = useState<"pending" | "approved">("pending");
   const [isLoading, setIsLoading] = useState(true);
   const [activeRequest, setActiveRequest] = useState<TrackedRfp | null>(null);
 
@@ -74,19 +75,18 @@ function ApprovalsContent() {
 
       if (res.ok && data.success) {
         const all: TrackedRfp[] = data.requests || [];
-        // Filter for requests that are in the "for approval" stage
-        const pending = all.filter(
-          (r) => r.currentStage === "submitted" || r.currentStage === "revision_requested"
-        );
-        setRequests(pending);
+        const visible = all.filter((request) => approvalTab === "pending"
+          ? request.currentStage === "submitted" || request.currentStage === "revision_requested"
+          : request.currentStage !== "submitted" && request.currentStage !== "revision_requested");
+        setRequests(visible);
 
         // If directTaskId provided in URL, auto-select it
         if (directTaskId) {
           const direct = all.find((r) => r.taskId === directTaskId);
           if (direct) setActiveRequest(direct);
-          else if (pending.length > 0) setActiveRequest(pending[0]);
-        } else if (pending.length > 0 && !activeRequest) {
-          setActiveRequest(pending[0]);
+          else setActiveRequest(visible[0] || null);
+        } else {
+          setActiveRequest((current) => visible.find((request) => request.taskId === current?.taskId) || visible[0] || null);
         }
       }
     } catch (err) {
@@ -94,7 +94,7 @@ function ApprovalsContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, selectedDept, directTaskId, activeRequest]);
+  }, [searchQuery, selectedDept, directTaskId, approvalTab]);
 
   useEffect(() => {
     fetchPendingRequests();
@@ -202,10 +202,27 @@ function ApprovalsContent() {
         <button type="button" aria-label="Dismiss confirmation" onClick={() => setActionSuccessMessage("")}>Dismiss</button>
       </div>}
 
+      <div className="mb-5 flex border-b border-prime-rule" role="tablist" aria-label="Approval queues">
+        {(["pending", "approved"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            role="tab"
+            aria-selected={approvalTab === tab}
+            onClick={() => { setApprovalTab(tab); setActiveRequest(null); }}
+            className={`min-w-32 border-b-2 px-5 py-3 text-xs font-semibold uppercase tracking-[0.14em] ${
+              approvalTab === tab ? "border-prime-blue text-prime-blue" : "border-transparent text-prime-ink/60"
+            }`}
+          >
+            {tab === "pending" ? "Pending" : "Approved"}
+          </button>
+        ))}
+      </div>
+
       {isLoading ? (
         <div className="bg-prime-white border border-prime-rule p-12 text-center">
           <Loader2 className="w-6 h-6 animate-spin text-prime-blue mx-auto mb-2" />
-          <p className="text-xs font-medium text-prime-ink">Loading pending requests...</p>
+          <p className="text-xs font-medium text-prime-ink">Loading {approvalTab} requests...</p>
         </div>
       ) : requests.length === 0 ? (
         <div className="bg-prime-white border border-prime-rule p-12 text-center shadow-none">
@@ -214,7 +231,7 @@ function ApprovalsContent() {
           </div>
           <h3 className="font-serif italic font-medium text-xl text-prime-ink">All caught up!</h3>
           <p className="text-xs text-prime-ink mt-1 max-w-sm mx-auto">
-            There are currently no payment requests awaiting your approval in {selectedDept}.
+            There are currently no {approvalTab} payment requests in {selectedDept}.
           </p>
         </div>
       ) : (
@@ -222,7 +239,7 @@ function ApprovalsContent() {
           {/* Left Column: Request List */}
           <div className="lg:col-span-4 space-y-3">
             <h2 className="text-xs uppercase tracking-wider font-medium text-prime-ink px-1">
-              Pending Approval ({requests.length})
+              {approvalTab === "pending" ? "Pending approval" : "Approved requests"} ({requests.length})
             </h2>
             <div className="space-y-2 max-h-[700px] overflow-y-auto pr-1">
               {requests.map((req) => {
@@ -414,7 +431,7 @@ function ApprovalsContent() {
                 </div>
               </div>
 
-              {/* Approver endorsement */}
+              {approvalTab === "pending" ? <>{/* Approver endorsement */}
               <div className="pt-4 border-t border-prime-rule">
                 <div className="mb-4 border border-prime-rule bg-prime-white">
                   <div className="border-b border-prime-rule px-4 py-3">
@@ -500,6 +517,12 @@ function ApprovalsContent() {
                   </button>
                 </div>
               </div>
+              </> : (
+                <div className="mt-5 border border-prime-rule bg-prime-blue/[0.03] px-4 py-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-prime-gold">Approved</p>
+                  <p className="mt-1 text-sm text-prime-blue">This request has been endorsed and is now read-only in the approval queue.</p>
+                </div>
+              )}
             </div>
           )}
         </div>
