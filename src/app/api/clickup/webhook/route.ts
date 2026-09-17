@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { getClickUpTask, setTaskCustomFieldValue } from "@/lib/clickup";
+import { getClickUpConfig, getClickUpTask, setTaskCustomFieldValue } from "@/lib/clickup";
 import {
   CLICKUP_MILESTONE_FIELDS,
   CLICKUP_AUDIT_FIELDS,
   resolveFieldIdMapping,
 } from "@/lib/clickupFields";
-import { getMilestoneEntries, ORDERED_MILESTONE_KEYS } from "@/lib/rfpWorkflow";
-import { DEFAULT_WORKFLOW_STATUSES } from "@/lib/adminSettings";
-import { readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
+import { getMilestoneEntries } from "@/lib/rfpWorkflow";
+import { DEFAULT_WORKFLOW_STATUSES, normalizeWorkflowStatuses } from "@/lib/adminSettings";
+import {
+  readFormDestinationFromSupabase,
+  readPortalSettingsFromSupabase,
+  readWorkflowStatusesFromSupabase,
+} from "@/lib/supabaseAdmin";
 import { invalidateRfpCache } from "@/lib/rfpCache";
 
 /**
@@ -75,19 +79,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, ignored: true, reason: "Empty status" });
   }
 
+  const [destination, portalSettings, configuredStatuses] = await Promise.all([
+    readFormDestinationFromSupabase("rfp"),
+    readPortalSettingsFromSupabase(),
+    readWorkflowStatusesFromSupabase(),
+  ]);
+  if (!destination?.enabled || !destination.listId) {
+    return NextResponse.json({ success: false, error: "RFP ClickUp destination is not configured." }, { status: 500 });
+  }
+  const clickUp = getClickUpConfig("rfp", undefined, destination.listId);
+  if (!clickUp.isConfigured) {
+    return NextResponse.json({ success: false, error: "Server ClickUp token is not configured." }, { status: 500 });
+  }
+
   // Fetch full task to inspect existing audit fields and resolve field IDs
   let task: any;
   try {
-    task = await getClickUpTask(taskId);
+    task = await getClickUpTask(taskId, clickUp.token);
   } catch (err) {
     console.error(`Failed to fetch ClickUp task ${taskId} for webhook processing:`, err);
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
 
   const availableFields = Array.isArray(task.custom_fields) ? task.custom_fields : [];
-  const fieldMapping = resolveFieldIdMapping(
-    availableFields.map((f: any) => ({ id: f.id, name: f.name, type: f.type }))
-  );
+  const fieldMapping = {
+    ...resolveFieldIdMapping(
+      availableFields.map((f: any) => ({ id: f.id, name: f.name, type: f.type }))
+    ),
+    ...(portalSettings.clickupFieldMapping || {}),
+  };
 
   // 1. Idempotency Guard: Check RFP Last Status Event ID
   const lastEventFieldId = fieldMapping[CLICKUP_AUDIT_FIELDS.lastStatusEventId];
@@ -99,7 +119,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Resolve Status to Milestone
-  const workflowStatuses = await readWorkflowStatusesFromSupabase().then((s) => s || DEFAULT_WORKFLOW_STATUSES);
+  const workflowStatuses = normalizeWorkflowStatuses(configuredStatuses || DEFAULT_WORKFLOW_STATUSES);
   const entries = getMilestoneEntries(workflowStatuses);
   const matchedEntry = entries.find((entry) => entry.status.trim().toLowerCase() === newStatus.trim().toLowerCase());
 
@@ -113,10 +133,19 @@ export async function POST(req: NextRequest) {
   const milestoneFieldId = fieldMapping[milestoneFieldName];
 
   // 3. Write Authoritative Milestone Timestamp (Unix ms)
-  if (milestoneFieldId) {
-    await setTaskCustomFieldValue(taskId, milestoneFieldId, eventDate);
+  if (!milestoneFieldId) {
+    return NextResponse.json(
+      { success: false, error: `${milestoneFieldName} is not mapped in Supabase Admin configuration.` },
+      { status: 500 }
+    );
   }
-
+  const milestoneSaved = await setTaskCustomFieldValue(taskId, milestoneFieldId, eventDate, clickUp.token);
+  if (!milestoneSaved) {
+    return NextResponse.json(
+      { success: false, error: `ClickUp rejected the ${matchedEntry.status || newStatus} timestamp write.` },
+      { status: 502 }
+    );
+  }
   // 4. Append to Process History and Update Last Status Event ID
   const historyFieldId = fieldMapping[CLICKUP_AUDIT_FIELDS.processHistory];
   if (historyFieldId) {
@@ -126,19 +155,19 @@ export async function POST(req: NextRequest) {
     const newEntry = `[${eventTimeIso}] ${actor}: "${beforeStatus}" -> "${newStatus}" (Event: ${eventId})`;
     const updatedHistory = prevHistory ? `${prevHistory}\n${newEntry}` : newEntry;
 
-    await setTaskCustomFieldValue(taskId, historyFieldId, updatedHistory);
+    await setTaskCustomFieldValue(taskId, historyFieldId, updatedHistory, clickUp.token);
   }
 
   if (lastEventFieldId && eventId) {
-    await setTaskCustomFieldValue(taskId, lastEventFieldId, eventId);
+    await setTaskCustomFieldValue(taskId, lastEventFieldId, eventId, clickUp.token);
   }
 
   // 5. Special handling for revision requested
   if (newStatus.toUpperCase().includes("REVISION")) {
     const revAtId = fieldMapping[CLICKUP_AUDIT_FIELDS.revisionRequestedAt];
     const revById = fieldMapping[CLICKUP_AUDIT_FIELDS.revisionRequestedBy];
-    if (revAtId) await setTaskCustomFieldValue(taskId, revAtId, eventDate);
-    if (revById) await setTaskCustomFieldValue(taskId, revById, actor);
+    if (revAtId) await setTaskCustomFieldValue(taskId, revAtId, eventDate, clickUp.token);
+    if (revById) await setTaskCustomFieldValue(taskId, revById, actor, clickUp.token);
   }
 
   // 6. Invalidate read cache
