@@ -88,6 +88,9 @@ export function getClickUpConfig(formType: FormType = "rfp", oauthToken?: string
 }
 
 function authorizationHeader(token: string, isOAuth: boolean): string {
+  if (!token) return "";
+  if (token.startsWith("pk_")) return token;
+  if (token.startsWith("Bearer ")) return token;
   return isOAuth ? `Bearer ${token}` : token;
 }
 

@@ -118,18 +118,24 @@ export async function POST(req: NextRequest) {
         : null;
       const workflowStatuses = normalizeWorkflowStatuses(configuredStatuses || DEFAULT_WORKFLOW_STATUSES);
 
-      const tasks = await getListTasks(true, "rfp", token, listId);
+      const tasks = await getListTasks(true, "rfp", undefined, listId);
       const availableFields = await getListCustomFields(listId, token);
-      const mapping = resolveFieldIdMapping(availableFields);
+      const sharedSettings = isSupabaseAdminConfigured() ? await readPortalSettingsFromSupabase() : {};
+      const mapping = {
+        ...resolveFieldIdMapping(availableFields),
+        ...(sharedSettings.clickupFieldMapping || {}),
+      };
 
       let syncedTasksCount = 0;
       let syncedFieldsCount = 0;
+      const syncReport: string[] = [];
 
       for (const task of tasks) {
-        const statusStr = (task.status?.status || "").toLowerCase();
+        const rawStatus = typeof task.status === "string" ? task.status : (task.status?.status || "");
+        const statusStr = rawStatus.toLowerCase().trim();
         const normalizedStatus = statusStr.replace(/[_-]/g, " ").replace(/\s+/g, " ").trim();
         const isDone = ["done", "complete", "completed", "closed"].includes(normalizedStatus);
-        const resolved = resolveRfpMilestone(statusStr, workflowStatuses);
+        const resolved = resolveRfpMilestone(rawStatus, workflowStatuses);
 
         const activeMilestoneIdx = ORDERED_MILESTONE_KEYS.indexOf(resolved.key);
         const effectiveMilestoneIdx = isDone ? ORDERED_MILESTONE_KEYS.length - 1 : activeMilestoneIdx;
@@ -140,8 +146,10 @@ export async function POST(req: NextRequest) {
           ? task.custom_fields
           : [];
         const taskFieldMap = new Map<string, any>();
+        const taskFieldNameMap = new Map<string, any>();
         for (const cf of taskFields) {
           if (cf.id) taskFieldMap.set(cf.id, cf.value);
+          if (cf.name) taskFieldNameMap.set(cf.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, " "), cf.value);
         }
 
         const missingBackfills: Array<{ fieldId: string; timestamp: number }> = [];
@@ -153,7 +161,14 @@ export async function POST(req: NextRequest) {
           const fieldId = mapping[fieldName];
           if (!fieldId) continue;
 
-          const existingValue = taskFieldMap.get(fieldId);
+          // Check both by ID and by field name
+          const existingById = taskFieldMap.get(fieldId);
+          const normFieldName = fieldName.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
+          const existingByName = taskFieldNameMap.get(normFieldName);
+          const existingValue = (existingById !== undefined && existingById !== null && existingById !== "")
+            ? existingById
+            : existingByName;
+
           if (existingValue !== undefined && existingValue !== null && existingValue !== "") {
             continue;
           }
@@ -166,11 +181,11 @@ export async function POST(req: NextRequest) {
               timeInStatusData = await getClickUpTaskTimeInStatus(task.id, token);
             }
             const expectedMilestone = getMilestoneEntries(workflowStatuses).find((e) => e.key === milestoneKey);
-            const statusLabel = (expectedMilestone?.status || "").toLowerCase().trim();
+            const statusLabel = (expectedMilestone?.status || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, " ");
 
             if (timeInStatusData?.status_history && Array.isArray(timeInStatusData.status_history)) {
               const histMatch = timeInStatusData.status_history.find(
-                (h: any) => (h.status || "").toLowerCase().trim() === statusLabel
+                (h: any) => (h.status || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, " ") === statusLabel
               );
               if (histMatch?.total_time?.since) {
                 timestamp = Number(histMatch.total_time.since);
@@ -178,7 +193,8 @@ export async function POST(req: NextRequest) {
             }
 
             if (!timestamp && timeInStatusData?.current_status) {
-              if ((timeInStatusData.current_status.status || "").toLowerCase().trim() === statusLabel) {
+              const currentLabel = (timeInStatusData.current_status.status || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, " ");
+              if (currentLabel === statusLabel) {
                 timestamp = Number(timeInStatusData.current_status.total_time?.since || 0);
               }
             }
@@ -196,17 +212,26 @@ export async function POST(req: NextRequest) {
           if (success) {
             syncedTasksCount++;
             syncedFieldsCount += missingBackfills.length;
+            syncReport.push(`${task.name || task.id}: updated ${missingBackfills.length} milestone(s)`);
           }
         }
       }
 
       invalidateRfpCache(destination?.workspaceId, listId);
 
+      const summary = syncedFieldsCount > 0
+        ? `Successfully synchronized ${syncedFieldsCount} milestone timestamp(s) across ${syncedTasksCount} of ${tasks.length} task(s).`
+        : tasks.length === 0
+        ? `No tasks found in ClickUp List (${listId}). Please check that tasks exist in this list.`
+        : `Scanned ${tasks.length} task(s) in list; all reached milestones already have timestamps recorded.`;
+
       return NextResponse.json({
         success: true,
-        message: `Successfully synchronized ${syncedFieldsCount} milestone timestamp(s) across ${syncedTasksCount} task(s).`,
+        message: summary,
+        totalTasksScanned: tasks.length,
         syncedTasksCount,
         syncedFieldsCount,
+        syncReport,
       });
     }
 

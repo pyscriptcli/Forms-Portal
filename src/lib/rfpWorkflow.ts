@@ -32,10 +32,29 @@ export function getMilestoneEntries(statuses: WorkflowStatuses) {
   })));
 }
 
+import { DEFAULT_WORKFLOW_STATUSES } from "./adminSettings";
+
 export function resolveRfpMilestone(status: string, statuses: WorkflowStatuses) {
-  const normalized = status.trim().toLowerCase();
+  const norm = (s: string) => (s || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
+  const normalized = norm(status);
   const entries = getMilestoneEntries(statuses);
-  const found = entries.find((entry) => entry.status.trim().toLowerCase() === normalized);
+
+  // 1. Exact normalized match against configured statuses
+  let found = entries.find((entry) => norm(entry.status) === normalized);
+
+  // 2. Exact normalized match against default statuses as fallback
+  if (!found) {
+    const defaultEntries = getMilestoneEntries(DEFAULT_WORKFLOW_STATUSES);
+    found = defaultEntries.find((entry) => norm(entry.status) === normalized);
+  }
+
+  // 3. Substring match (e.g. status contains "tl review" or "finance validation")
+  if (!found && normalized) {
+    found = entries.find(
+      (entry) => norm(entry.status).includes(normalized) || normalized.includes(norm(entry.status))
+    );
+  }
+
   if (found) return { ...found, stageIndex: RFP_STAGES.findIndex((stage) => stage.key === found.stageKey) };
   return { key: "requestorFormSubmission" as const, stageKey: "submission", stageLabel: "Submission", status, stageIndex: 0 };
 }
