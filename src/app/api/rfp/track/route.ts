@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClickUpConfig, getListTasks, getClickUpTask, backfillMilestoneTimestampsToClickUp } from "@/lib/clickup";
+import { getClickUpConfig, getListTasks, getClickUpTask } from "@/lib/clickup";
 import { getServerAuthSession } from "@/lib/auth";
 import { readFormDestinationFromSupabase } from "@/lib/supabaseAdmin";
 import type { FormDestinationKey } from "@/lib/adminSettings";
@@ -103,10 +103,6 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
       }
 
-      if (parsed.pendingClickUpBackfill && parsed.pendingClickUpBackfill.length > 0) {
-        void persistPendingBackfills([parsed], rfpClickUp.token);
-      }
-
       return NextResponse.json({
         success: true,
         requests: [parsed],
@@ -131,11 +127,6 @@ export async function GET(req: NextRequest) {
     });
 
     let parsed = [...cacheResult.requests];
-
-    const needBackfills = parsed.filter((r) => r.pendingClickUpBackfill && r.pendingClickUpBackfill.length > 0);
-    if (needBackfills.length > 0) {
-      void persistPendingBackfills(needBackfills, rfpClickUp.token);
-    }
 
     // Requestors are restricted server-side.
     if (!viewer.canViewAll) {
@@ -199,24 +190,5 @@ function taskBelongsToViewer(request: TrackedRfp, viewer: ViewerAccess): boolean
   }
   if (!viewerName || viewerName.includes("@")) return false;
   return request.requestedBy.trim().toLowerCase() === viewerName;
-}
-
-export async function persistPendingBackfills(requests: TrackedRfp[], token?: string): Promise<string[]> {
-  const failures: string[] = [];
-  const writes = requests
-    .filter((request) => request.pendingClickUpBackfill?.length)
-    .map(async (request) => {
-      const saved = await backfillMilestoneTimestampsToClickUp(
-        request.taskId,
-        request.pendingClickUpBackfill || [],
-        token
-      );
-      if (!saved) {
-        failures.push(request.taskId);
-        console.warn(`ClickUp milestone timestamps could not be synchronized for ${request.taskId}.`);
-      }
-    });
-  await Promise.all(writes);
-  return failures;
 }
 

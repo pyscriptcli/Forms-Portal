@@ -1,5 +1,4 @@
 import type { WorkflowStatuses } from "./adminSettings";
-import type { RfpMilestoneKey } from "./rfpWorkflow";
 
 /**
  * ClickUp Custom Fields Contract for PRIME Forms Portal RFP Tracking
@@ -18,19 +17,6 @@ export const CLICKUP_METADATA_FIELDS = {
 } as const;
 
 export type MetadataFieldKey = keyof typeof CLICKUP_METADATA_FIELDS;
-
-export const CLICKUP_MILESTONE_FIELDS: Record<RfpMilestoneKey, string> = {
-  requestorFormSubmission: "RFP TS - Requestor Form Submission",
-  tlReviewAndApproval: "RFP TS - TL Review and Approval",
-  financeValidation: "RFP TS - Finance Validation",
-  financeProcessing: "RFP TS - Finance Processing",
-  paymentPreparation: "RFP TS - Payment Preparation",
-  managementApproval: "RFP TS - CFO CEO Sign-Off",
-  paymentRelease: "RFP TS - Payment Release",
-  paymentDocumentation: "RFP TS - Payment Documentation",
-  recordsFiling: "RFP TS - Records Filing",
-  revisionRequested: "RFP Revision Requested At",
-};
 
 export const CLICKUP_AUDIT_FIELDS = {
   processHistory: "RFP Process History",
@@ -80,13 +66,7 @@ export function resolveFieldIdMapping(availableFields: ClickUpFieldDefinition[])
     if (id) mapping[name] = id;
   }
 
-  // 2. Milestone timestamp fields
-  for (const name of Object.values(CLICKUP_MILESTONE_FIELDS)) {
-    const id = findMatch(name);
-    if (id) mapping[name] = id;
-  }
-
-  // 3. Audit fields
+  // 2. Audit fields
   for (const name of Object.values(CLICKUP_AUDIT_FIELDS)) {
     const id = findMatch(name);
     if (id) mapping[name] = id;
@@ -101,7 +81,6 @@ export function resolveFieldIdMapping(availableFields: ClickUpFieldDefinition[])
 export function validateFieldMapping(mapping: ClickUpFieldIdMapping) {
   const allExpectedFields = [
     ...Object.values(CLICKUP_METADATA_FIELDS),
-    ...Object.values(CLICKUP_MILESTONE_FIELDS),
     ...Object.values(CLICKUP_AUDIT_FIELDS),
   ];
   const uniqueExpected = Array.from(new Set(allExpectedFields));

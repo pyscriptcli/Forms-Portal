@@ -3,18 +3,11 @@ import {
   getClickUpConfig,
   getListCustomFields,
   createClickUpWebhook,
-  getListTasks,
-  backfillMilestoneTimestampsToClickUp,
-  getClickUpTaskTimeInStatus,
 } from "@/lib/clickup";
 import {
   resolveFieldIdMapping,
   validateFieldMapping,
-  CLICKUP_MILESTONE_FIELDS,
 } from "@/lib/clickupFields";
-import { ORDERED_MILESTONE_KEYS, resolveRfpMilestone, getMilestoneEntries } from "@/lib/rfpWorkflow";
-import { DEFAULT_WORKFLOW_STATUSES, normalizeWorkflowStatuses } from "@/lib/adminSettings";
-import { invalidateRfpCache } from "@/lib/rfpCache";
 import { ADMIN_TOKEN } from "@/lib/adminSettings";
 import {
   isSupabaseAdminConfigured,
@@ -109,129 +102,6 @@ export async function POST(req: NextRequest) {
         endpoint: webhookEndpoint,
         webhookId: webhookResult.id,
         secret: webhookResult.secret,
-      });
-    }
-
-    if (action === "sync_task_timestamps") {
-      const configuredStatuses = isSupabaseAdminConfigured()
-        ? await readWorkflowStatusesFromSupabase()
-        : null;
-      const workflowStatuses = normalizeWorkflowStatuses(configuredStatuses || DEFAULT_WORKFLOW_STATUSES);
-
-      const tasks = await getListTasks(true, "rfp", undefined, listId);
-      const availableFields = await getListCustomFields(listId, token);
-      const sharedSettings = isSupabaseAdminConfigured() ? await readPortalSettingsFromSupabase() : {};
-      const mapping = {
-        ...resolveFieldIdMapping(availableFields),
-        ...(sharedSettings.clickupFieldMapping || {}),
-      };
-
-      let syncedTasksCount = 0;
-      let syncedFieldsCount = 0;
-      const syncReport: string[] = [];
-
-      for (const task of tasks) {
-        const rawStatus = typeof task.status === "string" ? task.status : (task.status?.status || "");
-        const statusStr = rawStatus.toLowerCase().trim();
-        const normalizedStatus = statusStr.replace(/[_-]/g, " ").replace(/\s+/g, " ").trim();
-        const isDone = ["done", "complete", "completed", "closed"].includes(normalizedStatus);
-        const resolved = resolveRfpMilestone(rawStatus, workflowStatuses);
-
-        const activeMilestoneIdx = ORDERED_MILESTONE_KEYS.indexOf(resolved.key);
-        const effectiveMilestoneIdx = isDone ? ORDERED_MILESTONE_KEYS.length - 1 : activeMilestoneIdx;
-
-        if (effectiveMilestoneIdx < 0) continue;
-
-        const taskFields: Array<{ id: string; name?: string; value?: any }> = Array.isArray(task.custom_fields)
-          ? task.custom_fields
-          : [];
-        const taskFieldMap = new Map<string, any>();
-        const taskFieldNameMap = new Map<string, any>();
-        for (const cf of taskFields) {
-          if (cf.id) taskFieldMap.set(cf.id, cf.value);
-          if (cf.name) taskFieldNameMap.set(cf.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, " "), cf.value);
-        }
-
-        const missingBackfills: Array<{ fieldId: string; timestamp: number }> = [];
-        let timeInStatusData: any = null;
-
-        for (let idx = 0; idx <= effectiveMilestoneIdx; idx++) {
-          const milestoneKey = ORDERED_MILESTONE_KEYS[idx];
-          const fieldName = CLICKUP_MILESTONE_FIELDS[milestoneKey];
-          const fieldId = mapping[fieldName];
-          if (!fieldId) continue;
-
-          // Check both by ID and by field name
-          const existingById = taskFieldMap.get(fieldId);
-          const normFieldName = fieldName.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
-          const existingByName = taskFieldNameMap.get(normFieldName);
-          const existingValue = (existingById !== undefined && existingById !== null && existingById !== "")
-            ? existingById
-            : existingByName;
-
-          if (existingValue !== undefined && existingValue !== null && existingValue !== "") {
-            continue;
-          }
-
-          let timestamp: number = 0;
-          if (idx === 0) {
-            timestamp = Number(task.date_created) || Date.now();
-          } else {
-            if (timeInStatusData === null) {
-              timeInStatusData = await getClickUpTaskTimeInStatus(task.id, token);
-            }
-            const expectedMilestone = getMilestoneEntries(workflowStatuses).find((e) => e.key === milestoneKey);
-            const statusLabel = (expectedMilestone?.status || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, " ");
-
-            if (timeInStatusData?.status_history && Array.isArray(timeInStatusData.status_history)) {
-              const histMatch = timeInStatusData.status_history.find(
-                (h: any) => (h.status || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, " ") === statusLabel
-              );
-              if (histMatch?.total_time?.since) {
-                timestamp = Number(histMatch.total_time.since);
-              }
-            }
-
-            if (!timestamp && timeInStatusData?.current_status) {
-              const currentLabel = (timeInStatusData.current_status.status || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, " ");
-              if (currentLabel === statusLabel) {
-                timestamp = Number(timeInStatusData.current_status.total_time?.since || 0);
-              }
-            }
-
-            if (!timestamp || isNaN(timestamp)) {
-              timestamp = Number(task.date_updated) || Number(task.date_created) || Date.now();
-            }
-          }
-
-          missingBackfills.push({ fieldId, timestamp });
-        }
-
-        if (missingBackfills.length > 0) {
-          const success = await backfillMilestoneTimestampsToClickUp(task.id, missingBackfills, token);
-          if (success) {
-            syncedTasksCount++;
-            syncedFieldsCount += missingBackfills.length;
-            syncReport.push(`${task.name || task.id}: updated ${missingBackfills.length} milestone(s)`);
-          }
-        }
-      }
-
-      invalidateRfpCache(destination?.workspaceId, listId);
-
-      const summary = syncedFieldsCount > 0
-        ? `Successfully synchronized ${syncedFieldsCount} milestone timestamp(s) across ${syncedTasksCount} of ${tasks.length} task(s).`
-        : tasks.length === 0
-        ? `No tasks found in ClickUp List (${listId}). Please check that tasks exist in this list.`
-        : `Scanned ${tasks.length} task(s) in list; all reached milestones already have timestamps recorded.`;
-
-      return NextResponse.json({
-        success: true,
-        message: summary,
-        totalTasksScanned: tasks.length,
-        syncedTasksCount,
-        syncedFieldsCount,
-        syncReport,
       });
     }
 

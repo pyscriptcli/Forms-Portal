@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getClickUpConfig, getClickUpTask, setTaskCustomFieldValue, getListCustomFields } from "@/lib/clickup";
 import {
-  CLICKUP_MILESTONE_FIELDS,
   CLICKUP_AUDIT_FIELDS,
   resolveFieldIdMapping,
 } from "@/lib/clickupFields";
@@ -132,37 +131,6 @@ export async function POST(req: NextRequest) {
   }
 
   const milestoneKey = matchedEntry.key;
-  const milestoneFieldName = CLICKUP_MILESTONE_FIELDS[milestoneKey];
-  let milestoneFieldId = fieldMapping[milestoneFieldName];
-
-  // Dynamic fallback: fetch list custom fields if not mapped from task
-  if (!milestoneFieldId) {
-    try {
-      const listFields = await getListCustomFields(task.list?.id || destination.listId, clickUp.token);
-      const listMapping = resolveFieldIdMapping(listFields);
-      milestoneFieldId = listMapping[milestoneFieldName];
-      if (milestoneFieldId) {
-        fieldMapping[milestoneFieldName] = milestoneFieldId;
-      }
-    } catch (e) {
-      console.warn("Could not fetch list custom fields for webhook mapping:", e);
-    }
-  }
-
-  // 3. Write Authoritative Milestone Timestamp (Unix ms)
-  if (!milestoneFieldId) {
-    return NextResponse.json(
-      { success: false, error: `${milestoneFieldName} is not mapped in Supabase Admin configuration.` },
-      { status: 500 }
-    );
-  }
-  const milestoneSaved = await setTaskCustomFieldValue(taskId, milestoneFieldId, eventDate, clickUp.token);
-  if (!milestoneSaved) {
-    return NextResponse.json(
-      { success: false, error: `ClickUp rejected the ${matchedEntry.status || newStatus} timestamp write.` },
-      { status: 502 }
-    );
-  }
   // 4. Append to Process History and Update Last Status Event ID
   const historyFieldId = fieldMapping[CLICKUP_AUDIT_FIELDS.processHistory];
   if (historyFieldId) {

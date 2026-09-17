@@ -27,12 +27,13 @@ describe("rfpTrackerMapping", () => {
   });
 
   describe("mapClickUpTaskToTrackedRfp", () => {
-    it("extracts data from custom fields and milestone timestamps", () => {
+    it("extracts metadata from custom fields and milestone timestamps from native ClickUp dates", () => {
       const mockTask = {
         id: "task-123",
         name: "[RFP-092026-0001] PRIME – Acmo Vendor – Office Supplies",
         status: { status: "finance processing" },
         date_created: "1726450000000",
+        date_updated: "1726472580000",
         custom_fields: [
           { id: "f-id", name: "RFP ID", value: "RFP-092026-0001" },
           { id: "f-entity", name: "RFP Entity", value: "PRIME" },
@@ -43,10 +44,6 @@ describe("rfpTrackerMapping", () => {
           { id: "f-req-email", name: "RFP Requestor Email", value: "jane@primephilippines.com" },
           { id: "f-app-name", name: "RFP Approver Name", value: "John Approver" },
           { id: "f-app-email", name: "RFP Approver Email", value: "john@primephilippines.com" },
-          { id: "f-ts-sub", name: "RFP TS - Requestor Form Submission", value: 1726450000000 },
-          { id: "f-ts-tl", name: "RFP TS - TL Review and Approval", value: 1726460000000 },
-          { id: "f-ts-val", name: "RFP TS - Finance Validation", value: 1726470000000 },
-          { id: "f-ts-proc", name: "RFP TS - Finance Processing", value: 1726472580000 },
         ],
         url: "https://app.clickup.com/t/task-123",
         team_id: "9014981136",
@@ -105,34 +102,26 @@ describe("rfpTrackerMapping", () => {
       expect(result.dataSource).toBe("legacy_fallback");
     });
 
-    it("uses native ClickUp timestamp for reached milestones and queues pending backfill", () => {
+    it("uses native ClickUp timestamp for reached milestones without needing custom fields", () => {
       const mockTask = {
         id: "task-missing-ts",
         name: "[RFP-092026-0004] PRIME – Bestprints – Quotation printing",
         status: { status: "finance validation" },
         date_created: "1789547820000",
         date_updated: "1789547880000",
-        custom_fields: [
-          { id: "f-ts-sub", name: "RFP TS - Requestor Form Submission", value: 1789547820000 },
-          { id: "f-ts-tl", name: "RFP TS - TL Review and Approval", value: null },
-          { id: "f-ts-val", name: "RFP TS - Finance Validation", value: null },
-        ],
+        custom_fields: [],
       };
 
       const result = mapClickUpTaskToTrackedRfp(mockTask);
 
       expect(result.milestoneTimestamps.requestorFormSubmission).toBeTruthy();
-      // Reached milestones display exact native update timestamp instead of unavailable
+      // Reached milestones display exact native update timestamp
       expect(result.milestoneTimestamps.tlReviewAndApproval).toBeTruthy();
       expect(result.milestoneTimestamps.tlReviewAndApproval).not.toBe("Timestamp unavailable");
       expect(result.milestoneTimestamps.financeValidation).toBeTruthy();
       expect(result.milestoneTimestamps.financeValidation).not.toBe("Timestamp unavailable");
       // Unreached milestones remain undefined (UI renders Pending)
       expect(result.milestoneTimestamps.financeProcessing).toBeUndefined();
-      // Queues backfill to ClickUp custom fields
-      expect(result.pendingClickUpBackfill).toHaveLength(2);
-      expect(result.pendingClickUpBackfill?.[0].fieldId).toBe("f-ts-tl");
-      expect(result.pendingClickUpBackfill?.[1].fieldId).toBe("f-ts-val");
     });
   });
 });

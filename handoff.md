@@ -54,20 +54,15 @@ ClickUp acts as the primary task management system, request record repository, w
   - **Requestor Signature**: Interactive canvas signature pad (draw) or image file upload with real-time sheet preview.
   - **TL Signature over Printed Name**: Text input for printed name + signature pad (draw/upload) with real-time sheet preview.
 
-### ClickUp Custom Fields Contract (22 Canonical Fields)
+### ClickUp Custom Fields Contract (13 Canonical Fields)
 Implemented in [`src/lib/clickupFields.ts`](src/lib/clickupFields.ts):
 1. **9 Core Metadata**: `RFP ID`, `RFP Entity`, `RFP Department`, `RFP Amount`, `RFP Purpose`, `RFP Requestor Name`, `RFP Requestor Email`, `RFP Approver Name`, `RFP Approver Email`.
-2. **9 Milestone Timestamps**: `RFP TS - Requestor Form Submission`, `RFP TS - TL Review and Approval`, `RFP TS - Finance Validation`, `RFP TS - Finance Processing`, `RFP TS - Payment Preparation`, `RFP TS - CFO/CEO Sign-Off`, `RFP TS - Payment Release`, `RFP TS - Payment Documentation`, `RFP TS - Records Filing`.
-3. **4 Audit & Idempotency**: `RFP Revision Reason`, `RFP Revision Requested By`, `RFP Last Status Event ID`, `RFP Process History`.
+2. **4 Audit & Idempotency**: `RFP Revision Requested At`, `RFP Revision Requested By`, `RFP Last Status Event ID`, `RFP Process History`.
 
-### Milestone Timestamps & Status Webhook
-- **Webhook Endpoint**: [`src/app/api/clickup/webhook/route.ts`](src/app/api/clickup/webhook/route.ts)
-- Signed with HMAC-SHA256 verification (`x-signature` header vs `CLICKUP_WEBHOOK_SECRET`).
-- Listens for `taskStatusUpdated` events and extracts the authoritative event timestamp (`history_items[0].date`).
-- Records the event timestamp into the matching milestone Date custom field via ClickUp REST API.
-- Idempotency guard via `RFP Last Status Event ID` to prevent duplicate writes.
-- Appends human-readable event audit logs to `RFP Process History`.
-- **Never uses task-wide `date_updated` as milestone timestamp.**
+### Milestone Timestamps Strategy (Native ClickUp Timestamps)
+- Milestone timestamps are read directly from native ClickUp task timestamps (`date_created` for submission, and `date_updated` for subsequent reached milestones).
+- Eliminates custom date field clutter (`RFP TS - ...` removed) and eliminates background API write limits.
+- Status transitions are logged to `RFP Process History` and idempotency is tracked via `RFP Last Status Event ID`.
 
 ### Redesigned Request Details Panel ([`src/app/requests/page.tsx`](src/app/requests/page.tsx))
 - **Header**: Total amount is placed inline with the request title; removed legacy `RFP ID unavailable · RFP` metadata line.

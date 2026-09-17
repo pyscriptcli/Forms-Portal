@@ -39,7 +39,7 @@ function webhookRequest() {
   }) as never;
 }
 
-describe("ClickUp status webhook timestamp persistence", () => {
+describe("ClickUp status webhook audit persistence", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     delete process.env.CLICKUP_WEBHOOK_SECRET;
@@ -50,7 +50,8 @@ describe("ClickUp status webhook timestamp persistence", () => {
     } as never);
     vi.mocked(readPortalSettingsFromSupabase).mockResolvedValue({
       clickupFieldMapping: {
-        "RFP TS - Finance Processing": "finance-processing-field",
+        "RFP Process History": "history-field-id",
+        "RFP Last Status Event ID": "event-field-id",
       },
     } as never);
     vi.mocked(readWorkflowStatusesFromSupabase).mockResolvedValue({
@@ -65,11 +66,14 @@ describe("ClickUp status webhook timestamp persistence", () => {
     vi.mocked(getClickUpTask).mockResolvedValue({
       id: "task-1",
       date_created: "1789610000000",
-      custom_fields: [{ id: "finance-processing-field", name: "Renamed field", type: "date", value: null }],
+      custom_fields: [
+        { id: "history-field-id", name: "RFP Process History", type: "text", value: null },
+        { id: "event-field-id", name: "RFP Last Status Event ID", type: "short_text", value: null },
+      ],
     });
   });
 
-  it("uses the Supabase field mapping and server token for Finance Processing", async () => {
+  it("updates process history and last status event ID for status updates", async () => {
     vi.mocked(setTaskCustomFieldValue).mockResolvedValue(true);
 
     const response = await POST(webhookRequest());
@@ -77,57 +81,32 @@ describe("ClickUp status webhook timestamp persistence", () => {
     expect(response.status).toBe(200);
     expect(setTaskCustomFieldValue).toHaveBeenCalledWith(
       "task-1",
-      "finance-processing-field",
-      eventDate,
+      "history-field-id",
+      expect.stringContaining("FINANCE PROCESSING"),
+      "pk_server_token"
+    );
+    expect(setTaskCustomFieldValue).toHaveBeenCalledWith(
+      "task-1",
+      "event-field-id",
+      "event-1",
       "pk_server_token"
     );
   });
 
-  it("returns an error when ClickUp rejects the authoritative timestamp write", async () => {
-    vi.mocked(setTaskCustomFieldValue).mockResolvedValue(false);
+  it("handles duplicate webhook events idempotently", async () => {
+    vi.mocked(getClickUpTask).mockResolvedValue({
+      id: "task-1",
+      date_created: "1789610000000",
+      custom_fields: [
+        { id: "event-field-id", name: "RFP Last Status Event ID", type: "short_text", value: "event-1" },
+      ],
+    });
 
     const response = await POST(webhookRequest());
     const body = await response.json();
 
-    expect(response.status).toBe(502);
-    expect(body.success).toBe(false);
-    expect(body.error).toMatch(/Finance Processing/i);
-  });
-
-  it("handles mixed case status like Tl Review And Approval successfully", async () => {
-    vi.mocked(setTaskCustomFieldValue).mockResolvedValue(true);
-    vi.mocked(readPortalSettingsFromSupabase).mockResolvedValue({
-      clickupFieldMapping: {
-        "RFP TS - TL Review and Approval": "tl-field-id",
-      },
-    } as never);
-    vi.mocked(readWorkflowStatusesFromSupabase).mockResolvedValue({
-      tlReviewAndApproval: "TL Review and Approval",
-    } as never);
-
-    const req = new Request("http://localhost/api/clickup/webhook", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        event: "taskStatusUpdated",
-        task_id: "task-1",
-        history_items: [{
-          id: "event-tl",
-          date: String(eventDate),
-          before: { status: "Requestor Form Submission" },
-          after: { status: "Tl Review And Approval" },
-          user: { username: "Dave Policarpio" },
-        }],
-      }),
-    }) as never;
-
-    const response = await POST(req);
     expect(response.status).toBe(200);
-    expect(setTaskCustomFieldValue).toHaveBeenCalledWith(
-      "task-1",
-      "tl-field-id",
-      eventDate,
-      "pk_server_token"
-    );
+    expect(body.duplicate).toBe(true);
+    expect(setTaskCustomFieldValue).not.toHaveBeenCalled();
   });
 });

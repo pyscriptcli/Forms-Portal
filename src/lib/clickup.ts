@@ -18,7 +18,7 @@ import {
 import { formatRfpReference, formatRfpTaskName, highestRfpSequence } from "@/lib/rfpNaming";
 import {
   CLICKUP_METADATA_FIELDS,
-  CLICKUP_MILESTONE_FIELDS,
+  CLICKUP_AUDIT_FIELDS,
   resolveFieldIdMapping,
   formatCustomFieldValueForWrite,
 } from "@/lib/clickupFields";
@@ -468,9 +468,6 @@ async function getMatchingCustomFields(listId: string, token: string, data: any,
     addIfMapped(CLICKUP_METADATA_FIELDS.requestedByEmail, data.requestedByEmail || "");
     addIfMapped(CLICKUP_METADATA_FIELDS.approverName, data.tlSignatureName || data.approvedByName || "");
     addIfMapped(CLICKUP_METADATA_FIELDS.approverEmail, data.approverEmail || "");
-
-    // Milestone submission timestamp
-    addIfMapped(CLICKUP_MILESTONE_FIELDS.requestorFormSubmission, Date.now(), "date");
 
     // Additional common fields by fuzzy name if not already mapped
     const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -1050,52 +1047,11 @@ export async function approveTaskByApprover(
         }
       }
 
-      const approverEmailId = fieldMapping[CLICKUP_METADATA_FIELDS.approverEmail];
-      if (approverEmailId && approverEmail) {
-        const ok = await setTaskCustomFieldValue(taskId, approverEmailId, approverEmail, token);
-        if (!ok) {
-          console.error(`Failed to persist approver email to custom field ${approverEmailId}`);
-          return false;
+        const approverEmailId = fieldMapping[CLICKUP_METADATA_FIELDS.approverEmail];
+        if (approverEmailId && approverEmail) {
+          await setTaskCustomFieldValue(taskId, approverEmailId, approverEmail, token);
         }
       }
-
-      // Fail closed: the status must never advance without the authoritative
-      // timestamp that the request timeline will display for this milestone.
-      const financeValidationTimestampId = fieldMapping[CLICKUP_MILESTONE_FIELDS.financeValidation];
-      if (!financeValidationTimestampId) {
-        console.error("Finance Validation timestamp field is not configured on this ClickUp task.");
-        return false;
-      }
-
-      const now = Date.now();
-      const timestampWritten = await setTaskCustomFieldValue(
-        taskId,
-        financeValidationTimestampId,
-        now,
-        token
-      );
-      if (!timestampWritten) {
-        console.error(`Failed to persist Finance Validation timestamp to custom field ${financeValidationTimestampId}`);
-        return false;
-      }
-
-      // Also persist TL Review and Approval milestone timestamp
-      const tlApprovalId = fieldMapping[CLICKUP_MILESTONE_FIELDS.tlReviewAndApproval];
-      if (tlApprovalId) {
-        await setTaskCustomFieldValue(taskId, tlApprovalId, now, token);
-      }
-
-      // Backfill submission milestone timestamp if it was not populated
-      const submissionId = fieldMapping[CLICKUP_MILESTONE_FIELDS.requestorFormSubmission];
-      const existingSubmission = currentTask.custom_fields?.find((f: any) => f.id === submissionId);
-      if (submissionId && !existingSubmission?.value) {
-        const createdMs = Number(currentTask.date_created) || now;
-        await setTaskCustomFieldValue(taskId, submissionId, createdMs, token);
-      }
-    } else {
-      console.error("ClickUp task has no custom fields; approval cannot record its milestone timestamp.");
-      return false;
-    }
 
     let updatedDescription = currentTask.description || currentTask.markdown_description || "";
     const updateRes = await fetch(`${CLICKUP_API_BASE}/task/${taskId}`, {
@@ -1129,26 +1085,6 @@ export async function approveTaskByApprover(
 }
 
 /**
- * Asynchronously backfills milestone timestamps into ClickUp custom fields.
- */
-export async function backfillMilestoneTimestampsToClickUp(
-  taskId: string,
-  missing: Array<{ fieldId: string; timestamp: number }>,
-  token?: string
-): Promise<boolean> {
-  if (!missing || missing.length === 0 || !taskId || taskId.startsWith("MOCK-")) return true;
-  const results = await Promise.all(missing.map(async (item) => {
-    try {
-      return await setTaskCustomFieldValue(taskId, item.fieldId, item.timestamp, token);
-    } catch (err) {
-      console.warn(`Failed to backfill milestone custom field ${item.fieldId} on task ${taskId}:`, err);
-      return false;
-    }
-  }));
-  return results.every(Boolean);
-}
-
-/**
  * Records an approver or finance revision request and posts instructions to the task.
  */
 export async function rejectTaskForRevision(
@@ -1175,8 +1111,8 @@ export async function rejectTaskForRevision(
         const fieldMapping = resolveFieldIdMapping(
           currentTask.custom_fields.map((f: any) => ({ id: f.id, name: f.name, type: f.type }))
         );
-        const revAtId = fieldMapping[CLICKUP_MILESTONE_FIELDS.revisionRequested];
-        const revById = fieldMapping[CLICKUP_METADATA_FIELDS.approverName];
+        const revAtId = fieldMapping[CLICKUP_AUDIT_FIELDS.revisionRequestedAt];
+        const revById = fieldMapping[CLICKUP_AUDIT_FIELDS.revisionRequestedBy] || fieldMapping[CLICKUP_METADATA_FIELDS.approverName];
         if (revAtId) await setTaskCustomFieldValue(taskId, revAtId, Date.now(), token);
         if (revById) await setTaskCustomFieldValue(taskId, revById, approverName, token);
       }

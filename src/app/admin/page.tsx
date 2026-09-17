@@ -39,25 +39,10 @@ export const CONTRACT_FIELD_GROUPS = [
     ],
   },
   {
-    title: "2. Milestone Timestamps (10 Fields)",
-    description: "Populated with authoritative event times when status transitions occur.",
-    fields: [
-      { name: "RFP TS - Requestor Form Submission", type: "Date & Time", desc: "Submission event timestamp" },
-      { name: "RFP TS - TL Review and Approval", type: "Date & Time", desc: "TL Approval event timestamp" },
-      { name: "RFP TS - Finance Validation", type: "Date & Time", desc: "Finance Validation milestone timestamp" },
-      { name: "RFP TS - Finance Processing", type: "Date & Time", desc: "Finance Processing milestone timestamp" },
-      { name: "RFP TS - Payment Preparation", type: "Date & Time", desc: "Payment Preparation milestone timestamp" },
-      { name: "RFP TS - CFO CEO Sign-Off", type: "Date & Time", desc: "Executive sign-off milestone timestamp" },
-      { name: "RFP TS - Payment Release", type: "Date & Time", desc: "Disbursement milestone timestamp" },
-      { name: "RFP TS - Payment Documentation", type: "Date & Time", desc: "Documentation milestone timestamp" },
-      { name: "RFP TS - Records Filing", type: "Date & Time", desc: "Final filing milestone timestamp" },
-      { name: "RFP Revision Requested At", type: "Date & Time", desc: "Timestamp of the latest revision request" },
-    ],
-  },
-  {
-    title: "3. Process Audit & Idempotency (3 Fields)",
+    title: "2. Process Audit & Idempotency (4 Fields)",
     description: "Enforces single-write idempotency and stores revision history.",
     fields: [
+      { name: "RFP Revision Requested At", type: "Date & Time", desc: "Timestamp of the latest revision request" },
       { name: "RFP Revision Requested By", type: "Short Text", desc: "User or role who returned the request" },
       { name: "RFP Last Status Event ID", type: "Short Text", desc: "Webhook event ID to prevent duplicate writes" },
       { name: "RFP Process History", type: "Text / Long Text", desc: "Audit log of all milestone timestamps & events" },

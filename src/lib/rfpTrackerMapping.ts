@@ -1,7 +1,6 @@
 import { resolveRfpMilestone, ORDERED_MILESTONE_KEYS, type RfpMilestoneKey } from "./rfpWorkflow";
 import {
   CLICKUP_METADATA_FIELDS,
-  CLICKUP_MILESTONE_FIELDS,
   resolveFieldIdMapping,
   type ClickUpFieldIdMapping,
 } from "./clickupFields";
@@ -42,7 +41,6 @@ export interface TrackedRfp {
   attachments: Array<{ id: string; name: string; url: string; type?: string }>;
   milestoneTimestamps: MilestoneTimestamps;
   dataSource?: "custom_field" | "legacy_fallback";
-  pendingClickUpBackfill?: Array<{ fieldId: string; timestamp: number }>;
 }
 
 /**
@@ -282,10 +280,8 @@ export function mapClickUpTaskToTrackedRfp(
     currentMilestone = "Revision Requested";
   }
 
-  // 5. Milestone Timestamps Mapping with Self-Healing Hybrid Flow
+  // 5. Milestone Timestamps Mapping using Native ClickUp Timestamps
   const milestoneTimestamps: MilestoneTimestamps = {};
-  const pendingClickUpBackfill: Array<{ fieldId: string; timestamp: number }> = [];
-
   const createdMs = Number(task.date_created) || Date.now();
   const updatedMs = Number(task.date_updated) || createdMs;
   const activeMilestoneIdx = ORDERED_MILESTONE_KEYS.indexOf(resolved.key);
@@ -293,22 +289,10 @@ export function mapClickUpTaskToTrackedRfp(
 
   for (let idx = 0; idx < ORDERED_MILESTONE_KEYS.length; idx++) {
     const key = ORDERED_MILESTONE_KEYS[idx];
-    const fieldName = CLICKUP_MILESTONE_FIELDS[key];
-    const rawVal = getFieldValue(fieldName);
-    const fieldId = fieldMapping[fieldName];
-
-    if (rawVal !== undefined && rawVal !== null && rawVal !== "") {
-      milestoneTimestamps[key] = formatMilestoneTimestamp(rawVal);
-    } else if (idx <= effectiveMilestoneIdx && effectiveMilestoneIdx >= 0) {
-      // Reached milestone without an authoritative timestamp custom field:
-      // Immediately display native ClickUp timestamp (date_created for submission, date_updated for status change)
+    if (idx <= effectiveMilestoneIdx && effectiveMilestoneIdx >= 0) {
+      // Reached milestone: use date_created for submission, date_updated for subsequent reached milestones
       const nativeTimestampMs = idx === 0 ? createdMs : updatedMs;
       milestoneTimestamps[key] = formatMilestoneTimestamp(nativeTimestampMs);
-
-      // Queue for background writeback to ClickUp custom field
-      if (fieldId) {
-        pendingClickUpBackfill.push({ fieldId, timestamp: nativeTimestampMs });
-      }
     }
   }
 
@@ -353,6 +337,5 @@ export function mapClickUpTaskToTrackedRfp(
     attachments,
     milestoneTimestamps,
     dataSource,
-    pendingClickUpBackfill: pendingClickUpBackfill.length > 0 ? pendingClickUpBackfill : undefined,
   };
 }
