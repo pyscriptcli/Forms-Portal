@@ -77,6 +77,25 @@ create table if not exists "forms-portal-workflow_statuses" (
     ))
 );
 
+-- Replace the constraint when upgrading an existing installation. CREATE TABLE
+-- IF NOT EXISTS does not modify constraints that were created by an older schema.
+delete from "forms-portal-workflow_statuses"
+where workflow_key not in (
+  'requestorFormSubmission', 'tlReviewAndApproval', 'financeValidation',
+  'financeProcessing', 'paymentPreparation', 'managementApproval',
+  'paymentRelease', 'paymentDocumentation', 'recordsFiling', 'revisionRequested'
+);
+
+alter table "forms-portal-workflow_statuses"
+  drop constraint if exists forms_portal_workflow_key_check;
+alter table "forms-portal-workflow_statuses"
+  add constraint forms_portal_workflow_key_check
+  check (workflow_key in (
+    'requestorFormSubmission', 'tlReviewAndApproval', 'financeValidation',
+    'financeProcessing', 'paymentPreparation', 'managementApproval',
+    'paymentRelease', 'paymentDocumentation', 'recordsFiling', 'revisionRequested'
+  ));
+
 insert into "forms-portal-workflow_statuses"
   (workflow_key, display_name, clickup_status)
 values
