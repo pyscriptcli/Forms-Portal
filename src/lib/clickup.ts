@@ -1054,7 +1054,7 @@ export async function approveTaskByApprover(
       }
 
     let updatedDescription = currentTask.description || currentTask.markdown_description || "";
-    const updateRes = await fetch(`${CLICKUP_API_BASE}/task/${taskId}`, {
+    let updateRes = await fetch(`${CLICKUP_API_BASE}/task/${taskId}`, {
       method: "PUT",
       headers: {
         Authorization: authorizationHeader(token, isOAuth),
@@ -1066,6 +1066,26 @@ export async function approveTaskByApprover(
         markdown_description: updatedDescription,
       }),
     });
+
+    // OAuth users can read a task but may not have permission to update it.
+    // Retry the write with the configured server token before reporting failure.
+    if (!updateRes.ok && options.oauthToken) {
+      const serviceConfig = getClickUpConfig("rfp");
+      if (serviceConfig.isConfigured && serviceConfig.token !== token) {
+        updateRes = await fetch(`${CLICKUP_API_BASE}/task/${taskId}`, {
+          method: "PUT",
+          headers: {
+            Authorization: authorizationHeader(serviceConfig.token, false),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: workflowStatuses.financeValidation,
+            description: updatedDescription,
+            markdown_description: updatedDescription,
+          }),
+        });
+      }
+    }
 
     if (!updateRes.ok) {
       console.error("Failed to update task status:", await updateRes.text());
