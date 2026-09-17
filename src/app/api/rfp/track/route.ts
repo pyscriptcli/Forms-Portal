@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
       if (!viewer.canViewAll && !taskBelongsToViewer(parsed, viewer)) {
         return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
       }
-      scheduleBackfills([parsed], rfpClickUp.token);
+      await persistPendingBackfills([parsed], rfpClickUp.token);
       return NextResponse.json({
         success: true,
         requests: [parsed],
@@ -145,7 +145,7 @@ export async function GET(req: NextRequest) {
     // Sort by creation date descending
     parsed.sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime());
 
-    scheduleBackfills(parsed, rfpClickUp.token);
+    await persistPendingBackfills(parsed, rfpClickUp.token);
 
     return NextResponse.json({
       success: true,
@@ -173,11 +173,19 @@ function taskBelongsToViewer(request: TrackedRfp, viewer: ViewerAccess): boolean
   return request.requestedBy.trim().toLowerCase() === viewerName;
 }
 
-function scheduleBackfills(requests: TrackedRfp[], token?: string) {
-  for (const r of requests) {
-    if (r.pendingClickUpBackfill && r.pendingClickUpBackfill.length > 0) {
-      void backfillMilestoneTimestampsToClickUp(r.taskId, r.pendingClickUpBackfill, token);
-    }
-  }
+export async function persistPendingBackfills(requests: TrackedRfp[], token?: string): Promise<void> {
+  const writes = requests
+    .filter((request) => request.pendingClickUpBackfill?.length)
+    .map(async (request) => {
+      const saved = await backfillMilestoneTimestampsToClickUp(
+        request.taskId,
+        request.pendingClickUpBackfill || [],
+        token
+      );
+      if (!saved) {
+        throw new Error(`ClickUp milestone timestamps could not be synchronized for ${request.taskId}.`);
+      }
+    });
+  await Promise.all(writes);
 }
 

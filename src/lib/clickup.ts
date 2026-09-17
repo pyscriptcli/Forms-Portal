@@ -1096,15 +1096,17 @@ export async function backfillMilestoneTimestampsToClickUp(
   taskId: string,
   missing: Array<{ fieldId: string; timestamp: number }>,
   token?: string
-): Promise<void> {
-  if (!missing || missing.length === 0 || !taskId || taskId.startsWith("MOCK-")) return;
-  for (const item of missing) {
+): Promise<boolean> {
+  if (!missing || missing.length === 0 || !taskId || taskId.startsWith("MOCK-")) return true;
+  const results = await Promise.all(missing.map(async (item) => {
     try {
-      await setTaskCustomFieldValue(taskId, item.fieldId, item.timestamp, token);
+      return await setTaskCustomFieldValue(taskId, item.fieldId, item.timestamp, token);
     } catch (err) {
       console.warn(`Failed to backfill milestone custom field ${item.fieldId} on task ${taskId}:`, err);
+      return false;
     }
-  }
+  }));
+  return results.every(Boolean);
 }
 
 /**
