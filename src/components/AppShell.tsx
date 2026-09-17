@@ -69,6 +69,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const activeKey = getActiveKey();
   const allowedPages = user.permissions;
 
+  useEffect(() => {
+    if (!allowedPages || isAdmin) return;
+    const pagePermission = activeKey === "settings" ? "settings" : activeKey;
+    if (!allowedPages.includes(pagePermission as typeof allowedPages[number])) {
+      const fallback = allowedPages.includes("requests") ? "/requests" : allowedPages.includes("forms") ? "/form" : "/auth/signin";
+      router.replace(fallback);
+    }
+  }, [activeKey, allowedPages, isAdmin, router]);
+
   const handleSelectView = (view: string) => {
     setMobileOpen(false);
     if (view === "forms") router.push("/form");
