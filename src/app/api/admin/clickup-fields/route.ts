@@ -80,10 +80,11 @@ export async function POST(req: NextRequest) {
       const webhookEndpoint = `${appUrl}/api/clickup/webhook`;
 
       let workspaceId: string | undefined;
+      const configuredWorkspaceId = destination?.workspaceId?.trim();
       try {
         const raw = await fs.readFile(FLAGS_PATH, "utf8");
         const flags = JSON.parse(raw);
-        workspaceId = flags.destinations?.rfp?.workspaceId || flags.workspaceId;
+        workspaceId = configuredWorkspaceId || flags.destinations?.rfp?.workspaceId || flags.workspaceId;
       } catch {}
       const webhookResult = await createClickUpWebhook(listId, webhookEndpoint, token, workspaceId);
       if (isSupabaseAdminConfigured()) {
