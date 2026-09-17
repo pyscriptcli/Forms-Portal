@@ -95,6 +95,7 @@ export default function AdminPage() {
   const [loginError, setLoginError] = useState("");
   const [settings, setSettings] = useState<AdminSettings>({
     rfpAutofillEnabled: true,
+    demoModeEnabled: false,
     destinations: DEFAULT_FORM_DESTINATIONS,
   });
   const [destinations, setDestinations] = useState<FormDestinations>(DEFAULT_FORM_DESTINATIONS);
@@ -319,7 +320,7 @@ export default function AdminPage() {
     setPassword("");
   }
 
-  async function handleToggle(key: "rfpAutofillEnabled") {
+  async function handleToggle(key: "rfpAutofillEnabled" | "demoModeEnabled") {
     const updated = { ...settings, [key]: !settings[key] };
     setSettings(updated);
     setIsSaving(true);
@@ -505,12 +506,17 @@ export default function AdminPage() {
   }
 
   /* ── Admin Dashboard ── */
-  const toggles: { key: "rfpAutofillEnabled"; label: string; description: string }[] = [
+  const toggles: { key: "rfpAutofillEnabled" | "demoModeEnabled"; label: string; description: string }[] = [
     {
       key: "rfpAutofillEnabled",
       label: "RFP AI Autofill",
       description:
         "Allow requestors to fill payment forms from a vendor quotation.",
+    },
+    {
+      key: "demoModeEnabled",
+      label: "Demo Mode",
+      description: "Enable shareable Requestor and Approver views without ClickUp sign-in. Actions are simulated.",
     },
   ];
 
@@ -581,6 +587,13 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
+          {settings.demoModeEnabled && <div className="mt-6 border border-prime-gold bg-prime-gold/10 p-4 text-sm">
+            <p className="font-semibold text-prime-blue">Demo links</p>
+            <div className="mt-2 flex flex-wrap gap-4 text-xs underline">
+              <a href="/requestor-view">Requestor view</a>
+              <a href="/approver-view">Approver view</a>
+            </div>
+          </div>}
           {saveMsg && <p role="status" className="prime-notice mt-6">{saveMsg}</p>}
         </section>
         </div>}

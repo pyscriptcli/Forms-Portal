@@ -21,6 +21,7 @@ import { invalidateRfpCache } from "@/lib/rfpCache";
 async function readFlags() {
   return {
     rfpAutofillEnabled: true,
+    demoModeEnabled: false,
     destinations: getDefaultFormDestinations(),
     workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
     clickupFieldMapping: {},
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest) {
   if (isSupabaseAdminConfigured()) {
     const portalSettings: Record<string, unknown> = {};
     if (typeof body.rfpAutofillEnabled === "boolean") portalSettings.rfpAutofillEnabled = body.rfpAutofillEnabled;
+    if (typeof body.demoModeEnabled === "boolean") portalSettings.demoModeEnabled = body.demoModeEnabled;
     if (body.clickupFieldMapping && typeof body.clickupFieldMapping === "object") {
       portalSettings.clickupFieldMapping = normalizeFieldMapping(body.clickupFieldMapping);
     }
@@ -87,6 +89,7 @@ export async function POST(req: NextRequest) {
     ...(typeof body.rfpAutofillEnabled === "boolean"
       ? { rfpAutofillEnabled: body.rfpAutofillEnabled }
       : {}),
+    ...(typeof body.demoModeEnabled === "boolean" ? { demoModeEnabled: body.demoModeEnabled } : {}),
     ...(body.destinations && typeof body.destinations === "object"
       ? { destinations: normalizeFormDestinations(body.destinations) }
       : {}),

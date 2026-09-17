@@ -22,6 +22,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const demoRole = window.location.pathname === "/approver-view" ? "approver" : window.location.pathname === "/requestor-view" ? "requestor" : null;
+    if (demoRole) {
+      fetch(`/api/demo/status?role=${demoRole}`).then(async (res) => {
+        if (!res.ok) throw new Error("Demo mode is disabled");
+        setUser({ id: `demo-${demoRole}`, username: `Demo ${demoRole}`, email: `demo-${demoRole}@local.test`, role: demoRole as "approver" | "requestor", permissions: demoRole === "approver" ? ["forms", "requests", "approvals"] : ["forms", "requests"] });
+      }).catch(() => setUser(null)).finally(() => setIsLoading(false));
+      return;
+    }
     // Local visual QA can use /form?preview=1 without requiring ClickUp OAuth.
     const isLocalPreview = new URLSearchParams(window.location.search).get("preview") === "1";
     if (isLocalPreview && process.env.NODE_ENV !== "production") {

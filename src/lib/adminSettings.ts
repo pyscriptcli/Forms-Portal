@@ -60,6 +60,7 @@ import type { ClickUpFieldIdMapping } from "./clickupFields";
 
 export type AdminSettings = {
   rfpAutofillEnabled: boolean;
+  demoModeEnabled: boolean;
   destinations?: FormDestinations;
   workflowStatuses?: WorkflowStatuses;
   clickupFieldMapping?: ClickUpFieldIdMapping;
@@ -73,6 +74,7 @@ export const ADMIN_TOKEN = "prime-admin-token-v1"; // fixed token for prototype
 
 export const DEFAULT_SETTINGS: AdminSettings = {
   rfpAutofillEnabled: true,
+  demoModeEnabled: false,
   destinations: DEFAULT_FORM_DESTINATIONS,
   workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
   clickupFieldMapping: {},

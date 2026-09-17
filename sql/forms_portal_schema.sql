@@ -132,6 +132,10 @@ insert into "forms-portal-settings" (setting_key, setting_value)
 values ('rfpAutofillEnabled', 'true'::jsonb)
 on conflict (setting_key) do nothing;
 
+insert into "forms-portal-settings" (setting_key, setting_value)
+values ('demoModeEnabled', 'false'::jsonb)
+on conflict (setting_key) do nothing;
+
 update "forms-portal-workflow_statuses" set display_name = 'REQUESTOR FORM SUBMISSION', clickup_status = 'REQUESTOR FORM SUBMISSION' where workflow_key = 'requestorFormSubmission';
 update "forms-portal-workflow_statuses" set display_name = 'TL REVIEW AND APPROVAL', clickup_status = 'TL REVIEW AND APPROVAL' where workflow_key = 'tlReviewAndApproval';
 update "forms-portal-workflow_statuses" set display_name = 'FINANCE VALIDATION', clickup_status = 'FINANCE VALIDATION' where workflow_key = 'financeValidation';

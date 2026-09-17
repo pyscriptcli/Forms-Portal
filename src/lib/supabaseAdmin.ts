@@ -126,6 +126,7 @@ export async function readFormDestinationsFromSupabase(): Promise<Record<FormDes
 
 export async function readPortalSettingsFromSupabase(): Promise<{
   rfpAutofillEnabled?: boolean;
+  demoModeEnabled?: boolean;
   clickupFieldMapping?: ClickUpFieldIdMapping;
   clickupWebhookId?: string;
   clickupWebhookEndpoint?: string;
@@ -142,6 +143,7 @@ export async function readPortalSettingsFromSupabase(): Promise<{
   const values = Object.fromEntries(rows.map((row) => [row.setting_key, row.setting_value]));
   return {
     rfpAutofillEnabled: typeof values.rfpAutofillEnabled === "boolean" ? values.rfpAutofillEnabled : undefined,
+    demoModeEnabled: typeof values.demoModeEnabled === "boolean" ? values.demoModeEnabled : undefined,
     clickupFieldMapping:
       values.clickupFieldMapping && typeof values.clickupFieldMapping === "object"
         ? values.clickupFieldMapping as ClickUpFieldIdMapping
