@@ -103,6 +103,10 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
       }
 
+      if (parsed.pendingClickUpBackfill && parsed.pendingClickUpBackfill.length > 0) {
+        void persistPendingBackfills([parsed], rfpClickUp.token);
+      }
+
       return NextResponse.json({
         success: true,
         requests: [parsed],
@@ -119,7 +123,7 @@ export async function GET(req: NextRequest) {
       listId,
       forceRefresh,
       fetcher: async () => {
-        const rawTasks = await getListTasks(true, "rfp", rfpClickUp.token, listId);
+        const rawTasks = await getListTasks(true, "rfp", undefined, listId);
         return rawTasks.map((task) =>
           mapClickUpTaskToTrackedRfp(task, settings.fieldMapping, settings.workflowStatuses)
         );
@@ -127,6 +131,11 @@ export async function GET(req: NextRequest) {
     });
 
     let parsed = [...cacheResult.requests];
+
+    const needBackfills = parsed.filter((r) => r.pendingClickUpBackfill && r.pendingClickUpBackfill.length > 0);
+    if (needBackfills.length > 0) {
+      void persistPendingBackfills(needBackfills, rfpClickUp.token);
+    }
 
     // Requestors are restricted server-side.
     if (!viewer.canViewAll) {
