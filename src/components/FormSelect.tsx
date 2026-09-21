@@ -56,7 +56,6 @@ export function FormSelect({
 
   const currentOption =
     FORM_OPTIONS.find((opt) => opt.value === value) || FORM_OPTIONS[0];
-  const CurrentIcon = currentOption.icon;
 
   // Close on outside click
   useEffect(() => {
@@ -131,11 +130,11 @@ export function FormSelect({
         <div
           role="listbox"
           aria-label="Available form types"
-          className="absolute right-0 top-full mt-1.5 w-80 bg-prime-white border border-prime-blue/30 shadow-xl z-50 py-1 divide-y divide-prime-rule/60 animate-in fade-in zoom-in-95 duration-150"
+          className="absolute right-0 top-full z-50 mt-1.5 grid w-[min(94vw,46rem)] grid-cols-3 overflow-hidden border border-prime-blue/30 bg-prime-white shadow-xl animate-in fade-in zoom-in-95 duration-150"
         >
           {(["PRIME", "Greatwork", "Travel Budget"] as const).map((folder) => (
-            <div key={folder}>
-              <p className="px-3.5 pt-2 pb-1 text-[9px] font-bold uppercase tracking-[0.18em] text-prime-blue/65">{folder}</p>
+            <div key={folder} className="border-r border-prime-rule/70 last:border-r-0">
+              <p className="border-b border-prime-rule/60 bg-prime-warm-white px-3 py-2 text-[9px] font-bold uppercase tracking-[0.16em] text-prime-blue/70">{folder}</p>
               {FORM_OPTIONS.filter((option) => option.folder === folder).map((option) => {
             const isSelected = option.value === value;
 
@@ -150,13 +149,13 @@ export function FormSelect({
                   setIsOpen(false);
                   triggerRef.current?.focus();
                 }}
-                className={`w-full text-left px-3.5 py-2.5 flex items-start gap-3 transition-colors cursor-pointer ${
+                className={`flex w-full items-start gap-2 border-b border-prime-rule/40 px-2.5 py-2 text-left transition-colors last:border-b-0 cursor-pointer ${
                   isSelected
                     ? "bg-[#0B3C68]/10 text-prime-blue border-l-2 border-prime-gold"
                     : "hover:bg-prime-warm-white text-prime-ink border-l-2 border-transparent"
                 }`}
               >
-                {option.logo && <Image src={option.logo} alt={option.value.startsWith("gw-") ? "GreatWork Logo" : "PRIME Logo"} width={20} height={20} unoptimized className="w-5 h-5 object-contain shrink-0 mt-0.5" />}
+                {option.logo && <Image src={option.logo} alt={option.value.startsWith("gw-") ? "GreatWork Logo" : "PRIME Logo"} width={16} height={16} unoptimized className="mt-0.5 h-4 w-4 shrink-0 object-contain" />}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <span
@@ -167,11 +166,11 @@ export function FormSelect({
                       {option.label}
                     </span>
                     {isSelected && (
-                      <Check size={14} className="text-prime-gold shrink-0" />
+                      <Check size={12} className="shrink-0 text-prime-gold" />
                     )}
                   </div>
                   {option.description && (
-                    <p className="text-[11px] text-prime-ink/60 mt-0.5 leading-snug">
+                    <p className="mt-0.5 text-[10px] leading-snug text-prime-ink/60">
                       {option.description}
                     </p>
                   )}
