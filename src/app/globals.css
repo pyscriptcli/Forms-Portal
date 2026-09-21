@@ -68,7 +68,7 @@ input::placeholder, textarea::placeholder { color: var(--prime-gray); opacity: 0
 .prime-form-picker-trigger-copy { display: grid; gap: 2px; min-width: 0; }
 .prime-form-picker-eyebrow { color: var(--prime-gray); font-size: 9px; font-weight: 600; letter-spacing: .16em; line-height: 1.4; text-transform: uppercase; }
 .prime-form-picker-value { overflow: hidden; font-size: 13px; font-weight: 600; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
-.prime-form-picker-panel { position: absolute; top: calc(100% + 8px); left: 0; width: min(680px, calc(100vw - 24px)); border: 1px solid var(--prime-blue); border-top: 2px solid var(--prime-gold); background: var(--prime-warm-white); box-shadow: 8px 8px 0 color-mix(in srgb, var(--prime-blue) 12%, transparent); }
+.prime-form-picker-panel { position: absolute; top: calc(100% + 8px); right: 0; width: min(680px, calc(100vw - 24px)); border: 1px solid var(--prime-blue); border-top: 2px solid var(--prime-gold); background: var(--prime-warm-white); box-shadow: 8px 8px 0 color-mix(in srgb, var(--prime-blue) 12%, transparent); }
 .prime-form-picker-panel-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding: 22px 22px 18px; border-bottom: 1px solid var(--color-prime-rule); }
 .prime-form-picker-panel-header h2 { margin: 1px 0 3px; font-family: var(--font-display); font-size: 28px; font-style: italic; font-weight: 300; line-height: 1.1; }
 .prime-form-picker-panel-header p:not(.prime-label) { margin: 0; color: var(--prime-gray); font-size: 12px; line-height: 1.5; }
@@ -152,7 +152,7 @@ input::placeholder, textarea::placeholder { color: var(--prime-gray); opacity: 0
   .prime-toolbar { position: static; }
   .prime-form-picker { width: 100%; }
   .prime-form-picker-trigger { width: 100%; }
-  .prime-form-picker-panel { position: fixed; top: 52px; left: 12px; width: calc(100vw - 24px); max-height: calc(100svh - 68px); overflow-y: auto; }
+  .prime-form-picker-panel { position: fixed; top: 52px; right: auto; left: 12px; width: calc(100vw - 24px); max-height: calc(100svh - 68px); overflow-y: auto; }
   .prime-form-picker-panel-header { display: grid; gap: 14px; padding: 18px 16px 14px; }
   .prime-form-picker-search { width: 100%; flex-basis: auto; }
   .prime-form-picker-body { grid-template-columns: 1fr; }
