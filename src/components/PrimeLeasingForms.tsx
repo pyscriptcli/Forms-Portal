@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { FinanceOnlySection } from "./FinanceOnlySection";
+import { SignatureModal } from "./SignatureModal";
 
 type SheetData = Record<string, string | boolean | undefined>;
 type Setter = (name: string, value: string | boolean) => void;
@@ -14,6 +15,29 @@ function Field({ label, name, data, set, className = "" }: { label: string; name
       <input aria-label={label} value={String(data[name] || "")} onChange={(event) => set(name, event.target.value)} className="mt-1 block w-full border-b border-black bg-transparent px-0.5 text-[11px] font-normal outline-none" />
     </label>
   );
+}
+
+function SignatureField({ label, name, data, set, className = "" }: { label: string; name: string; data: SheetData; set: Setter; className?: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const signature = String(data[name] || "");
+  return <div className={`border border-black p-1.5 font-bold ${className}`}>
+    <span>{label}</span>
+    {signature ? <div className="mt-1 flex items-center gap-2">
+      <img src={signature} alt={`${label} signature`} className="h-8 max-w-[140px] object-contain" />
+      <button type="button" onClick={() => setIsOpen(true)} className="text-[10px] font-normal text-[#003366] underline no-print">Change</button>
+    </div> : <button type="button" onClick={() => setIsOpen(true)} className="mt-1 block text-[10px] font-normal text-[#003366] underline no-print">Upload / Draw / Click to Sign</button>}
+    <SignatureModal isOpen={isOpen} onClose={() => setIsOpen(false)} currentSignature={signature} title={`${label} Signature`} onSave={(dataUrl) => set(name, dataUrl)} />
+  </div>;
+}
+
+function DepartmentField({ label, name, data, set, departments, className = "" }: { label: string; name: string; data: SheetData; set: Setter; departments: string[]; className?: string }) {
+  return <label className={`block border border-black p-1.5 font-bold ${className}`}>
+    {label}
+    <select aria-label={label} value={String(data[name] || "")} onChange={(event) => set(name, event.target.value)} className="mt-1 block w-full border-b border-black bg-transparent px-0.5 text-[11px] font-normal outline-none">
+      <option value="">Select department</option>
+      {departments.map((department) => <option key={department} value={department}>{department}</option>)}
+    </select>
+  </label>;
 }
 
 function Band({ children, tone = "gray" }: { children: React.ReactNode; tone?: "gray" | "blue" }) {
@@ -36,7 +60,7 @@ function GreatWorkBand({ children }: { children: React.ReactNode }) {
   return <div className="border border-black bg-[#faebeb] px-2 py-1 text-[13px] font-bold text-[#ae2731]">{children}</div>;
 }
 
-export function PrimeRfbSheet({ data, onChange }: { data: SheetData; onChange: (data: SheetData) => void }) {
+export function PrimeRfbSheet({ data, onChange, departments = [] }: { data: SheetData; onChange: (data: SheetData) => void; departments?: string[] }) {
   const set = (name: string, value: string | boolean) => onChange({ ...data, [name]: value });
   return <div id="rfp-printable-sheet" className="form-a4-sheet bg-white p-7 text-black shadow-md print:p-0 print:shadow-none" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
     <Band>REQUEST FOR BILLING INVOICE (RFB FORM) — LEASING SERVICES</Band>
@@ -57,7 +81,7 @@ export function PrimeRfbSheet({ data, onChange }: { data: SheetData; onChange: (
   </div>;
 }
 
-export function PrimeCreditSharingSheet({ data, onChange }: { data: SheetData; onChange: (data: SheetData) => void }) {
+export function PrimeCreditSharingSheet({ data, onChange, departments = [] }: { data: SheetData; onChange: (data: SheetData) => void; departments?: string[] }) {
   const set = (name: string, value: string | boolean) => onChange({ ...data, [name]: value });
   const rows = Array.from({ length: 8 }, (_, index) => index);
   return <div id="rfp-printable-sheet" className="form-a4-sheet bg-white p-7 text-black shadow-md print:p-0 print:shadow-none" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
@@ -69,12 +93,12 @@ export function PrimeCreditSharingSheet({ data, onChange }: { data: SheetData; o
     <Band tone="blue">CO-BROKER INFORMATION</Band><div className="border-x border-b border-black p-2"><Toggle label="Signed Broker's Client Registration Form" name="brokerRegistration" data={data} set={set} /><Toggle label="Copy of Valid ID with Specimen Signature" name="validId" data={data} set={set} /><Toggle label="Memorandum of Agreement" name="moa" data={data} set={set} /></div>
     <div className="grid grid-cols-2"><Field label="Broker's or Agent's Name" name="brokerName" data={data} set={set} /><Field label="PRC License ID Number" name="prc" data={data} set={set} /><Field label="Agreed Commission Amount" name="commission" data={data} set={set} /><Field label="Contact Number" name="contactNumber" data={data} set={set} /><Field label="Email Address" name="email" data={data} set={set} /><Field label="Remarks" name="remarks" data={data} set={set} /></div>
     <Band tone="blue">CREDIT SHARING WITHIN PRIME PHILIPPINES</Band><p className="border-x border-b border-black p-1 text-[10px] italic">Credit sharing percentages below are based on the Internal Credit Share only.</p>
-    <table className="w-full border-collapse text-[10px]"><thead><tr className="bg-[#eeeeee]"><th className="border border-black p-1">Name</th><th className="border border-black p-1">Department</th><th className="border border-black p-1">Credit Share</th><th className="border border-black p-1">Acknowledgement, Signature</th></tr></thead><tbody>{rows.map((row) => <tr key={row}>{["name", "department", "share", "signature"].map((field) => <td key={field} className="border border-black p-0.5"><input aria-label={`Credit ${field} ${row + 1}`} value={String(data[`credit_${field}_${row}`] || "")} onChange={(event) => set(`credit_${field}_${row}`, event.target.value)} className="w-full bg-transparent outline-none" /></td>)}</tr>)}</tbody></table>
+    <table className="w-full border-collapse text-[10px]"><thead><tr className="bg-[#eeeeee]"><th className="border border-black p-1">Name</th><th className="border border-black p-1">Department</th><th className="border border-black p-1">Credit Share</th><th className="border border-black p-1">Acknowledgement, Signature</th></tr></thead><tbody>{rows.map((row) => <tr key={row}>{["name", "department", "share", "signature"].map((field) => <td key={field} className="border border-black p-0.5">{field === "department" ? <DepartmentField label={`Credit department ${row + 1}`} name={`credit_department_${row}`} data={data} set={set} departments={departments} className="border-0 p-0" /> : field === "signature" ? <SignatureField label={`Credit signature ${row + 1}`} name={`credit_signature_${row}`} data={data} set={set} className="border-0 p-0" /> : <input aria-label={`Credit ${field} ${row + 1}`} value={String(data[`credit_${field}_${row}`] || "")} onChange={(event) => set(`credit_${field}_${row}`, event.target.value)} className="w-full bg-transparent outline-none" />}</td>)}</tr>)}</tbody></table>
     <FinanceOnlySection className="mt-3"><Band tone="blue">TO BE FILLED OUT BY FINANCE / ACCOUNTING ONLY</Band><div className="grid grid-cols-2"><Field label="Received By / Date Received" name="receivedBy" data={data} set={set} /><Field label="Validated By / Date Validated" name="validatedBy" data={data} set={set} /><Field label="Remarks" name="financeRemarks" data={data} set={set} className="col-span-2" /></div></FinanceOnlySection>
   </div>;
 }
 
-export function GreatWorkRfbSheet({ data, onChange }: { data: SheetData; onChange: (data: SheetData) => void }) {
+export function GreatWorkRfbSheet({ data, onChange, departments = [] }: { data: SheetData; onChange: (data: SheetData) => void; departments?: string[] }) {
   const set = (name: string, value: string | boolean) => onChange({ ...data, [name]: value });
   return <div id="rfp-printable-sheet" className="form-a4-sheet bg-white p-7 text-black shadow-md print:p-0 print:shadow-none" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
     <GreatWorkHeader title="REQUEST FOR BILLING (RFB)" />
@@ -82,12 +106,12 @@ export function GreatWorkRfbSheet({ data, onChange }: { data: SheetData; onChang
     <div className="mt-3"><GreatWorkBand>LESSEE DETAILS</GreatWorkBand><div className="grid grid-cols-2"><Field label="Client's Registered Name:" name="gw_rfb_clientName" data={data} set={set} /><Field label="Lease Term:" name="gw_rfb_leaseTerm" data={data} set={set} /><Field label="Registered Address:" name="gw_rfb_address" data={data} set={set} /><div className="border border-black p-1.5 text-[11px] font-bold">Lease type:<br /><Toggle label="New Client" name="gw_rfb_newClient" data={data} set={set} /><Toggle label="Contract Renewal" name="gw_rfb_renewal" data={data} set={set} /></div></div><Field label="Remarks:" name="gw_rfb_lesseeRemarks" data={data} set={set} /></div>
     <div className="mt-3"><GreatWorkBand>BILLING CONTACT PERSON DETAILS</GreatWorkBand><div className="grid grid-cols-2"><Field label="Name:" name="gw_rfb_contactName" data={data} set={set} /><Field label="Designation:" name="gw_rfb_designation" data={data} set={set} /><Field label="Contact Number:" name="gw_rfb_contactNumber" data={data} set={set} /><Field label="Email Address:" name="gw_rfb_email" data={data} set={set} /></div></div>
     <div className="mt-3"><GreatWorkBand>BILLING BREAKDOWN</GreatWorkBand><p className="border-x border-b border-black p-1 text-[10px] italic">All details provided will be the basis of billing to the client. Amounts must be exclusive of VAT.</p><div className="grid grid-cols-2"><Field label="Monthly Basic Rental Rate:" name="gw_rfb_monthlyRental" data={data} set={set} /><Field label="Monthly Parking Rental:" name="gw_rfb_parkingRental" data={data} set={set} /><Field label="Initial / Advance Fee — Description / No. of Months / Amount:" name="gw_rfb_advanceFee" data={data} set={set} /><Field label="Security Deposit — Description / No. of Months / Amount:" name="gw_rfb_securityDeposit" data={data} set={set} /><Field label="Others — Description / No. of Months / Amount:" name="gw_rfb_others" data={data} set={set} className="col-span-2" /><Field label="Total Contract Value:" name="gw_rfb_contractValue" data={data} set={set} /><Field label="Total Amount Due for Billing:" name="gw_rfb_amountDue" data={data} set={set} /><Field label="Date Contract Signed (MM/DD/YY):" name="gw_rfb_contractDate" data={data} set={set} className="col-span-2" /></div></div>
-    <div className="mt-3"><GreatWorkBand>REQUESTOR DETAILS — NOTE: RFB MUST BE APPROVED BY TL</GreatWorkBand><div className="grid grid-cols-2"><Field label="Requested By:" name="gw_rfb_requestedBy" data={data} set={set} /><Field label="Approved By:" name="gw_rfb_approvedBy" data={data} set={set} /><Field label="Designation:" name="gw_rfb_requestorDesignation" data={data} set={set} /><Field label="Designation:" name="gw_rfb_approverDesignation" data={data} set={set} /><Field label="Signature:" name="gw_rfb_requestorSignature" data={data} set={set} /><Field label="Signature:" name="gw_rfb_approverSignature" data={data} set={set} /><Field label="Date (DD/MM/YY):" name="gw_rfb_requestDate" data={data} set={set} /><Field label="Date (DD/MM/YY):" name="gw_rfb_approvalDate" data={data} set={set} /></div></div>
+    <div className="mt-3"><GreatWorkBand>REQUESTOR DETAILS — NOTE: RFB MUST BE APPROVED BY TL</GreatWorkBand><div className="grid grid-cols-2"><Field label="Requested By:" name="gw_rfb_requestedBy" data={data} set={set} /><Field label="Approved By:" name="gw_rfb_approvedBy" data={data} set={set} /><Field label="Designation:" name="gw_rfb_requestorDesignation" data={data} set={set} /><Field label="Designation:" name="gw_rfb_approverDesignation" data={data} set={set} /><SignatureField label="Signature:" name="gw_rfb_requestorSignature" data={data} set={set} /><SignatureField label="Signature:" name="gw_rfb_approverSignature" data={data} set={set} /><Field label="Date (DD/MM/YY):" name="gw_rfb_requestDate" data={data} set={set} /><Field label="Date (DD/MM/YY):" name="gw_rfb_approvalDate" data={data} set={set} /></div></div>
     <FinanceOnlySection className="mt-3"><GreatWorkBand>TO BE FILLED OUT BY FINANCE / ACCOUNTING ONLY</GreatWorkBand><div className="grid grid-cols-2"><Field label="Reviewed By:" name="gw_rfb_reviewedBy" data={data} set={set} /><Field label="Validated By:" name="gw_rfb_validatedBy" data={data} set={set} /><Field label="Date Reviewed (MM/DD/YY):" name="gw_rfb_reviewDate" data={data} set={set} /><Field label="Date Validated (MM/DD/YY):" name="gw_rfb_validationDate" data={data} set={set} /><Field label="Remarks:" name="gw_rfb_financeRemarks" data={data} set={set} className="col-span-2" /></div></FinanceOnlySection>
   </div>;
 }
 
-export function GreatWorkCreditSharingSheet({ data, onChange }: { data: SheetData; onChange: (data: SheetData) => void }) {
+export function GreatWorkCreditSharingSheet({ data, onChange, departments = [] }: { data: SheetData; onChange: (data: SheetData) => void; departments?: string[] }) {
   const set = (name: string, value: string | boolean) => onChange({ ...data, [name]: value });
   const rows = Array.from({ length: 8 }, (_, index) => index);
   return <div id="rfp-printable-sheet" className="form-a4-sheet bg-white p-7 text-black shadow-md print:p-0 print:shadow-none" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
@@ -96,7 +120,7 @@ export function GreatWorkCreditSharingSheet({ data, onChange }: { data: SheetDat
     <div className="grid grid-cols-2"><Field label="Client's Registered Name" name="gw_csf_clientName" data={data} set={set} /><Field label="Lease Period" name="gw_csf_leasePeriod" data={data} set={set} /></div>
     <GreatWorkBand>CREDIT SHARING BREAKDOWN</GreatWorkBand><p className="border-x border-b border-black p-1 text-[10px] italic font-semibold">All details below shall be the basis of Finance for commission computations. Make sure to double-check all details.</p><div className="grid grid-cols-2"><Field label="Internal Credit Share %" name="gw_csf_internalShare" data={data} set={set} /><Field label="External Credit Share %" name="gw_csf_externalShare" data={data} set={set} /></div>
     <GreatWorkBand>CO-BROKER INFORMATION / REFERRAL INFORMATION</GreatWorkBand><div className="border-x border-b border-black p-2 text-[10px] italic">Please write “N/A” if there is no Co-broker.<br /><span className="not-italic"><Toggle label="Signed Broker's Client Registration Form" name="gw_csf_registration" data={data} set={set} /><Toggle label="Copy of Valid ID with Specimen Signature" name="gw_csf_validId" data={data} set={set} /><Toggle label="Memorandum of Agreement" name="gw_csf_moa" data={data} set={set} /></span></div><div className="grid grid-cols-2"><Field label="Broker's or Agent's Name" name="gw_csf_brokerName" data={data} set={set} /><Field label="PRC License ID Number" name="gw_csf_prc" data={data} set={set} /><Field label="Agreed Commission Amount for Broker/Agent" name="gw_csf_commission" data={data} set={set} /><Field label="Contact Number" name="gw_csf_contactNumber" data={data} set={set} /><Field label="Email Address" name="gw_csf_email" data={data} set={set} /><Field label="Remarks" name="gw_csf_brokerRemarks" data={data} set={set} /></div>
-    <GreatWorkBand>CREDIT SHARING WITHIN GREATWORK</GreatWorkBand><p className="border-x border-b border-black p-1 text-[10px] italic">Credit sharing percentages below are based on the Internal Credit Share only. If a field is not applicable, kindly write “N/A”.</p><table className="w-full border-collapse text-[10px]"><thead><tr className="bg-[#eeeeee]"><th className="border border-black p-1">Name</th><th className="border border-black p-1">Department</th><th className="border border-black p-1">Credit Share</th><th className="border border-black p-1">Acknowledgement, Signature</th></tr></thead><tbody>{rows.map((row) => <tr key={row}>{["name", "department", "share", "signature"].map((field) => <td key={field} className="border border-black p-0.5"><input aria-label={`GreatWork credit ${field} ${row + 1}`} value={String(data[`gw_csf_credit_${field}_${row}`] || "")} onChange={(event) => set(`gw_csf_credit_${field}_${row}`, event.target.value)} className="w-full bg-transparent outline-none" /></td>)}</tr>)}</tbody></table>
+    <GreatWorkBand>CREDIT SHARING WITHIN GREATWORK</GreatWorkBand><p className="border-x border-b border-black p-1 text-[10px] italic">Credit sharing percentages below are based on the Internal Credit Share only. If a field is not applicable, kindly write “N/A”.</p><table className="w-full border-collapse text-[10px]"><thead><tr className="bg-[#eeeeee]"><th className="border border-black p-1">Name</th><th className="border border-black p-1">Department</th><th className="border border-black p-1">Credit Share</th><th className="border border-black p-1">Acknowledgement, Signature</th></tr></thead><tbody>{rows.map((row) => <tr key={row}>{["name", "department", "share", "signature"].map((field) => <td key={field} className="border border-black p-0.5">{field === "department" ? <DepartmentField label={`GreatWork credit department ${row + 1}`} name={`gw_csf_credit_department_${row}`} data={data} set={set} departments={departments} className="border-0 p-0" /> : field === "signature" ? <SignatureField label={`GreatWork credit signature ${row + 1}`} name={`gw_csf_credit_signature_${row}`} data={data} set={set} className="border-0 p-0" /> : <input aria-label={`GreatWork credit ${field} ${row + 1}`} value={String(data[`gw_csf_credit_${field}_${row}`] || "")} onChange={(event) => set(`gw_csf_credit_${field}_${row}`, event.target.value)} className="w-full bg-transparent outline-none" />}</td>)}</tr>)}</tbody></table>
     <FinanceOnlySection className="mt-3"><GreatWorkBand>TO BE FILLED OUT BY FINANCE / ACCOUNTING ONLY</GreatWorkBand><div className="grid grid-cols-2"><Field label="Received By" name="gw_csf_receivedBy" data={data} set={set} /><Field label="Validated By" name="gw_csf_validatedBy" data={data} set={set} /><Field label="Date Received (DD/MM/YY)" name="gw_csf_receivedDate" data={data} set={set} /><Field label="Date Validated (DD/MM/YY)" name="gw_csf_validatedDate" data={data} set={set} /><Field label="Remarks" name="gw_csf_receivedRemarks" data={data} set={set} /><Field label="Validated Remarks" name="gw_csf_validatedRemarks" data={data} set={set} /></div></FinanceOnlySection>
   </div>;
 }
