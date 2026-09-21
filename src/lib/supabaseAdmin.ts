@@ -131,6 +131,7 @@ export async function readPortalSettingsFromSupabase(): Promise<{
   clickupWebhookId?: string;
   clickupWebhookEndpoint?: string;
   clickupWebhookSecret?: string;
+  departments?: string[];
 }> {
   const { url, key, isConfigured } = getSupabaseConfig();
   if (!isConfigured) return {};
@@ -151,6 +152,7 @@ export async function readPortalSettingsFromSupabase(): Promise<{
     clickupWebhookId: typeof values.clickupWebhookId === "string" ? values.clickupWebhookId : undefined,
     clickupWebhookEndpoint: typeof values.clickupWebhookEndpoint === "string" ? values.clickupWebhookEndpoint : undefined,
     clickupWebhookSecret: typeof values.clickupWebhookSecret === "string" ? values.clickupWebhookSecret : undefined,
+    departments: Array.isArray(values.departments) ? values.departments.filter((v): v is string => typeof v === "string") : undefined,
   };
 }
 

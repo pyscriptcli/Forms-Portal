@@ -25,6 +25,7 @@ async function readFlags() {
     destinations: getDefaultFormDestinations(),
     workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
     clickupFieldMapping: {},
+    departments: ["COD", "MARKETING", "CRD", "LR", "ISD", "VisMin", "CPI", "BD", "HR", "R&A"],
   };
 }
 
@@ -76,6 +77,7 @@ export async function POST(req: NextRequest) {
     if (body.clickupFieldMapping && typeof body.clickupFieldMapping === "object") {
       portalSettings.clickupFieldMapping = normalizeFieldMapping(body.clickupFieldMapping);
     }
+    if (Array.isArray(body.departments)) portalSettings.departments = body.departments.filter((v): v is string => typeof v === "string" && Boolean(v.trim())).map((v) => v.trim());
     await Promise.all([
       savePortalSettingsToSupabase(portalSettings),
       ...(hasDestinations
@@ -99,6 +101,7 @@ export async function POST(req: NextRequest) {
     ...(body.clickupFieldMapping && typeof body.clickupFieldMapping === "object"
       ? { clickupFieldMapping: normalizeFieldMapping(body.clickupFieldMapping) }
       : {}),
+    ...(Array.isArray(body.departments) ? { departments: body.departments.filter((v): v is string => typeof v === "string" && Boolean(v.trim())).map((v) => v.trim()) } : {}),
   };
 
   invalidateRfpCache();

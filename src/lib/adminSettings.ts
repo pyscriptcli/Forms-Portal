@@ -64,7 +64,9 @@ export type AdminSettings = {
   destinations?: FormDestinations;
   workflowStatuses?: WorkflowStatuses;
   clickupFieldMapping?: ClickUpFieldIdMapping;
+  departments?: string[];
 };
+export const DEFAULT_DEPARTMENTS = ["COD", "MARKETING", "CRD", "LR", "ISD", "VisMin", "CPI", "BD", "HR", "R&A"];
 
 export const ADMIN_SETTINGS_KEY = "prime_admin_settings";
 export const ADMIN_SESSION_KEY = "prime_admin_session";
@@ -78,6 +80,7 @@ export const DEFAULT_SETTINGS: AdminSettings = {
   destinations: DEFAULT_FORM_DESTINATIONS,
   workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
   clickupFieldMapping: {},
+  departments: DEFAULT_DEPARTMENTS,
 };
 
 export function getDefaultFormDestinations(): FormDestinations {

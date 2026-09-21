@@ -60,6 +60,7 @@ import {
   type FormDestinations,
   type WorkflowStatuses,
 } from "@/lib/adminSettings";
+import { DEFAULT_DEPARTMENTS } from "@/lib/adminSettings";
 import {
   ROLE_DEFINITIONS,
   DEFAULT_USERS,
@@ -88,7 +89,7 @@ const DEFAULT_WORKFLOW_STATUSES: WorkflowStatuses = {
 };
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"features" | "destinations" | "workflow" | "rbac">("features");
+  const [activeTab, setActiveTab] = useState<"features" | "destinations" | "workflow" | "departments" | "rbac">("features");
   const [authed, setAuthed] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -97,9 +98,11 @@ export default function AdminPage() {
     rfpAutofillEnabled: true,
     demoModeEnabled: false,
     destinations: DEFAULT_FORM_DESTINATIONS,
+    departments: DEFAULT_DEPARTMENTS,
   });
   const [destinations, setDestinations] = useState<FormDestinations>(DEFAULT_FORM_DESTINATIONS);
   const [workflowStatuses, setWorkflowStatuses] = useState<WorkflowStatuses>(DEFAULT_WORKFLOW_STATUSES);
+  const [departments, setDepartments] = useState<string[]>(DEFAULT_DEPARTMENTS);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
@@ -288,6 +291,7 @@ export default function AdminPage() {
             setSettings(flags);
             if (flags.destinations) setDestinations(flags.destinations);
             if (flags.workflowStatuses) setWorkflowStatuses(flags.workflowStatuses);
+            if (Array.isArray(flags.departments)) setDepartments(flags.departments);
           }
         })
         .catch(() => {
@@ -397,6 +401,17 @@ export default function AdminPage() {
       setIsSaving(false);
       setTimeout(() => setSaveMsg(""), 3000);
     }
+  }
+
+  async function handleSaveDepartments() {
+    setIsSaving(true); setSaveMsg("");
+    try {
+      const cleaned = [...new Set(departments.map((d) => d.trim()).filter(Boolean))];
+      const res = await fetch("/api/admin/settings", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN }, body: JSON.stringify({ departments: cleaned }) });
+      if (!res.ok) throw new Error("Save failed");
+      setDepartments(cleaned); setSaveMsg("Departments saved.");
+    } catch (error: any) { setSaveMsg(error?.message || "Error saving departments."); }
+    finally { setIsSaving(false); setTimeout(() => setSaveMsg(""), 3000); }
   }
 
   const handleRoleChange = (userId: string, newRole: UserRole) => {
@@ -540,6 +555,7 @@ export default function AdminPage() {
             ["features", "Features"],
             ["destinations", "Form destinations"],
             ["workflow", "Workflow statuses"],
+            ["departments", "Departments"],
             ["rbac", "Role-Based Access Control (RBAC)"],
           ] as [typeof activeTab, string][]).map(([tab, label]) => (
             <button
@@ -672,6 +688,20 @@ export default function AdminPage() {
             </table>
           </div>
         </section>
+        </div>}
+
+        {activeTab === "departments" && <div id="admin-tabpanel-departments" role="tabpanel" aria-label="Departments">
+          <section className="pt-6 border-t border-prime-rule">
+            <div className="flex items-end justify-between gap-4 mb-5">
+              <div><h2 className="prime-heading text-3xl">Department options</h2><p className="text-sm text-prime-ink/80 mt-1">These values appear in the request form department dropdown.</p></div>
+              <button type="button" onClick={handleSaveDepartments} disabled={isSaving} className="prime-button flex items-center gap-2"><Save className="w-4 h-4" />Save departments</button>
+            </div>
+            <div className="space-y-2 max-w-xl">
+              {departments.map((department, index) => <div key={`${department}-${index}`} className="flex gap-2"><input aria-label={`Department ${index + 1}`} value={department} onChange={(e) => setDepartments((current) => current.map((item, i) => i === index ? e.target.value : item))} className="prime-field" /><button type="button" aria-label={`Remove department ${department}`} onClick={() => setDepartments((current) => current.filter((_, i) => i !== index))} className="prime-button secondary"><Trash2 className="w-4 h-4" /></button></div>)}
+              <button type="button" onClick={() => setDepartments((current) => [...current, ""])} className="prime-button secondary flex items-center gap-2"><Plus className="w-4 h-4" />Add department</button>
+            </div>
+            {saveMsg && <p role="status" className="prime-notice mt-6">{saveMsg}</p>}
+          </section>
         </div>}
 
         {activeTab === "workflow" && <div id="admin-tabpanel-workflow" role="tabpanel" aria-label="Workflow statuses">

@@ -8,6 +8,7 @@ import { AutoResizeTextarea } from "./AutoResizeTextarea";
 import { SignatureModal } from "./SignatureModal";
 import { PrimeDatePicker } from "./PrimeDatePicker";
 import { PenTool, Trash2, Plus, Check, LockKeyhole } from "lucide-react";
+import { DepartmentCombobox } from "./DepartmentCombobox";
 
 function timeInputValue(value?: string) {
   if (/^\d{1,2}:\d{2}$/.test(value ?? "")) {
@@ -40,9 +41,10 @@ interface RfpSheetProps {
   variant?: "prime" | "gw";
   rfpNumberStatus?: "loading" | "ready" | "unavailable";
   canEditTlApproval?: boolean;
+  departments?: string[];
 }
 
-export function RfpSheet({ data, onChange, validationErrors, variant = "prime", rfpNumberStatus = "loading", canEditTlApproval = false }: RfpSheetProps) {
+export function RfpSheet({ data, onChange, validationErrors, variant = "prime", rfpNumberStatus = "loading", canEditTlApproval = false, departments }: RfpSheetProps) {
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [isTlSignatureModalOpen, setIsTlSignatureModalOpen] = useState(false);
 
@@ -710,10 +712,10 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
               <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
                 Department / Cost Center:
               </span>
-              <input
-                type="text"
+              <DepartmentCombobox
                 value={data.departmentCostCenter ?? data.department}
-                onChange={(e) => updateFields({ departmentCostCenter: e.target.value, department: e.target.value })}
+                onChange={(value) => updateFields({ departmentCostCenter: value, department: value })}
+                presets={departments}
                 className={`border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1 ${
                   hasError("department") ? "border-red-500 bg-red-50/50" : ""
                 }`}
@@ -721,20 +723,18 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
             </div>
 
             <div className="relative">
+              <div className="flex items-baseline gap-1.5 mb-2.5">
+                <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">TL Name:</span>
+                <select
+                  value={data.tlSignatureName ?? data.approvedByName ?? ""}
+                  onChange={(e) => updateFields({ tlSignatureName: e.target.value, approvedByName: e.target.value })}
+                  className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
+                >
+                  <option value="">Select TL name</option>
+                  {["Department Team Leader", "Finance Officer", "Operations Staff"].map((name) => <option key={name} value={name}>{name}</option>)}
+                </select>
+              </div>
               <fieldset disabled={!canEditTlApproval} className="space-y-2.5">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
-                    TL Signature over Printed Name:
-                  </span>
-                  <input
-                    type="text"
-                    value={data.tlSignatureName ?? data.approvedByName ?? ""}
-                    onChange={(e) => updateFields({ tlSignatureName: e.target.value, approvedByName: e.target.value })}
-                    placeholder="Printed Name"
-                    className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
-                  />
-                </div>
-
                 {/* TL Signature E-Sig Pad / Draw / Upload Preview */}
                 <div className="flex items-center gap-1.5">
                   <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">

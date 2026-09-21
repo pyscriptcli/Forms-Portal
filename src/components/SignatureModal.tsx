@@ -19,7 +19,7 @@ export function SignatureModal({
   currentSignature,
   title = "Add your signature",
 }: SignatureModalProps) {
-  const [activeTab, setActiveTab] = useState<"draw" | "upload">("draw");
+  const [activeTab, setActiveTab] = useState<"draw" | "upload">("upload");
   const [hasDrawing, setHasDrawing] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
 
@@ -28,6 +28,11 @@ export function SignatureModal({
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
+    if (isOpen) {
+      setActiveTab("upload");
+      setUploadedImage(null);
+      setHasDrawing(false);
+    }
     if (isOpen && activeTab === "draw") {
       setTimeout(() => {
         const canvas = canvasRef.current;

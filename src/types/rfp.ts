@@ -38,6 +38,7 @@ export interface SupportingFile {
   size: number;
   type: string;
   dataUrl: string; // base64 for preview / client upload
+  documentType?: string;
 }
 
 export interface AttachedDocsChecklist {

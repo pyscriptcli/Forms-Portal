@@ -11,6 +11,7 @@ interface DepartmentComboboxProps {
   placeholder?: string;
   className?: string;
   hasError?: boolean;
+  presets?: string[];
 }
 
 export function DepartmentCombobox({
@@ -20,6 +21,7 @@ export function DepartmentCombobox({
   placeholder = "ex. Brokerage",
   className = "",
   hasError = false,
+  presets,
 }: DepartmentComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -44,14 +46,15 @@ export function DepartmentCombobox({
 
   // Filter presets based on user input (or show all if value matches exactly or is empty)
   const trimmedVal = (value || "").trim().toLowerCase();
-  const filteredPresets = DEPARTMENT_PRESETS.filter(
+  const departmentPresets = presets?.length ? presets.map((name) => ({ code: name, name })) : DEPARTMENT_PRESETS;
+  const filteredPresets = departmentPresets.filter(
     (p) =>
       !trimmedVal ||
       p.code.toLowerCase().includes(trimmedVal) ||
       p.name.toLowerCase().includes(trimmedVal)
   );
 
-  const exactMatch = DEPARTMENT_PRESETS.find(
+  const exactMatch = departmentPresets.find(
     (p) => p.code.toLowerCase() === trimmedVal
   );
 

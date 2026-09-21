@@ -20,6 +20,7 @@ export function SupportingDocuments({
   onRawFilesChange,
   hasError = false,
 }: SupportingDocumentsProps) {
+  const documentTypes = ["Invoice / Billing Statement", "Statement of Account (SOA)", "Signed Contract / Agreement", "Purchase Order / Cost Estimate", "Liquidation / Completion Receipt", "Other"];
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectionError, setSelectionError] = useState<string | null>(null);
 
@@ -180,6 +181,16 @@ export function SupportingDocuments({
                   )}
                 </div>
                 <div className="truncate">
+                  <label className="block text-[10px] font-bold uppercase tracking-wide text-prime-blue">Document type</label>
+                  <select
+                    aria-label={`Document type for ${file.name}`}
+                    value={file.documentType || ""}
+                    onChange={(e) => onFilesChange(files.map((item, i) => i === idx ? { ...item, documentType: e.target.value } : item))}
+                    className="mb-1 max-w-full border-b border-prime-rule bg-transparent text-[11px] text-prime-ink focus:outline-none"
+                  >
+                    <option value="">Select what this file is</option>
+                    {documentTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                  </select>
                   <p className="text-xs font-medium text-prime-ink truncate" title={file.name}>
                     {file.name}
                   </p>
