@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { ChevronDown, Check } from "lucide-react";
-import { DEPARTMENT_PRESETS } from "@/types/rfp";
 
 interface DepartmentComboboxProps {
   id?: string;
@@ -18,7 +17,7 @@ export function DepartmentCombobox({
   id = "field-department",
   value,
   onChange,
-  placeholder = "ex. Brokerage",
+  placeholder = "Select department",
   className = "",
   hasError = false,
   presets,
@@ -46,7 +45,7 @@ export function DepartmentCombobox({
 
   // Filter presets based on user input (or show all if value matches exactly or is empty)
   const trimmedVal = (value || "").trim().toLowerCase();
-  const departmentPresets = presets?.length ? presets.map((name) => ({ code: name, name })) : DEPARTMENT_PRESETS;
+  const departmentPresets = (presets ?? []).map((name) => ({ code: name, name }));
   const filteredPresets = departmentPresets.filter(
     (p) =>
       !trimmedVal ||
@@ -62,6 +61,7 @@ export function DepartmentCombobox({
           id={id}
           type="text"
           readOnly
+          aria-label="Department"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onFocus={() => setIsOpen(true)}
@@ -69,7 +69,7 @@ export function DepartmentCombobox({
             if (e.key === "Escape") setIsOpen(false);
           }}
           placeholder={placeholder}
-          className={`${className} pr-6 ${
+          className={`${className} cursor-pointer pr-8 ${
             hasError ? "border-red-600 bg-red-50/20 text-red-900" : ""
           }`}
         />
@@ -98,7 +98,7 @@ export function DepartmentCombobox({
           className="absolute left-0 top-full mt-1 w-60 max-h-64 overflow-y-auto bg-prime-white border border-prime-rule shadow-none z-50 p-1.5 no-print rounded-none animate-in fade-in zoom-in-95 duration-100"
         >
           <div className="px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-prime-ink border-b border-prime-rule flex items-center justify-between">
-            <span>Departments</span>
+            <span>Select department</span>
           </div>
 
           <div className="py-1 space-y-0.5">
@@ -127,7 +127,7 @@ export function DepartmentCombobox({
 
             {filteredPresets.length === 0 && (
               <div className="px-2 py-2 text-xs text-prime-ink italic">
-                No preset matching &quot;{value}&quot;.
+                No departments configured.
               </div>
             )}
           </div>
