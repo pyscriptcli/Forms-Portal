@@ -130,6 +130,14 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
   };
 
   const attached = data.attachedDocs || {};
+  const selectedDocumentTypes = [
+    attached.invoiceBilling && "Invoice / Billing Statement",
+    attached.signedContract && "Signed Contract / Agreement",
+    attached.liquidationReceipt && "Liquidation / Completion Receipt",
+    attached.soa && "Statement of Account (SOA)",
+    attached.poCostEstimate && "Purchase Order / Cost Estimate",
+    attached.other && (attached.otherSpecify?.trim() ? `Other: ${attached.otherSpecify.trim()}` : "Other"),
+  ].filter((value): value is string => Boolean(value));
 
   return (
     <div
@@ -548,6 +556,18 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
             </div>
           </div>
         </div>
+        {selectedDocumentTypes.length > 0 && (
+          <div className="mx-1 mt-1 border-t border-[#d7e1f0] pt-2" aria-live="polite">
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-[#52657d]">Selected document types</p>
+            <div className="flex flex-wrap gap-1.5" role="list" aria-label="Selected supporting documents">
+              {selectedDocumentTypes.map((documentType) => (
+                <span key={documentType} role="listitem" className="border border-[#9fb4cf] bg-[#edf4ff] px-2 py-0.5 text-[10px] font-semibold text-[#003366]">
+                  {documentType}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ========================================================================= */}

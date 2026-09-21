@@ -68,6 +68,16 @@ describe.each(["prime", "gw"] as const)("%s RFP", (variant) => {
     fireEvent.change(bank!, { target: { value: "BDO" } });
     fireEvent.click(screen.getByRole("checkbox", { name: "Invoice / Billing Statement" }));
     expect(JSON.parse(screen.getByTestId("state").textContent || "{}")).toMatchObject({ time: "2:35 PM", purpose: "Supplier payment", bank: "BDO", attachedDocs: { invoiceBilling: true } });
+    expect(screen.getByRole("list", { name: "Selected supporting documents" })).toHaveTextContent("Invoice / Billing Statement");
+  });
+
+  it("shows one tag for every selected supporting document type", () => {
+    render(<RfpHarness variant={variant} />);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Invoice / Billing Statement" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Purchase Order / Cost Estimate" }));
+    const tags = screen.getByRole("list", { name: "Selected supporting documents" });
+    expect(tags).toHaveTextContent("Invoice / Billing Statement");
+    expect(tags).toHaveTextContent("Purchase Order / Cost Estimate");
   });
 
   it("keeps finance-only inputs and checkboxes locked", () => {
