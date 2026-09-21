@@ -114,13 +114,27 @@ export function SupportingDocuments({
             </p>
           </div>
         </div>
-        <span className={`text-xs font-medium px-2.5 py-1 ${
-          hasError
-            ? "bg-red-50 text-red-700 border border-red-300 font-bold"
-            : "bg-prime-white text-prime-ink border border-prime-rule"
-        }`}>
-          {files.length} {files.length === 1 ? "file" : "files"} attached
-        </span>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {selectedDocumentTypes.length > 0 && (
+            <div className="flex flex-wrap items-center justify-end gap-1.5" aria-live="polite">
+              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-prime-ink/70">Selected document types</span>
+              <div className="flex flex-wrap gap-1.5" role="list" aria-label="Selected supporting documents">
+                {selectedDocumentTypes.map((documentType) => (
+                  <span key={documentType} role="listitem" className="border border-prime-gold/60 bg-prime-gold/10 px-2 py-0.5 text-[10px] font-bold text-prime-blue">
+                    {documentType}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          <span className={`text-xs font-medium px-2.5 py-1 ${
+            hasError
+              ? "bg-red-50 text-red-700 border border-red-300 font-bold"
+              : "bg-prime-white text-prime-ink border border-prime-rule"
+          }`}>
+            {files.length} {files.length === 1 ? "file" : "files"} attached
+          </span>
+        </div>
       </div>
 
       {hasError && (
@@ -228,18 +242,6 @@ export function SupportingDocuments({
         </div>
       )}
 
-      {selectedDocumentTypes.length > 0 && (
-        <div className="mt-4 border-t border-prime-rule pt-3" aria-live="polite">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-prime-ink/70">Selected document types</p>
-          <div className="flex flex-wrap gap-2" role="list" aria-label="Selected supporting documents">
-            {selectedDocumentTypes.map((documentType) => (
-              <span key={documentType} role="listitem" className="border border-prime-gold/60 bg-prime-gold/10 px-2.5 py-1 text-[10px] font-bold text-prime-blue">
-                {documentType}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
