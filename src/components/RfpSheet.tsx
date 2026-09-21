@@ -722,8 +722,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
               />
             </div>
 
-            <div className="relative">
-              <div className="flex items-baseline gap-1.5 mb-2.5">
+            <div className="flex items-baseline gap-1.5 mb-2.5">
                 <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">TL Name:</span>
                 <select
                   value={data.tlSignatureName ?? data.approvedByName ?? ""}
@@ -733,7 +732,8 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
                   <option value="">Select TL name</option>
                   {["Department Team Leader", "Finance Officer", "Operations Staff"].map((name) => <option key={name} value={name}>{name}</option>)}
                 </select>
-              </div>
+            </div>
+            <div className="relative">
               <fieldset disabled={!canEditTlApproval} className="space-y-2.5">
                 {/* TL Signature E-Sig Pad / Draw / Upload Preview */}
                 <div className="flex items-center gap-1.5">
