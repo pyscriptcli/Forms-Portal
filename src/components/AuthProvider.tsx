@@ -22,6 +22,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // The admin console has its own simple email/password gate and must not
+    // initialize or depend on the ClickUp OAuth session.
+    if (window.location.pathname.startsWith("/admin")) {
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
     const demoRole = window.location.pathname === "/approver-view" ? "approver" : window.location.pathname === "/requestor-view" ? "requestor" : null;
     if (demoRole) {
       fetch(`/api/demo/status?role=${demoRole}`).then(async (res) => {

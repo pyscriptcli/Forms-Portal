@@ -30,6 +30,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const isAuthRoute = pathname.startsWith("/auth/");
+  const isAdminRoute = pathname.startsWith("/admin");
   const isDemoRoute = pathname === "/requestor-view" || pathname === "/approver-view";
 
   useEffect(() => {
@@ -37,11 +38,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   useEffect(() => {
-    if (!isLoading && !user && !isAuthRoute && !isDemoRoute) {
+    if (!isLoading && !user && !isAuthRoute && !isDemoRoute && !isAdminRoute) {
       const destination = pathname + window.location.search;
       router.replace(`/auth/signin?callbackUrl=${encodeURIComponent(destination)}`);
     }
-  }, [isAuthRoute, isDemoRoute, isLoading, pathname, router, user]);
+  }, [isAdminRoute, isAuthRoute, isDemoRoute, isLoading, pathname, router, user]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -53,15 +54,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [mobileOpen]);
 
   useEffect(() => {
-    if (isLoading || !user || isAuthRoute || isDemoRoute || isAdmin || !user.permissions) return;
+    if (isLoading || !user || isAuthRoute || isAdminRoute || isDemoRoute || isAdmin || !user.permissions) return;
     const pagePermission = pathname.startsWith("/admin") ? "settings" : pathname.startsWith("/approvals") ? "approvals" : pathname.startsWith("/form") ? "forms" : "requests";
     if (!user.permissions.includes(pagePermission)) {
       const fallback = user.permissions.includes("requests") ? "/requests" : user.permissions.includes("forms") ? "/form" : "/auth/signin";
       router.replace(fallback);
     }
-  }, [isAdmin, isAuthRoute, isDemoRoute, isLoading, pathname, router, user]);
+  }, [isAdmin, isAdminRoute, isAuthRoute, isDemoRoute, isLoading, pathname, router, user]);
 
   if (isAuthRoute) return <>{children}</>;
+  if (isAdminRoute) return <>{children}</>;
   if (isLoading || !user) {
     return (
       <div className="min-h-screen bg-prime-white flex items-center justify-center" role="status">
