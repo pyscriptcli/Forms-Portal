@@ -53,6 +53,11 @@ input::placeholder, textarea::placeholder { color: var(--prime-gray); opacity: 0
 .prime-panel { background: var(--prime-warm-white); border: 1px solid var(--color-prime-rule); padding: 24px; }
 .prime-form-layout { width: 100%; max-width: 1080px; margin-inline: auto; }
 .prime-form-scroll { max-width: 100%; overflow-x: auto; }
+.form-a4-sheet, #rfp-printable-sheet { width: 100%; max-width: 794px; min-height: 1123px; margin-inline: auto; box-sizing: border-box; overflow-wrap: anywhere; }
+.finance-only-section { position: relative; border: 1px solid #334155; }
+.finance-only-content { min-width: 0; opacity: .8; }
+.finance-only-overlay { position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: rgb(255 255 255 / .45); pointer-events: none; }
+.finance-only-overlay span { border: 2px dashed rgb(0 51 102 / .45); background: rgb(255 255 255 / .8); padding: 8px 16px; text-align: center; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--prime-blue); box-shadow: 0 1px 4px rgb(0 51 102 / .12); }
 .prime-document { width: 100%; background: var(--prime-warm-white); color: var(--prime-gray); border: 1px solid var(--prime-blue); }
 .prime-document .font-serif { font-size: 32px; }
 .prime-document input, .prime-document textarea { min-width: 0; font-family: var(--font-ui); }
@@ -161,6 +166,7 @@ input::placeholder, textarea::placeholder { color: var(--prime-gray); opacity: 0
   .prime-form-picker-group:hover, .prime-form-picker-group.is-active { border-left-color: transparent; border-bottom-color: var(--prime-gold); }
   .prime-form-picker-options { padding: 12px; }
   .prime-document { min-width: 760px; }
+  .form-a4-sheet, #rfp-printable-sheet { min-height: auto; }
   .prime-workflow-grid { grid-template-columns: 1fr; min-width: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -172,6 +178,7 @@ input::placeholder, textarea::placeholder { color: var(--prime-gray); opacity: 0
   .prime-app-content { margin: 0; }
   .prime-workspace { padding: 0; }
   .prime-document { min-width: 0; border: 0; }
+  .form-a4-sheet, #rfp-printable-sheet { width: 210mm; max-width: none; min-height: 297mm; margin: 0; overflow: visible; }
   .prime-form-scroll { overflow: visible; }
   .prime-workflow-grid { min-width: 0; }
 }

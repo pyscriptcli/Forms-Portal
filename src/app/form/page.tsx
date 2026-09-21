@@ -720,7 +720,7 @@ function RfpAppContent() {
         </section>
 
         {/* Supporting Documents Section */}
-        {!["rfb", "credit-sharing", "gw-rfb", "gw-credit-sharing"].includes(selectedForm) && <section className="mb-12">
+        <section className="mb-12">
           <SupportingDocuments
             files={supportingFilesList}
             onFilesChange={setSupportingFilesList}
@@ -729,7 +729,7 @@ function RfpAppContent() {
             hasError={Boolean(validationErrors["supportingFiles"])}
             selectedDocumentTypes={getSelectedDocumentTypes(formData)}
           />
-        </section>}
+        </section>
       </div>
 
       {/* Submission Loading Animation Overlay */}
