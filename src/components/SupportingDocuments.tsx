@@ -11,6 +11,7 @@ interface SupportingDocumentsProps {
   rawFiles: File[];
   onRawFilesChange: (rawFiles: File[]) => void;
   hasError?: boolean;
+  selectedDocumentTypes?: string[];
 }
 
 export function SupportingDocuments({
@@ -19,6 +20,7 @@ export function SupportingDocuments({
   rawFiles,
   onRawFilesChange,
   hasError = false,
+  selectedDocumentTypes = [],
 }: SupportingDocumentsProps) {
   const documentTypes = ["Invoice / Billing Statement", "Statement of Account (SOA)", "Signed Contract / Agreement", "Purchase Order / Cost Estimate", "Liquidation / Completion Receipt", "Other"];
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -223,6 +225,19 @@ export function SupportingDocuments({
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {selectedDocumentTypes.length > 0 && (
+        <div className="mt-4 border-t border-prime-rule pt-3" aria-live="polite">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-prime-ink/70">Selected document types</p>
+          <div className="flex flex-wrap gap-2" role="list" aria-label="Selected supporting documents">
+            {selectedDocumentTypes.map((documentType) => (
+              <span key={documentType} role="listitem" className="border border-prime-gold/60 bg-prime-gold/10 px-2.5 py-1 text-[10px] font-bold text-prime-blue">
+                {documentType}
+              </span>
+            ))}
+          </div>
         </div>
       )}
     </div>

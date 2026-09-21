@@ -98,6 +98,18 @@ const getInitialFormData = (): RfpFormData => {
   };
 };
 
+const getSelectedDocumentTypes = (data: RfpFormData): string[] => {
+  const attached = data.attachedDocs || {};
+  return [
+    attached.invoiceBilling && "Invoice / Billing Statement",
+    attached.signedContract && "Signed Contract / Agreement",
+    attached.liquidationReceipt && "Liquidation / Completion Receipt",
+    attached.soa && "Statement of Account (SOA)",
+    attached.poCostEstimate && "Purchase Order / Cost Estimate",
+    attached.other && (attached.otherSpecify?.trim() ? `Other: ${attached.otherSpecify.trim()}` : "Other"),
+  ].filter((value): value is string => Boolean(value));
+};
+
 import { useAuth } from "@/components/AuthProvider";
 
 function RfpAppContent() {
@@ -713,6 +725,7 @@ function RfpAppContent() {
             rawFiles={rawSupportingFiles}
             onRawFilesChange={setRawSupportingFiles}
             hasError={Boolean(validationErrors["supportingFiles"])}
+            selectedDocumentTypes={getSelectedDocumentTypes(formData)}
           />
         </section>
       </div>
