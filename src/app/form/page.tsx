@@ -11,7 +11,7 @@ import {
 } from "@/types/rfp";
 import { RfpSheet } from "@/components/RfpSheet";
 import { TravelBudgetSheet } from "@/components/TravelBudgetSheet";
-import { PrimeRfbSheet, PrimeCreditSharingSheet } from "@/components/PrimeLeasingForms";
+import { GreatWorkCreditSharingSheet, GreatWorkRfbSheet, PrimeRfbSheet, PrimeCreditSharingSheet } from "@/components/PrimeLeasingForms";
 import { PageHeader } from "@/components/PageHeader";
 import { FormSelect } from "@/components/FormSelect";
 import { Toolbar } from "@/components/Toolbar";
@@ -383,7 +383,7 @@ function RfpAppContent() {
   }, [rfpAutofillEnabled]);
 
   const getValidationResult = () => {
-    if (["travel-budget", "rfb", "credit-sharing"].includes(selectedForm)) return { isValid: true, errors: {}, items: [] } as ValidationResult;
+    if (["travel-budget", "rfb", "credit-sharing", "gw-rfb", "gw-credit-sharing"].includes(selectedForm)) return { isValid: true, errors: {}, items: [] } as ValidationResult;
     const result: ValidationResult = validateRfpForm(formData);
 
     // Require attachments across form submission
@@ -437,7 +437,7 @@ function RfpAppContent() {
     setErrorMessage(null);
 
     // Validate form fields before PDF generation (attachments only required for ClickUp submission)
-    const validation = ["travel-budget", "rfb", "credit-sharing"].includes(selectedForm) ? ({ isValid: true, errors: {}, items: [] } as ValidationResult) : validateRfpForm(formData);
+    const validation = ["travel-budget", "rfb", "credit-sharing", "gw-rfb", "gw-credit-sharing"].includes(selectedForm) ? ({ isValid: true, errors: {}, items: [] } as ValidationResult) : validateRfpForm(formData);
 
     if (!validation.isValid) {
       setValidationErrors(validation.errors);
@@ -716,11 +716,11 @@ function RfpAppContent() {
 
         {/* Document First Paper Sheet */}
         <section id="rfp-sheet-container" className="prime-form-scroll mb-8" aria-label="Form document">
-          {selectedForm === "travel-budget" ? <TravelBudgetSheet data={formData as any} onChange={setFormData as any} /> : selectedForm === "rfb" ? <PrimeRfbSheet data={primeSubformData} onChange={setPrimeSubformData} /> : selectedForm === "credit-sharing" ? <PrimeCreditSharingSheet data={primeSubformData} onChange={setPrimeSubformData} /> : <RfpSheet data={formData} onChange={setFormData} validationErrors={validationErrors} variant={selectedForm === "gw-rfp" ? "gw" : "prime"} rfpNumberStatus={rfpNumberStatus} canEditTlApproval={user?.role === "approver" || user?.role === "admin"} departments={departments.map((item) => item.department)} departmentAssignments={departments} tlOptions={departments.map((item) => ({ name: item.tlName, email: item.tlEmail }))} />}
+          {selectedForm === "travel-budget" ? <TravelBudgetSheet data={formData as any} onChange={setFormData as any} /> : selectedForm === "rfb" ? <PrimeRfbSheet data={primeSubformData} onChange={setPrimeSubformData} /> : selectedForm === "credit-sharing" ? <PrimeCreditSharingSheet data={primeSubformData} onChange={setPrimeSubformData} /> : selectedForm === "gw-rfb" ? <GreatWorkRfbSheet data={primeSubformData} onChange={setPrimeSubformData} /> : selectedForm === "gw-credit-sharing" ? <GreatWorkCreditSharingSheet data={primeSubformData} onChange={setPrimeSubformData} /> : <RfpSheet data={formData} onChange={setFormData} validationErrors={validationErrors} variant={selectedForm === "gw-rfp" ? "gw" : "prime"} rfpNumberStatus={rfpNumberStatus} canEditTlApproval={user?.role === "approver" || user?.role === "admin"} departments={departments.map((item) => item.department)} departmentAssignments={departments} tlOptions={departments.map((item) => ({ name: item.tlName, email: item.tlEmail }))} />}
         </section>
 
         {/* Supporting Documents Section */}
-        {!["rfb", "credit-sharing"].includes(selectedForm) && <section className="mb-12">
+        {!["rfb", "credit-sharing", "gw-rfb", "gw-credit-sharing"].includes(selectedForm) && <section className="mb-12">
           <SupportingDocuments
             files={supportingFilesList}
             onFilesChange={setSupportingFilesList}

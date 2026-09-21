@@ -32,12 +32,14 @@ const FORM_OPTIONS: FormOption[] = [
     logo: "/greatwork-logo.png",
     folder: "Greatwork",
   },
+  { value: "gw-rfb", label: "GreatWork Request for Billing", description: "RFB Form — My GreatWork Spaces Inc.", icon: Receipt, logo: "/greatwork-logo.png", folder: "Greatwork" },
+  { value: "gw-credit-sharing", label: "GreatWork Credit Sharing Form", description: "Credit sharing and referral details", icon: Receipt, logo: "/greatwork-logo.png", folder: "Greatwork" },
   { value: "travel-budget", label: "Travel Budget Request Form", description: "Employee travel planning, budget, and approval request", icon: Receipt, folder: "Travel Budget" },
 ];
 
 interface FormSelectProps {
   value: string;
-  onChange: (value: "rfp" | "rfb" | "credit-sharing" | "gw-rfp" | "travel-budget") => void;
+  onChange: (value: "rfp" | "rfb" | "credit-sharing" | "gw-rfp" | "gw-rfb" | "gw-credit-sharing" | "travel-budget") => void;
   className?: string;
   id?: string;
 }
@@ -82,12 +84,12 @@ export function FormSelect({
       e.preventDefault();
       const currentIndex = FORM_OPTIONS.findIndex((opt) => opt.value === value);
       const nextIndex = (currentIndex + 1) % FORM_OPTIONS.length;
-      onChange(FORM_OPTIONS[nextIndex].value as "rfp" | "gw-rfp" | "travel-budget");
+      onChange(FORM_OPTIONS[nextIndex].value as "rfp" | "rfb" | "credit-sharing" | "gw-rfp" | "gw-rfb" | "gw-credit-sharing" | "travel-budget");
     } else if (e.key === "ArrowUp" && isOpen) {
       e.preventDefault();
       const currentIndex = FORM_OPTIONS.findIndex((opt) => opt.value === value);
       const prevIndex = (currentIndex - 1 + FORM_OPTIONS.length) % FORM_OPTIONS.length;
-      onChange(FORM_OPTIONS[prevIndex].value as "rfp" | "gw-rfp" | "travel-budget");
+      onChange(FORM_OPTIONS[prevIndex].value as "rfp" | "rfb" | "credit-sharing" | "gw-rfp" | "gw-rfb" | "gw-credit-sharing" | "travel-budget");
     } else if (e.key === "Enter" || e.key === " ") {
       if (!isOpen) {
         e.preventDefault();
@@ -111,7 +113,7 @@ export function FormSelect({
         className="group min-h-11 h-11 px-3.5 bg-prime-white border border-prime-rule hover:border-prime-gold focus:border-prime-gold focus:outline-none flex items-center justify-between gap-3 text-xs font-medium text-prime-blue transition-all cursor-pointer shadow-sm hover:shadow"
       >
         <div className="flex items-center gap-2.5">
-          {currentOption.logo && <Image src={currentOption.logo} alt={currentOption.value === "gw-rfp" ? "GreatWork Logo" : "PRIME Logo"} width={20} height={20} unoptimized className="w-5 h-5 object-contain shrink-0" />}
+          {currentOption.logo && <Image src={currentOption.logo} alt={currentOption.value.startsWith("gw-") ? "GreatWork Logo" : "PRIME Logo"} width={20} height={20} unoptimized className="w-5 h-5 object-contain shrink-0" />}
           <span className="font-semibold text-prime-blue tracking-wide">
             {currentOption.label}
           </span>
@@ -144,7 +146,7 @@ export function FormSelect({
                 role="option"
                 aria-selected={isSelected}
                 onClick={() => {
-                  onChange(option.value as "rfp" | "rfb" | "credit-sharing" | "gw-rfp" | "travel-budget");
+                  onChange(option.value as "rfp" | "rfb" | "credit-sharing" | "gw-rfp" | "gw-rfb" | "gw-credit-sharing" | "travel-budget");
                   setIsOpen(false);
                   triggerRef.current?.focus();
                 }}
@@ -154,7 +156,7 @@ export function FormSelect({
                     : "hover:bg-prime-warm-white text-prime-ink border-l-2 border-transparent"
                 }`}
               >
-                {option.logo && <Image src={option.logo} alt={option.value === "gw-rfp" ? "GreatWork Logo" : "PRIME Logo"} width={20} height={20} unoptimized className="w-5 h-5 object-contain shrink-0 mt-0.5" />}
+                {option.logo && <Image src={option.logo} alt={option.value.startsWith("gw-") ? "GreatWork Logo" : "PRIME Logo"} width={20} height={20} unoptimized className="w-5 h-5 object-contain shrink-0 mt-0.5" />}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <span
