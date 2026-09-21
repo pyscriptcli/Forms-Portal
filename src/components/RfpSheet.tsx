@@ -42,10 +42,11 @@ interface RfpSheetProps {
   rfpNumberStatus?: "loading" | "ready" | "unavailable";
   canEditTlApproval?: boolean;
   departments?: string[];
+  departmentAssignments?: Array<{ department: string; tlName: string; tlEmail: string }>;
   tlOptions?: Array<{ name: string; email: string }>;
 }
 
-export function RfpSheet({ data, onChange, validationErrors, variant = "prime", rfpNumberStatus = "loading", canEditTlApproval = false, departments, tlOptions = [] }: RfpSheetProps) {
+export function RfpSheet({ data, onChange, validationErrors, variant = "prime", rfpNumberStatus = "loading", canEditTlApproval = false, departments, departmentAssignments = [], tlOptions = [] }: RfpSheetProps) {
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [isTlSignatureModalOpen, setIsTlSignatureModalOpen] = useState(false);
 
@@ -715,7 +716,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
               </span>
               <DepartmentCombobox
                 value={data.departmentCostCenter ?? data.department}
-                onChange={(value) => updateFields({ departmentCostCenter: value, department: value })}
+                onChange={(value) => { const assignment = departmentAssignments.find((item) => item.department === value); updateFields({ departmentCostCenter: value, department: value, tlSignatureName: assignment?.tlName || "", approvedByName: assignment?.tlName || "", approverEmail: assignment?.tlEmail || "", tlEmail: assignment?.tlEmail || "" }); }}
                 presets={departments}
                 className={`border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1 ${
                   hasError("department") ? "border-red-500 bg-red-50/50" : ""

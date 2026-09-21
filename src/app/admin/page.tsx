@@ -101,7 +101,7 @@ export default function AdminPage() {
   });
   const [destinations, setDestinations] = useState<FormDestinations>(DEFAULT_FORM_DESTINATIONS);
   const [workflowStatuses, setWorkflowStatuses] = useState<WorkflowStatuses>(DEFAULT_WORKFLOW_STATUSES);
-  const [departments, setDepartments] = useState<string[]>([]);
+  const [departments, setDepartments] = useState<Array<{ department: string; tlName: string; tlEmail: string }>>([]);
   const [tlOptions, setTlOptions] = useState<Array<{ name: string; email: string }>>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
@@ -291,7 +291,7 @@ export default function AdminPage() {
             setSettings(flags);
             if (flags.destinations) setDestinations(flags.destinations);
             if (flags.workflowStatuses) setWorkflowStatuses(flags.workflowStatuses);
-            if (Array.isArray(flags.departments)) setDepartments(flags.departments);
+            if (Array.isArray(flags.departments)) setDepartments(flags.departments.map((item: any) => typeof item === "string" ? { department: item, tlName: "", tlEmail: "" } : item));
             if (Array.isArray(flags.tlOptions)) setTlOptions(flags.tlOptions);
           }
         })
@@ -407,7 +407,7 @@ export default function AdminPage() {
   async function handleSaveDepartments() {
     setIsSaving(true); setSaveMsg("");
     try {
-      const cleaned = [...new Set(departments.map((d) => d.trim()).filter(Boolean))];
+      const cleaned = departments.map((item) => ({ department: item.department.trim(), tlName: item.tlName.trim(), tlEmail: item.tlEmail.trim() })).filter((item) => item.department);
       const res = await fetch("/api/admin/settings", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN }, body: JSON.stringify({ departments: cleaned, tlOptions }) });
       if (!res.ok) throw new Error("Save failed");
       setDepartments(cleaned); setSaveMsg("Departments saved.");
@@ -698,8 +698,9 @@ export default function AdminPage() {
               <button type="button" onClick={handleSaveDepartments} disabled={isSaving} className="prime-button flex items-center gap-2"><Save className="w-4 h-4" />Save departments</button>
             </div>
             <div className="space-y-2 max-w-xl">
-              {departments.map((department, index) => <div key={`${department}-${index}`} className="flex gap-2"><input aria-label={`Department ${index + 1}`} value={department} onChange={(e) => setDepartments((current) => current.map((item, i) => i === index ? e.target.value : item))} className="prime-field" /><button type="button" aria-label={`Remove department ${department}`} onClick={() => setDepartments((current) => current.filter((_, i) => i !== index))} className="prime-button secondary"><Trash2 className="w-4 h-4" /></button></div>)}
-              <button type="button" onClick={() => setDepartments((current) => [...current, ""])} className="prime-button secondary flex items-center gap-2"><Plus className="w-4 h-4" />Add department</button>
+              <div className="grid grid-cols-[1fr_1fr_1.4fr_auto] gap-2 text-[10px] font-bold uppercase"><span>Department</span><span>TL Name</span><span>TL Email</span><span /></div>
+              {departments.map((item, index) => <div key={`${item.department}-${index}`} className="grid grid-cols-[1fr_1fr_1.4fr_auto] gap-2"><input aria-label={`Department ${index + 1}`} value={item.department} onChange={(e) => setDepartments((current) => current.map((v, i) => i === index ? { ...v, department: e.target.value } : v))} className="prime-field" /><input aria-label={`TL name ${index + 1}`} value={item.tlName} onChange={(e) => setDepartments((current) => current.map((v, i) => i === index ? { ...v, tlName: e.target.value } : v))} className="prime-field" /><input aria-label={`TL email ${index + 1}`} type="email" value={item.tlEmail} onChange={(e) => setDepartments((current) => current.map((v, i) => i === index ? { ...v, tlEmail: e.target.value } : v))} className="prime-field" /><button type="button" aria-label={`Remove department ${item.department}`} onClick={() => setDepartments((current) => current.filter((_, i) => i !== index))} className="prime-button secondary"><Trash2 className="w-4 h-4" /></button></div>)}
+              <button type="button" onClick={() => setDepartments((current) => [...current, { department: "", tlName: "", tlEmail: "" }])} className="prime-button secondary flex items-center gap-2"><Plus className="w-4 h-4" />Add department</button>
             </div>
             <h3 className="prime-label text-prime-blue mt-8 mb-2">TL Name options</h3>
             <div className="space-y-2 max-w-xl">

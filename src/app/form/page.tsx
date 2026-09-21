@@ -112,7 +112,7 @@ function RfpAppContent() {
   const [rfpNumberStatus, setRfpNumberStatus] = useState<"loading" | "ready" | "unavailable">("loading");
   const [rfpNumberRefreshKey, setRfpNumberRefreshKey] = useState(0);
   const [selectedForm, setSelectedForm] = useState<string>(formParam ?? "rfp");
-  const [departments, setDepartments] = useState<string[]>([]);
+  const [departments, setDepartments] = useState<Array<{ department: string; tlName: string; tlEmail: string }>>([]);
   const [tlOptions, setTlOptions] = useState<Array<{ name: string; email: string }>>([]);
   const [previousDraft, setPreviousDraft] = useState<RfpFormData | null>(null);
   const [extractedBanner, setExtractedBanner] = useState<{
@@ -702,7 +702,7 @@ function RfpAppContent() {
 
         {/* Document First Paper Sheet */}
         <section id="rfp-sheet-container" className="prime-form-scroll mb-8" aria-label="Form document">
-          {selectedForm === "travel-budget" ? <TravelBudgetSheet data={formData as any} onChange={setFormData as any} /> : <RfpSheet data={formData} onChange={setFormData} validationErrors={validationErrors} variant={selectedForm === "gw-rfp" ? "gw" : "prime"} rfpNumberStatus={rfpNumberStatus} canEditTlApproval={user?.role === "approver" || user?.role === "admin"} departments={departments} tlOptions={tlOptions} />}
+          {selectedForm === "travel-budget" ? <TravelBudgetSheet data={formData as any} onChange={setFormData as any} /> : <RfpSheet data={formData} onChange={setFormData} validationErrors={validationErrors} variant={selectedForm === "gw-rfp" ? "gw" : "prime"} rfpNumberStatus={rfpNumberStatus} canEditTlApproval={user?.role === "approver" || user?.role === "admin"} departments={departments.map((item) => item.department)} departmentAssignments={departments} tlOptions={departments.map((item) => ({ name: item.tlName, email: item.tlEmail }))} />}
         </section>
 
         {/* Supporting Documents Section */}

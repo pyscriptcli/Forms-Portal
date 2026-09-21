@@ -27,7 +27,7 @@ async function readFlags() {
     destinations: getDefaultFormDestinations(),
     workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
     clickupFieldMapping: {},
-    departments: [] as string[],
+    departments: [] as Array<{ department: string; tlName: string; tlEmail: string }>,
     tlOptions: [] as Array<{ name: string; email: string }>,
   };
 }
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
   if (hasDropdowns) {
     const existing = await readDropdownOptionsFromSupabase();
     await saveDropdownOptionsToSupabase({
-      department: Array.isArray(body.departments) ? body.departments.filter((v): v is string => typeof v === "string") : existing?.department ?? [],
+      department: Array.isArray(body.departments) ? body.departments.filter((v): v is { department: string; tlName: string; tlEmail: string } => Boolean(v && typeof v === "object" && typeof (v as any).department === "string" && typeof (v as any).tlName === "string" && typeof (v as any).tlEmail === "string")) : existing?.department ?? [],
       tl_name: Array.isArray(body.tlOptions) ? body.tlOptions.filter((v): v is { name: string; email: string } => Boolean(v && typeof v === "object" && typeof (v as { name?: unknown }).name === "string" && typeof (v as { email?: unknown }).email === "string")) : existing?.tl_name ?? [],
     });
   }
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
     ...(body.clickupFieldMapping && typeof body.clickupFieldMapping === "object"
       ? { clickupFieldMapping: normalizeFieldMapping(body.clickupFieldMapping) }
       : {}),
-    ...(Array.isArray(body.departments) ? { departments: body.departments.filter((v): v is string => typeof v === "string" && Boolean(v.trim())).map((v) => v.trim()) } : {}),
+    ...(Array.isArray(body.departments) ? { departments: body.departments } : {}),
     ...(Array.isArray(body.tlOptions) ? { tlOptions: body.tlOptions } : {}),
   };
 
