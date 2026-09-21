@@ -38,7 +38,7 @@ export type DropdownOptions = { department: DepartmentAssignment[]; tl_name: Arr
 export async function readDropdownOptionsFromSupabase(): Promise<DropdownOptions | null> {
   const { url, key, isConfigured } = getSupabaseConfig();
   if (!isConfigured) return null;
-  const response = await fetch(`${url}/rest/v1/${encodeURIComponent(DROPDOWN_TABLE)}?select=dropdown_key,option_value&is_active=eq.true&order=display_order.asc,option_value.asc`, { headers: supabaseHeaders(key), cache: "no-store" });
+  const response = await fetch(`${url}/rest/v1/${encodeURIComponent(DROPDOWN_TABLE)}?select=dropdown_key,option_value,department,tl_name,tl_email&is_active=eq.true&order=display_order.asc,option_value.asc`, { headers: supabaseHeaders(key), cache: "no-store" });
   if (!response.ok) throw new Error(`Supabase dropdown read failed (${response.status})`);
   const rows = await response.json() as Array<{ dropdown_key: string; option_value: string; department?: string | null; tl_name?: string | null; tl_email?: string | null }>;
   return {
