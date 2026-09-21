@@ -10,6 +10,7 @@ export type FormOption = {
   description?: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   logo?: string;
+  folder: "PRIME" | "Greatwork" | "Travel Budget";
 };
 
 const FORM_OPTIONS: FormOption[] = [
@@ -19,20 +20,24 @@ const FORM_OPTIONS: FormOption[] = [
     description: "Official Request for Payment document for vendor & reimbursement disbursements",
     icon: Receipt,
     logo: "/prime-icon.png",
+    folder: "PRIME",
   },
+  { value: "rfb", label: "Request for Billing Invoice", description: "RFB Form — Leasing Services", icon: Receipt, logo: "/prime-icon.png", folder: "PRIME" },
+  { value: "credit-sharing", label: "Credit Sharing Form", description: "PRIME Credit Sharing Form", icon: Receipt, logo: "/prime-icon.png", folder: "PRIME" },
   {
     value: "gw-rfp",
     label: "GW RFP (Request for Payment)",
     description: "GreatWork Request for Payment document based on the revised GW template",
     icon: Receipt,
     logo: "/greatwork-logo.png",
+    folder: "Greatwork",
   },
-  { value: "travel-budget", label: "Travel Budget Request Form", description: "Employee travel planning, budget, and approval request", icon: Receipt },
+  { value: "travel-budget", label: "Travel Budget Request Form", description: "Employee travel planning, budget, and approval request", icon: Receipt, folder: "Travel Budget" },
 ];
 
 interface FormSelectProps {
   value: string;
-  onChange: (value: "rfp" | "gw-rfp" | "travel-budget") => void;
+  onChange: (value: "rfp" | "rfb" | "credit-sharing" | "gw-rfp" | "travel-budget") => void;
   className?: string;
   id?: string;
 }
@@ -126,7 +131,10 @@ export function FormSelect({
           aria-label="Available form types"
           className="absolute right-0 top-full mt-1.5 w-80 bg-prime-white border border-prime-blue/30 shadow-xl z-50 py-1 divide-y divide-prime-rule/60 animate-in fade-in zoom-in-95 duration-150"
         >
-          {FORM_OPTIONS.map((option) => {
+          {(["PRIME", "Greatwork", "Travel Budget"] as const).map((folder) => (
+            <div key={folder}>
+              <p className="px-3.5 pt-2 pb-1 text-[9px] font-bold uppercase tracking-[0.18em] text-prime-blue/65">{folder}</p>
+              {FORM_OPTIONS.filter((option) => option.folder === folder).map((option) => {
             const isSelected = option.value === value;
 
             return (
@@ -136,7 +144,7 @@ export function FormSelect({
                 role="option"
                 aria-selected={isSelected}
                 onClick={() => {
-                  onChange(option.value as "rfp" | "gw-rfp" | "travel-budget");
+                  onChange(option.value as "rfp" | "rfb" | "credit-sharing" | "gw-rfp" | "travel-budget");
                   setIsOpen(false);
                   triggerRef.current?.focus();
                 }}
@@ -168,7 +176,9 @@ export function FormSelect({
                 </div>
               </button>
             );
-          })}
+              })}
+            </div>
+          ))}
         </div>
       )}
     </div>
