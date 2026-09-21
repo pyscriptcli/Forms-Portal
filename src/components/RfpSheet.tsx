@@ -8,7 +8,6 @@ import { AutoResizeTextarea } from "./AutoResizeTextarea";
 import { SignatureModal } from "./SignatureModal";
 import { PrimeDatePicker } from "./PrimeDatePicker";
 import { PenTool, Trash2, Plus, Check, LockKeyhole } from "lucide-react";
-import { DepartmentCombobox } from "./DepartmentCombobox";
 
 function timeInputValue(value?: string) {
   if (/^\d{1,2}:\d{2}$/.test(value ?? "")) {
@@ -714,14 +713,16 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
               <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">
                 Department / Cost Center:
               </span>
-              <DepartmentCombobox
+              <select
+                id="field-department"
+                aria-label="Department"
                 value={data.departmentCostCenter ?? data.department}
-                onChange={(value) => { const assignment = departmentAssignments.find((item) => item.department === value); updateFields({ departmentCostCenter: value, department: value, tlSignatureName: assignment?.tlName || "", approvedByName: assignment?.tlName || "", approverEmail: assignment?.tlEmail || "", tlEmail: assignment?.tlEmail || "" }); }}
-                presets={departments}
-                className={`flex-1 text-xs px-1 ${
-                  hasError("department") ? "border-red-500 bg-red-50/50" : ""
-                }`}
-              />
+                onChange={(e) => { const assignment = departmentAssignments.find((item) => item.department === e.target.value); updateFields({ departmentCostCenter: e.target.value, department: e.target.value, tlSignatureName: assignment?.tlName || "", approvedByName: assignment?.tlName || "", approverEmail: assignment?.tlEmail || "", tlEmail: assignment?.tlEmail || "" }); }}
+                className={`h-7 flex-1 min-w-0 rounded-sm border border-[#9fb4cf] bg-white px-2 text-xs text-[#003366] shadow-sm outline-none transition focus:border-[#003366] focus:ring-1 focus:ring-[#003366]/20 ${hasError("department") ? "border-red-500 bg-red-50/50" : ""}`}
+              >
+                <option value="">Select department</option>
+                {departmentAssignments.map((assignment) => <option key={assignment.department} value={assignment.department}>{assignment.department}</option>)}
+              </select>
             </div>
 
             <div className="flex items-baseline gap-1.5 mb-2.5">
@@ -729,11 +730,12 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
                 <select
                   value={data.tlSignatureName ?? data.approvedByName ?? ""}
                   onChange={(e) => { const option = tlOptions.find((item) => item.name === e.target.value); updateFields({ tlSignatureName: e.target.value, approvedByName: e.target.value, approverEmail: option?.email || "", tlEmail: option?.email || "" }); }}
+                  disabled={!data.department || !departmentAssignments.some((item) => item.department === data.department)}
                   aria-label="Assigned TL name"
                   className="h-7 flex-1 min-w-0 rounded-sm border border-[#9fb4cf] bg-white px-2 text-xs text-[#003366] shadow-sm outline-none transition focus:border-[#003366] focus:ring-1 focus:ring-[#003366]/20"
                 >
                   <option value="">Select TL name</option>
-                  {tlOptions.map((option) => <option key={option.email || option.name} value={option.name}>{option.name}</option>)}
+                  {(() => { const assignment = departmentAssignments.find((item) => item.department === data.department); return assignment ? <option value={assignment.tlName}>{assignment.tlName}</option> : null; })()}
                 </select>
             </div>
             <div className="relative">
