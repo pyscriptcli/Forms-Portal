@@ -69,7 +69,7 @@ export function DepartmentCombobox({
             if (e.key === "Escape") setIsOpen(false);
           }}
           placeholder={placeholder}
-          className={`${className} cursor-pointer pr-8 ${
+          className={`${className} h-7 cursor-pointer rounded-sm border border-[#9fb4cf] bg-white pr-8 text-[#003366] shadow-sm transition focus:border-[#003366] focus:ring-1 focus:ring-[#003366]/20 ${
             hasError ? "border-red-600 bg-red-50/20 text-red-900" : ""
           }`}
         />

@@ -718,7 +718,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
                 value={data.departmentCostCenter ?? data.department}
                 onChange={(value) => { const assignment = departmentAssignments.find((item) => item.department === value); updateFields({ departmentCostCenter: value, department: value, tlSignatureName: assignment?.tlName || "", approvedByName: assignment?.tlName || "", approverEmail: assignment?.tlEmail || "", tlEmail: assignment?.tlEmail || "" }); }}
                 presets={departments}
-                className={`border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1 ${
+                className={`flex-1 text-xs px-1 ${
                   hasError("department") ? "border-red-500 bg-red-50/50" : ""
                 }`}
               />
@@ -730,7 +730,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
                   value={data.tlSignatureName ?? data.approvedByName ?? ""}
                   onChange={(e) => { const option = tlOptions.find((item) => item.name === e.target.value); updateFields({ tlSignatureName: e.target.value, approvedByName: e.target.value, approverEmail: option?.email || "", tlEmail: option?.email || "" }); }}
                   aria-label="Assigned TL name"
-                  className="flex-1 min-w-0 rounded-sm border border-[#9fb4cf] bg-white px-2 py-1 text-xs text-[#003366] shadow-sm outline-none transition focus:border-[#003366] focus:ring-1 focus:ring-[#003366]/20"
+                  className="h-7 flex-1 min-w-0 rounded-sm border border-[#9fb4cf] bg-white px-2 text-xs text-[#003366] shadow-sm outline-none transition focus:border-[#003366] focus:ring-1 focus:ring-[#003366]/20"
                 >
                   <option value="">Select TL name</option>
                   {tlOptions.map((option) => <option key={option.email || option.name} value={option.name}>{option.name}</option>)}

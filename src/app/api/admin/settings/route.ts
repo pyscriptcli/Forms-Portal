@@ -46,7 +46,7 @@ export async function GET() {
       if (destinations) flags.destinations = destinations;
       Object.assign(flags, portalSettings);
       flags.departments = dropdowns?.department ?? [];
-      flags.tlOptions = dropdowns?.tl_name ?? [];
+      flags.tlOptions = dropdowns?.department.map((item) => ({ name: item.tlName, email: item.tlEmail })) ?? [];
     } catch (error) {
       console.error("Failed to read workflow statuses from Supabase:", error);
     }

@@ -42,7 +42,7 @@ export async function readDropdownOptionsFromSupabase(): Promise<DropdownOptions
   if (!response.ok) throw new Error(`Supabase dropdown read failed (${response.status})`);
   const rows = await response.json() as Array<{ dropdown_key: string; option_value: string; department?: string | null; tl_name?: string | null; tl_email?: string | null }>;
   return {
-    department: rows.filter((row) => row.dropdown_key === "department").map((row) => ({ department: row.department || row.option_value, tlName: row.tl_name || "", tlEmail: row.tl_email || "" })),
+    department: rows.filter((row) => row.dropdown_key === "tl_name" && (row.department || row.option_value)).map((row) => ({ department: row.department || "", tlName: row.tl_name || row.option_value, tlEmail: row.tl_email || "" })),
     tl_name: rows.filter((row) => row.dropdown_key === "tl_name").map((row) => ({ name: row.option_value, email: row.tl_email || "" })),
   };
 }
@@ -53,8 +53,8 @@ export async function saveDropdownOptionsToSupabase(options: DropdownOptions): P
   const clean = (values: string[]) => [...new Set(values.map((value) => value.trim()).filter(Boolean))];
   const response = await fetch(`${url}/rest/v1/${encodeURIComponent(DROPDOWN_TABLE)}?dropdown_key=in.(department,tl_name)`, { method: "DELETE", headers: supabaseHeaders(key, { Prefer: "return=minimal" }) });
   if (!response.ok) throw new Error(`Supabase dropdown reset failed (${response.status})`);
-  const rows = options.department.map((assignment, display_order) => ({ dropdown_key: "department", option_value: assignment.department.trim(), department: assignment.department.trim(), tl_name: assignment.tlName.trim(), tl_email: assignment.tlEmail.trim(), display_order, is_active: true }));
-  rows.push(...options.tl_name.map((option, display_order) => ({ dropdown_key: "tl_name", option_value: option.name.trim(), department: "", tl_name: option.name.trim(), display_order, is_active: true, tl_email: option.email.trim() })));
+  const rows = options.department.map((assignment, display_order) => ({ dropdown_key: "tl_name", option_value: assignment.tlName.trim(), department: assignment.department.trim(), tl_name: assignment.tlName.trim(), tl_email: assignment.tlEmail.trim(), display_order, is_active: true }));
+  if (!rows.length) rows.push(...options.tl_name.map((option, display_order) => ({ dropdown_key: "tl_name", option_value: option.name.trim(), department: "", tl_name: option.name.trim(), display_order, is_active: true, tl_email: option.email.trim() })));
   if (!rows.length) return;
   const insert = await fetch(`${url}/rest/v1/${encodeURIComponent(DROPDOWN_TABLE)}`, { method: "POST", headers: supabaseHeaders(key, { Prefer: "return=minimal" }), body: JSON.stringify(rows) });
   if (!insert.ok) throw new Error(`Supabase dropdown save failed (${insert.status})`);
