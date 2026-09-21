@@ -15,6 +15,16 @@ interface ToolbarProps {
   onSelectForm?: (formKey: string) => void;
 }
 
+const FORM_LABELS: Record<string, string> = {
+  rfp: "PRIME - REQUEST FOR PAYMENT (RFP)",
+  rfb: "PRIME - REQUEST FOR BILLING (RFB)",
+  "credit-sharing": "PRIME - CREDIT SHARING FORM",
+  "gw-rfp": "GREATWORK - REQUEST FOR PAYMENT (RFP)",
+  "gw-rfb": "GREATWORK - REQUEST FOR BILLING (RFB)",
+  "gw-credit-sharing": "GREATWORK - CREDIT SHARING FORM",
+  "travel-budget": "TRAVEL BUDGET - REQUEST FORM",
+};
+
 export function Toolbar({
   onPreviewPdf, onReset, onSubmit, isSubmitting, isGeneratingPdf,
   isRevision, taskId, selectedForm = "rfp", onSelectForm,
@@ -23,7 +33,7 @@ export function Toolbar({
     <div className="prime-toolbar">
       <div className="flex flex-wrap items-center gap-3 min-w-0">
         <span className="text-xs font-semibold uppercase tracking-wider text-prime-blue">
-          {selectedForm === "rfp" ? "Request for Payment" : selectedForm.toUpperCase()}
+          {FORM_LABELS[selectedForm] ?? selectedForm.toUpperCase()}
         </span>
         {isRevision && <span className="text-xs text-prime-blue">Revision · #{taskId}</span>}
       </div>

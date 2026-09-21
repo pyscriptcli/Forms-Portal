@@ -19,13 +19,13 @@ const FORM_GROUPS = [
 ] as const;
 
 const FORM_OPTIONS: FormOption[] = [
-  { value: "rfp", label: "Request for payment", description: "Vendor reimbursement and disbursement requests.", logo: "/prime-icon.png", folder: "PRIME" },
-  { value: "rfb", label: "Request for billing", description: "Billing requests for leasing services.", logo: "/prime-icon.png", folder: "PRIME" },
-  { value: "credit-sharing", label: "Credit sharing", description: "Submit PRIME credit-sharing details.", logo: "/prime-icon.png", folder: "PRIME" },
-  { value: "gw-rfp", label: "Request for payment", description: "GreatWork payment request using the revised template.", logo: "/greatwork-logo.png", folder: "Greatwork" },
-  { value: "gw-rfb", label: "Request for billing", description: "Billing requests for My GreatWork Spaces.", logo: "/greatwork-logo.png", folder: "Greatwork" },
-  { value: "gw-credit-sharing", label: "Credit sharing", description: "GreatWork credit-sharing and referral details.", logo: "/greatwork-logo.png", folder: "Greatwork" },
-  { value: "travel-budget", label: "Travel budget request", description: "Employee travel planning, budget, and approval.", folder: "Travel Budget" },
+  { value: "rfp", label: "PRIME - REQUEST FOR PAYMENT (RFP)", description: "Vendor reimbursement and disbursement requests.", logo: "/prime-icon.png", folder: "PRIME" },
+  { value: "rfb", label: "PRIME - REQUEST FOR BILLING (RFB)", description: "Billing requests for leasing services.", logo: "/prime-icon.png", folder: "PRIME" },
+  { value: "credit-sharing", label: "PRIME - CREDIT SHARING FORM", description: "Submit PRIME credit-sharing details.", logo: "/prime-icon.png", folder: "PRIME" },
+  { value: "gw-rfp", label: "GREATWORK - REQUEST FOR PAYMENT (RFP)", description: "GreatWork payment request using the revised template.", logo: "/greatwork-logo.png", folder: "Greatwork" },
+  { value: "gw-rfb", label: "GREATWORK - REQUEST FOR BILLING (RFB)", description: "Billing requests for My GreatWork Spaces.", logo: "/greatwork-logo.png", folder: "Greatwork" },
+  { value: "gw-credit-sharing", label: "GREATWORK - CREDIT SHARING FORM", description: "GreatWork credit-sharing and referral details.", logo: "/greatwork-logo.png", folder: "Greatwork" },
+  { value: "travel-budget", label: "TRAVEL BUDGET - REQUEST FORM", description: "Employee travel planning, budget, and approval.", folder: "Travel Budget" },
 ];
 
 interface FormSelectProps {

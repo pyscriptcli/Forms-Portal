@@ -7,7 +7,8 @@ import { PrimeCheckbox } from "./PrimeCheckbox";
 import { AutoResizeTextarea } from "./AutoResizeTextarea";
 import { SignatureModal } from "./SignatureModal";
 import { PrimeDatePicker } from "./PrimeDatePicker";
-import { PenTool, Trash2, Plus, Check, LockKeyhole } from "lucide-react";
+import { FinanceOnlySection } from "./FinanceOnlySection";
+import { PenTool, Trash2, Plus, Check } from "lucide-react";
 
 function timeInputValue(value?: string) {
   if (/^\d{1,2}:\d{2}$/.test(value ?? "")) {
@@ -738,7 +739,13 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
                   {(() => { const assignment = departmentAssignments.find((item) => item.department === data.department); return assignment ? <option value={assignment.tlName}>{assignment.tlName}</option> : null; })()}
                 </select>
             </div>
-            <div className="relative">
+            <FinanceOnlySection
+              className="border-0"
+              disabled={!canEditTlApproval}
+              showOverlay={!canEditTlApproval}
+              overlayLabel="For TL / Approver Only"
+              overlayAriaLabel="For TL/Approver only"
+            >
               <fieldset disabled={!canEditTlApproval} className="space-y-2.5">
                 {/* TL Signature E-Sig Pad / Draw / Upload Preview */}
                 <div className="flex items-center gap-1.5">
@@ -786,26 +793,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
                   />
                 </div>
               </fieldset>
-
-              {!canEditTlApproval && (
-                <div
-                  className="no-print absolute -inset-1 z-10 flex items-center justify-center border border-[#003366]/20 bg-white/75 px-3 backdrop-blur-[1px]"
-                  data-pdf-ignore="true"
-                  role="note"
-                  aria-label="For TL/Approver only"
-                >
-                  <div className="flex items-center gap-2 border border-[#c7a94a] bg-[#fffdf7] px-3 py-2 text-[#003366] shadow-sm">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#003366] text-white">
-                      <LockKeyhole size={13} aria-hidden="true" />
-                    </span>
-                    <span className="leading-tight">
-                      <span className="block text-[10px] font-bold uppercase tracking-[0.14em]">For TL/Approver only</span>
-                      <span className="block text-[9px] text-[#475569]">Completed by the assigned approver</span>
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
+            </FinanceOnlySection>
           </div>
         </div>
       </div>

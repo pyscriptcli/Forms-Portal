@@ -2,15 +2,39 @@
 
 import React from "react";
 
-export function FinanceOnlySection({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+interface FinanceOnlySectionProps {
+  children: React.ReactNode;
+  className?: string;
+  disabled?: boolean;
+  showOverlay?: boolean;
+  overlayLabel?: string;
+  overlayAriaLabel?: string;
+}
+
+export function FinanceOnlySection({
+  children,
+  className = "",
+  disabled = true,
+  showOverlay = true,
+  overlayLabel = "Finance / Accounting Only",
+  overlayAriaLabel,
+}: FinanceOnlySectionProps) {
   return (
     <div className={`finance-only-section ${className}`}>
-      <fieldset disabled className="finance-only-content">
+      <fieldset disabled={disabled} className="finance-only-content">
         {children}
       </fieldset>
-      <div className="finance-only-overlay no-print" data-pdf-ignore="true" aria-hidden="true">
-        <span>Finance / Accounting Only</span>
-      </div>
+      {showOverlay && (
+        <div
+          className="finance-only-overlay no-print"
+          data-pdf-ignore="true"
+          role={overlayAriaLabel ? "note" : undefined}
+          aria-label={overlayAriaLabel}
+          aria-hidden={overlayAriaLabel ? undefined : true}
+        >
+          <span>{overlayLabel}</span>
+        </div>
+      )}
     </div>
   );
 }
