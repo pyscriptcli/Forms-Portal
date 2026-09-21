@@ -28,7 +28,7 @@ async function readFlags() {
     workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
     clickupFieldMapping: {},
     departments: [] as string[],
-    tlNames: [] as string[],
+    tlOptions: [] as Array<{ name: string; email: string }>,
   };
 }
 
@@ -46,7 +46,7 @@ export async function GET() {
       if (destinations) flags.destinations = destinations;
       Object.assign(flags, portalSettings);
       flags.departments = dropdowns?.department ?? [];
-      flags.tlNames = dropdowns?.tl_name ?? [];
+      flags.tlOptions = dropdowns?.tl_name ?? [];
     } catch (error) {
       console.error("Failed to read workflow statuses from Supabase:", error);
     }
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
   const current = await readFlags();
   const hasWorkflowStatuses = Boolean(body.workflowStatuses && typeof body.workflowStatuses === "object");
   const hasDestinations = Boolean(body.destinations && typeof body.destinations === "object");
-  const hasDropdowns = Array.isArray(body.departments) || Array.isArray(body.tlNames);
+  const hasDropdowns = Array.isArray(body.departments) || Array.isArray(body.tlOptions);
   if (hasWorkflowStatuses && isSupabaseAdminConfigured()) {
     await saveWorkflowStatusesToSupabase(normalizeWorkflowStatuses(body.workflowStatuses));
   }
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     const existing = await readDropdownOptionsFromSupabase();
     await saveDropdownOptionsToSupabase({
       department: Array.isArray(body.departments) ? body.departments.filter((v): v is string => typeof v === "string") : existing?.department ?? [],
-      tl_name: Array.isArray(body.tlNames) ? body.tlNames.filter((v): v is string => typeof v === "string") : existing?.tl_name ?? [],
+      tl_name: Array.isArray(body.tlOptions) ? body.tlOptions.filter((v): v is { name: string; email: string } => Boolean(v && typeof v === "object" && typeof (v as { name?: unknown }).name === "string" && typeof (v as { email?: unknown }).email === "string")) : existing?.tl_name ?? [],
     });
   }
   if (isSupabaseAdminConfigured()) {
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
       ? { clickupFieldMapping: normalizeFieldMapping(body.clickupFieldMapping) }
       : {}),
     ...(Array.isArray(body.departments) ? { departments: body.departments.filter((v): v is string => typeof v === "string" && Boolean(v.trim())).map((v) => v.trim()) } : {}),
-    ...(Array.isArray(body.tlNames) ? { tlNames: body.tlNames.filter((v): v is string => typeof v === "string" && Boolean(v.trim())).map((v) => v.trim()) } : {}),
+    ...(Array.isArray(body.tlOptions) ? { tlOptions: body.tlOptions } : {}),
   };
 
   invalidateRfpCache();

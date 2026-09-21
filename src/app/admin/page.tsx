@@ -102,7 +102,7 @@ export default function AdminPage() {
   const [destinations, setDestinations] = useState<FormDestinations>(DEFAULT_FORM_DESTINATIONS);
   const [workflowStatuses, setWorkflowStatuses] = useState<WorkflowStatuses>(DEFAULT_WORKFLOW_STATUSES);
   const [departments, setDepartments] = useState<string[]>([]);
-  const [tlNames, setTlNames] = useState<string[]>([]);
+  const [tlOptions, setTlOptions] = useState<Array<{ name: string; email: string }>>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
@@ -292,7 +292,7 @@ export default function AdminPage() {
             if (flags.destinations) setDestinations(flags.destinations);
             if (flags.workflowStatuses) setWorkflowStatuses(flags.workflowStatuses);
             if (Array.isArray(flags.departments)) setDepartments(flags.departments);
-            if (Array.isArray(flags.tlNames)) setTlNames(flags.tlNames);
+            if (Array.isArray(flags.tlOptions)) setTlOptions(flags.tlOptions);
           }
         })
         .catch(() => {
@@ -408,7 +408,7 @@ export default function AdminPage() {
     setIsSaving(true); setSaveMsg("");
     try {
       const cleaned = [...new Set(departments.map((d) => d.trim()).filter(Boolean))];
-      const res = await fetch("/api/admin/settings", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN }, body: JSON.stringify({ departments: cleaned, tlNames }) });
+      const res = await fetch("/api/admin/settings", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN }, body: JSON.stringify({ departments: cleaned, tlOptions }) });
       if (!res.ok) throw new Error("Save failed");
       setDepartments(cleaned); setSaveMsg("Departments saved.");
     } catch (error: any) { setSaveMsg(error?.message || "Error saving departments."); }
@@ -703,8 +703,8 @@ export default function AdminPage() {
             </div>
             <h3 className="prime-label text-prime-blue mt-8 mb-2">TL Name options</h3>
             <div className="space-y-2 max-w-xl">
-              {tlNames.map((name, index) => <div key={`${name}-${index}`} className="flex gap-2"><input aria-label={`TL name ${index + 1}`} value={name} onChange={(e) => setTlNames((current) => current.map((item, i) => i === index ? e.target.value : item))} className="prime-field" /><button type="button" aria-label={`Remove TL name ${name}`} onClick={() => setTlNames((current) => current.filter((_, i) => i !== index))} className="prime-button secondary"><Trash2 className="w-4 h-4" /></button></div>)}
-              <button type="button" onClick={() => setTlNames((current) => [...current, ""])} className="prime-button secondary flex items-center gap-2"><Plus className="w-4 h-4" />Add TL name</button>
+              {tlOptions.map((option, index) => <div key={`${option.email}-${index}`} className="flex gap-2"><input aria-label={`TL name ${index + 1}`} value={option.name} onChange={(e) => setTlOptions((current) => current.map((item, i) => i === index ? { ...item, name: e.target.value } : item))} className="prime-field" placeholder="TL name" /><input aria-label={`TL email ${index + 1}`} type="email" value={option.email} onChange={(e) => setTlOptions((current) => current.map((item, i) => i === index ? { ...item, email: e.target.value } : item))} className="prime-field" placeholder="TL email" /><button type="button" aria-label={`Remove TL name ${option.name}`} onClick={() => setTlOptions((current) => current.filter((_, i) => i !== index))} className="prime-button secondary"><Trash2 className="w-4 h-4" /></button></div>)}
+              <button type="button" onClick={() => setTlOptions((current) => [...current, { name: "", email: "" }])} className="prime-button secondary flex items-center gap-2"><Plus className="w-4 h-4" />Add TL name</button>
             </div>
             {saveMsg && <p role="status" className="prime-notice mt-6">{saveMsg}</p>}
           </section>

@@ -42,10 +42,10 @@ interface RfpSheetProps {
   rfpNumberStatus?: "loading" | "ready" | "unavailable";
   canEditTlApproval?: boolean;
   departments?: string[];
-  tlNames?: string[];
+  tlOptions?: Array<{ name: string; email: string }>;
 }
 
-export function RfpSheet({ data, onChange, validationErrors, variant = "prime", rfpNumberStatus = "loading", canEditTlApproval = false, departments, tlNames = [] }: RfpSheetProps) {
+export function RfpSheet({ data, onChange, validationErrors, variant = "prime", rfpNumberStatus = "loading", canEditTlApproval = false, departments, tlOptions = [] }: RfpSheetProps) {
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [isTlSignatureModalOpen, setIsTlSignatureModalOpen] = useState(false);
 
@@ -727,11 +727,11 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
                 <span className="font-bold text-[11px] text-[#0f172a] whitespace-nowrap">TL Name:</span>
                 <select
                   value={data.tlSignatureName ?? data.approvedByName ?? ""}
-                  onChange={(e) => updateFields({ tlSignatureName: e.target.value, approvedByName: e.target.value })}
+                  onChange={(e) => { const option = tlOptions.find((item) => item.name === e.target.value); updateFields({ tlSignatureName: e.target.value, approvedByName: e.target.value, approverEmail: option?.email || "", tlEmail: option?.email || "" }); }}
                   className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
                 >
                   <option value="">Select TL name</option>
-                  {tlNames.map((name) => <option key={name} value={name}>{name}</option>)}
+                  {tlOptions.map((option) => <option key={option.email || option.name} value={option.name}>{option.name}</option>)}
                 </select>
             </div>
             <div className="relative">

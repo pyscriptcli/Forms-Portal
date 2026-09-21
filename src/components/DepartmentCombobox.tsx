@@ -54,10 +54,6 @@ export function DepartmentCombobox({
       p.name.toLowerCase().includes(trimmedVal)
   );
 
-  const exactMatch = departmentPresets.find(
-    (p) => p.code.toLowerCase() === trimmedVal
-  );
-
   return (
     <div ref={containerRef} className="relative w-full inline-block">
       <div className="relative flex items-center w-full">
@@ -65,6 +61,7 @@ export function DepartmentCombobox({
           ref={inputRef}
           id={id}
           type="text"
+          readOnly
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onFocus={() => setIsOpen(true)}
@@ -101,8 +98,7 @@ export function DepartmentCombobox({
           className="absolute left-0 top-full mt-1 w-60 max-h-64 overflow-y-auto bg-prime-white border border-prime-rule shadow-none z-50 p-1.5 no-print rounded-none animate-in fade-in zoom-in-95 duration-100"
         >
           <div className="px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-prime-ink border-b border-prime-rule flex items-center justify-between">
-            <span>ClickUp Presets</span>
-            <span className="font-normal text-prime-ink italic">or type custom</span>
+            <span>Departments</span>
           </div>
 
           <div className="py-1 space-y-0.5">
@@ -136,13 +132,6 @@ export function DepartmentCombobox({
             )}
           </div>
 
-          {/* Custom value indicator if typed value isn't a preset */}
-          {value?.trim() && !exactMatch && (
-            <div className="mt-1 pt-1 border-t border-prime-rule px-2 py-1 bg-prime-white text-[11px] text-prime-blue flex items-center justify-between">
-              <span>Using custom: <strong>&quot;{value}&quot;</strong></span>
-              <span className="text-[11px] text-prime-blue font-medium">(Custom)</span>
-            </div>
-          )}
         </div>
       )}
     </div>

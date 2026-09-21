@@ -129,6 +129,7 @@ export interface RfpFormData {
   approvedBySignature?: string;
   approverName?: string;
   approverEmail?: string;
+  tlEmail?: string;
   receivedByName?: string;
   receivedBySignature?: string;
 

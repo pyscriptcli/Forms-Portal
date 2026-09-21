@@ -583,6 +583,26 @@ export async function createClickUpTask(
     notify_all: true,
   };
 
+  // ClickUp task assignees require a user ID. Resolve the Admin-configured TL
+  // email at submission time so the selected TL receives the task directly.
+  const assigneeEmail = data.tlEmail || data.approverEmail || "";
+  if (assigneeEmail) {
+    try {
+      const teamId = process.env.CLICKUP_TEAM_ID || process.env.CLICKUP_WORKSPACE_ID || "";
+      if (!teamId) throw new Error("CLICKUP_TEAM_ID is not configured");
+      const membersRes = await fetch(`${CLICKUP_API_BASE}/team/${teamId}/member`, {
+        headers: { Authorization: authorizationHeader(token, isOAuth) },
+      });
+      if (membersRes.ok) {
+        const members = await membersRes.json() as { members?: Array<{ user?: { id?: string; email?: string } }> };
+        const member = members.members?.find((item) => item.user?.email?.toLowerCase() === assigneeEmail.toLowerCase());
+        if (member?.user?.id) body.assignees = [Number(member.user.id) || member.user.id];
+      }
+    } catch (error) {
+      console.warn("Could not resolve configured TL email to a ClickUp assignee:", error);
+    }
+  }
+
   // Sync Due Date to ClickUp if dateNeeded is provided
   if (data.dateNeeded) {
     const dueDateMs = new Date(data.dateNeeded).getTime();
