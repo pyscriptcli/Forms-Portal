@@ -60,7 +60,6 @@ import {
   type FormDestinations,
   type WorkflowStatuses,
 } from "@/lib/adminSettings";
-import { DEFAULT_DEPARTMENTS } from "@/lib/adminSettings";
 import {
   ROLE_DEFINITIONS,
   DEFAULT_USERS,
@@ -98,11 +97,12 @@ export default function AdminPage() {
     rfpAutofillEnabled: true,
     demoModeEnabled: false,
     destinations: DEFAULT_FORM_DESTINATIONS,
-    departments: DEFAULT_DEPARTMENTS,
+    departments: [],
   });
   const [destinations, setDestinations] = useState<FormDestinations>(DEFAULT_FORM_DESTINATIONS);
   const [workflowStatuses, setWorkflowStatuses] = useState<WorkflowStatuses>(DEFAULT_WORKFLOW_STATUSES);
-  const [departments, setDepartments] = useState<string[]>(DEFAULT_DEPARTMENTS);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [tlNames, setTlNames] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
@@ -284,7 +284,7 @@ export default function AdminPage() {
     if (isAdminAuthenticated()) {
       setAuthed(true);
       // Load latest flags from server
-      fetch("/api/admin/settings")
+      fetch("/api/admin/settings", { cache: "no-store" })
         .then((r) => r.json())
         .then((flags) => {
           if (flags && typeof flags === "object") {
@@ -292,6 +292,7 @@ export default function AdminPage() {
             if (flags.destinations) setDestinations(flags.destinations);
             if (flags.workflowStatuses) setWorkflowStatuses(flags.workflowStatuses);
             if (Array.isArray(flags.departments)) setDepartments(flags.departments);
+            if (Array.isArray(flags.tlNames)) setTlNames(flags.tlNames);
           }
         })
         .catch(() => {
@@ -407,7 +408,7 @@ export default function AdminPage() {
     setIsSaving(true); setSaveMsg("");
     try {
       const cleaned = [...new Set(departments.map((d) => d.trim()).filter(Boolean))];
-      const res = await fetch("/api/admin/settings", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN }, body: JSON.stringify({ departments: cleaned }) });
+      const res = await fetch("/api/admin/settings", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN }, body: JSON.stringify({ departments: cleaned, tlNames }) });
       if (!res.ok) throw new Error("Save failed");
       setDepartments(cleaned); setSaveMsg("Departments saved.");
     } catch (error: any) { setSaveMsg(error?.message || "Error saving departments."); }
@@ -699,6 +700,11 @@ export default function AdminPage() {
             <div className="space-y-2 max-w-xl">
               {departments.map((department, index) => <div key={`${department}-${index}`} className="flex gap-2"><input aria-label={`Department ${index + 1}`} value={department} onChange={(e) => setDepartments((current) => current.map((item, i) => i === index ? e.target.value : item))} className="prime-field" /><button type="button" aria-label={`Remove department ${department}`} onClick={() => setDepartments((current) => current.filter((_, i) => i !== index))} className="prime-button secondary"><Trash2 className="w-4 h-4" /></button></div>)}
               <button type="button" onClick={() => setDepartments((current) => [...current, ""])} className="prime-button secondary flex items-center gap-2"><Plus className="w-4 h-4" />Add department</button>
+            </div>
+            <h3 className="prime-label text-prime-blue mt-8 mb-2">TL Name options</h3>
+            <div className="space-y-2 max-w-xl">
+              {tlNames.map((name, index) => <div key={`${name}-${index}`} className="flex gap-2"><input aria-label={`TL name ${index + 1}`} value={name} onChange={(e) => setTlNames((current) => current.map((item, i) => i === index ? e.target.value : item))} className="prime-field" /><button type="button" aria-label={`Remove TL name ${name}`} onClick={() => setTlNames((current) => current.filter((_, i) => i !== index))} className="prime-button secondary"><Trash2 className="w-4 h-4" /></button></div>)}
+              <button type="button" onClick={() => setTlNames((current) => [...current, ""])} className="prime-button secondary flex items-center gap-2"><Plus className="w-4 h-4" />Add TL name</button>
             </div>
             {saveMsg && <p role="status" className="prime-notice mt-6">{saveMsg}</p>}
           </section>

@@ -66,7 +66,7 @@ export type AdminSettings = {
   clickupFieldMapping?: ClickUpFieldIdMapping;
   departments?: string[];
 };
-export const DEFAULT_DEPARTMENTS = ["COD", "MARKETING", "CRD", "LR", "ISD", "VisMin", "CPI", "BD", "HR", "R&A"];
+export const DEFAULT_DEPARTMENTS: string[] = [];
 
 export const ADMIN_SETTINGS_KEY = "prime_admin_settings";
 export const ADMIN_SESSION_KEY = "prime_admin_session";

@@ -42,9 +42,10 @@ interface RfpSheetProps {
   rfpNumberStatus?: "loading" | "ready" | "unavailable";
   canEditTlApproval?: boolean;
   departments?: string[];
+  tlNames?: string[];
 }
 
-export function RfpSheet({ data, onChange, validationErrors, variant = "prime", rfpNumberStatus = "loading", canEditTlApproval = false, departments }: RfpSheetProps) {
+export function RfpSheet({ data, onChange, validationErrors, variant = "prime", rfpNumberStatus = "loading", canEditTlApproval = false, departments, tlNames = [] }: RfpSheetProps) {
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [isTlSignatureModalOpen, setIsTlSignatureModalOpen] = useState(false);
 
@@ -730,7 +731,7 @@ export function RfpSheet({ data, onChange, validationErrors, variant = "prime", 
                   className="border-b border-[#0f172a] bg-transparent focus:outline-none flex-1 text-xs px-1"
                 >
                   <option value="">Select TL name</option>
-                  {["Department Team Leader", "Finance Officer", "Operations Staff"].map((name) => <option key={name} value={name}>{name}</option>)}
+                  {tlNames.map((name) => <option key={name} value={name}>{name}</option>)}
                 </select>
             </div>
             <div className="relative">

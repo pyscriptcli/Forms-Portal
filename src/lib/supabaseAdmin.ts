@@ -11,6 +11,7 @@ const WORKFLOW_TABLE = "forms-portal-workflow_statuses";
 const DESTINATIONS_TABLE = "forms-portal-form_destinations";
 const SETTINGS_TABLE = "forms-portal-settings";
 const RBAC_TABLE = "forms-portal-RBAC";
+const DROPDOWN_TABLE = "forms-portal-dropdown_options";
 
 function getSupabaseConfig() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -29,6 +30,32 @@ function supabaseHeaders(key: string, extra: Record<string, string> = {}) {
 
 export function isSupabaseAdminConfigured(): boolean {
   return getSupabaseConfig().isConfigured;
+}
+
+export type DropdownOptions = { department: string[]; tl_name: string[] };
+
+export async function readDropdownOptionsFromSupabase(): Promise<DropdownOptions | null> {
+  const { url, key, isConfigured } = getSupabaseConfig();
+  if (!isConfigured) return null;
+  const response = await fetch(`${url}/rest/v1/${encodeURIComponent(DROPDOWN_TABLE)}?select=dropdown_key,option_value&is_active=eq.true&order=display_order.asc,option_value.asc`, { headers: supabaseHeaders(key), cache: "no-store" });
+  if (!response.ok) throw new Error(`Supabase dropdown read failed (${response.status})`);
+  const rows = await response.json() as Array<{ dropdown_key: string; option_value: string }>;
+  return {
+    department: rows.filter((row) => row.dropdown_key === "department").map((row) => row.option_value),
+    tl_name: rows.filter((row) => row.dropdown_key === "tl_name").map((row) => row.option_value),
+  };
+}
+
+export async function saveDropdownOptionsToSupabase(options: DropdownOptions): Promise<void> {
+  const { url, key, isConfigured } = getSupabaseConfig();
+  if (!isConfigured) throw new Error("Supabase is not configured on this deployment.");
+  const clean = (values: string[]) => [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+  const response = await fetch(`${url}/rest/v1/${encodeURIComponent(DROPDOWN_TABLE)}?dropdown_key=in.(department,tl_name)`, { method: "DELETE", headers: supabaseHeaders(key, { Prefer: "return=minimal" }) });
+  if (!response.ok) throw new Error(`Supabase dropdown reset failed (${response.status})`);
+  const rows = (["department", "tl_name"] as const).flatMap((keyName) => clean(options[keyName]).map((option_value, display_order) => ({ dropdown_key: keyName, option_value, display_order, is_active: true })));
+  if (!rows.length) return;
+  const insert = await fetch(`${url}/rest/v1/${encodeURIComponent(DROPDOWN_TABLE)}`, { method: "POST", headers: supabaseHeaders(key, { Prefer: "return=minimal" }), body: JSON.stringify(rows) });
+  if (!insert.ok) throw new Error(`Supabase dropdown save failed (${insert.status})`);
 }
 
 export async function readWorkflowStatusesFromSupabase(): Promise<WorkflowStatuses | null> {

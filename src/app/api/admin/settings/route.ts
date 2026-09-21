@@ -15,6 +15,8 @@ import {
   readFormDestinationsFromSupabase,
   savePortalSettingsToSupabase,
   saveFormDestinationsToSupabase,
+  readDropdownOptionsFromSupabase,
+  saveDropdownOptionsToSupabase,
 } from "@/lib/supabaseAdmin";
 import { invalidateRfpCache } from "@/lib/rfpCache";
 
@@ -25,7 +27,8 @@ async function readFlags() {
     destinations: getDefaultFormDestinations(),
     workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
     clickupFieldMapping: {},
-    departments: ["COD", "MARKETING", "CRD", "LR", "ISD", "VisMin", "CPI", "BD", "HR", "R&A"],
+    departments: [] as string[],
+    tlNames: [] as string[],
   };
 }
 
@@ -33,19 +36,22 @@ export async function GET() {
   const flags = await readFlags();
   if (isSupabaseAdminConfigured()) {
     try {
-      const [workflowStatuses, portalSettings, destinations] = await Promise.all([
+      const [workflowStatuses, portalSettings, destinations, dropdowns] = await Promise.all([
         readWorkflowStatusesFromSupabase(),
         readPortalSettingsFromSupabase(),
         readFormDestinationsFromSupabase(),
+        readDropdownOptionsFromSupabase(),
       ]);
       if (workflowStatuses) flags.workflowStatuses = workflowStatuses;
       if (destinations) flags.destinations = destinations;
       Object.assign(flags, portalSettings);
+      flags.departments = dropdowns?.department ?? [];
+      flags.tlNames = dropdowns?.tl_name ?? [];
     } catch (error) {
       console.error("Failed to read workflow statuses from Supabase:", error);
     }
   }
-  return NextResponse.json(flags);
+  return NextResponse.json(flags, { headers: { "Cache-Control": "no-store, max-age=0" } });
 }
 
 export async function POST(req: NextRequest) {
@@ -64,11 +70,19 @@ export async function POST(req: NextRequest) {
   const current = await readFlags();
   const hasWorkflowStatuses = Boolean(body.workflowStatuses && typeof body.workflowStatuses === "object");
   const hasDestinations = Boolean(body.destinations && typeof body.destinations === "object");
+  const hasDropdowns = Array.isArray(body.departments) || Array.isArray(body.tlNames);
   if (hasWorkflowStatuses && isSupabaseAdminConfigured()) {
     await saveWorkflowStatusesToSupabase(normalizeWorkflowStatuses(body.workflowStatuses));
   }
   if (!isSupabaseAdminConfigured()) {
     return NextResponse.json({ error: "Supabase is required for shared Admin configuration." }, { status: 503 });
+  }
+  if (hasDropdowns) {
+    const existing = await readDropdownOptionsFromSupabase();
+    await saveDropdownOptionsToSupabase({
+      department: Array.isArray(body.departments) ? body.departments.filter((v): v is string => typeof v === "string") : existing?.department ?? [],
+      tl_name: Array.isArray(body.tlNames) ? body.tlNames.filter((v): v is string => typeof v === "string") : existing?.tl_name ?? [],
+    });
   }
   if (isSupabaseAdminConfigured()) {
     const portalSettings: Record<string, unknown> = {};
@@ -102,6 +116,7 @@ export async function POST(req: NextRequest) {
       ? { clickupFieldMapping: normalizeFieldMapping(body.clickupFieldMapping) }
       : {}),
     ...(Array.isArray(body.departments) ? { departments: body.departments.filter((v): v is string => typeof v === "string" && Boolean(v.trim())).map((v) => v.trim()) } : {}),
+    ...(Array.isArray(body.tlNames) ? { tlNames: body.tlNames.filter((v): v is string => typeof v === "string" && Boolean(v.trim())).map((v) => v.trim()) } : {}),
   };
 
   invalidateRfpCache();

@@ -113,6 +113,7 @@ function RfpAppContent() {
   const [rfpNumberRefreshKey, setRfpNumberRefreshKey] = useState(0);
   const [selectedForm, setSelectedForm] = useState<string>(formParam ?? "rfp");
   const [departments, setDepartments] = useState<string[]>([]);
+  const [tlNames, setTlNames] = useState<string[]>([]);
   const [previousDraft, setPreviousDraft] = useState<RfpFormData | null>(null);
   const [extractedBanner, setExtractedBanner] = useState<{
     vendorName: string;
@@ -121,8 +122,9 @@ function RfpAppContent() {
   } | null>(null);
 
   useEffect(() => {
-    fetch("/api/admin/settings").then((r) => r.json()).then((settings) => {
+    fetch("/api/admin/settings", { cache: "no-store" }).then((r) => r.json()).then((settings) => {
       if (Array.isArray(settings?.departments)) setDepartments(settings.departments);
+      if (Array.isArray(settings?.tlNames)) setTlNames(settings.tlNames);
     }).catch(() => undefined);
   }, []);
 
@@ -700,7 +702,7 @@ function RfpAppContent() {
 
         {/* Document First Paper Sheet */}
         <section id="rfp-sheet-container" className="prime-form-scroll mb-8" aria-label="Form document">
-          {selectedForm === "travel-budget" ? <TravelBudgetSheet data={formData as any} onChange={setFormData as any} /> : <RfpSheet data={formData} onChange={setFormData} validationErrors={validationErrors} variant={selectedForm === "gw-rfp" ? "gw" : "prime"} rfpNumberStatus={rfpNumberStatus} canEditTlApproval={user?.role === "approver" || user?.role === "admin"} departments={departments} />}
+          {selectedForm === "travel-budget" ? <TravelBudgetSheet data={formData as any} onChange={setFormData as any} /> : <RfpSheet data={formData} onChange={setFormData} validationErrors={validationErrors} variant={selectedForm === "gw-rfp" ? "gw" : "prime"} rfpNumberStatus={rfpNumberStatus} canEditTlApproval={user?.role === "approver" || user?.role === "admin"} departments={departments} tlNames={tlNames} />}
         </section>
 
         {/* Supporting Documents Section */}
