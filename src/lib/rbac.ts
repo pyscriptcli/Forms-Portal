@@ -1,5 +1,7 @@
 export type UserRole = "admin" | "approver" | "finance" | "requestor";
 export type PortalPermission = "forms" | "requests" | "approvals" | "settings";
+export const PORTAL_PERMISSIONS: PortalPermission[] = ["forms", "requests", "approvals", "settings"];
+export const DEFAULT_ACCESS_ID = "__default_access__";
 
 export interface RoleDefinition {
   id: UserRole;
@@ -75,6 +77,17 @@ export interface UserAccessRecord {
   updatedAt?: string;
   clickUpTaskId?: string;
   permissions?: PortalPermission[];
+}
+
+export interface RbacConfiguration {
+  users: UserAccessRecord[];
+  defaultPermissions: PortalPermission[];
+}
+
+export function roleFromPermissions(permissions: PortalPermission[]): UserRole {
+  if (permissions.includes("settings")) return "admin";
+  if (permissions.includes("approvals")) return "approver";
+  return "requestor";
 }
 
 

@@ -9,7 +9,7 @@ import {
 } from "@/lib/adminSettings";
 import { normalizeFormDestinations, type FormDestinationKey, type FormDestination } from "@/lib/adminSettings";
 import type { ClickUpFieldIdMapping } from "@/lib/clickupFields";
-import type { UserAccessRecord } from "@/lib/rbac";
+import { DEFAULT_ACCESS_ID, PORTAL_PERMISSIONS, roleFromPermissions, type RbacConfiguration, type UserAccessRecord } from "@/lib/rbac";
 
 const WORKFLOW_TABLE = "forms-portal-workflow_statuses";
 const DESTINATIONS_TABLE = "forms-portal-form_destinations";
@@ -269,6 +269,10 @@ export async function saveFormDestinationsToSupabase(destinations: Record<FormDe
 }
 
 export async function readRbacUsersFromSupabase(): Promise<UserAccessRecord[]> {
+  return (await readRbacConfiguration()).users;
+}
+
+export async function readRbacConfiguration(): Promise<RbacConfiguration> {
   const { url, key, isConfigured } = getSupabaseConfig();
   if (!isConfigured) throw new Error("Supabase is required for RBAC configuration.");
   const response = await fetch(`${url}/rest/v1/${encodeURIComponent(RBAC_TABLE)}?select=user_id,name,email,department,role,status,updated_at,clickup_task_id,permissions&order=name.asc`, {
@@ -276,23 +280,29 @@ export async function readRbacUsersFromSupabase(): Promise<UserAccessRecord[]> {
   });
   if (!response.ok) throw new Error(`Supabase RBAC read failed (${response.status}): ${await response.text()}`);
   const rows = await response.json() as Array<Record<string, unknown>>;
-  return rows.map((row) => ({
+  const records = rows.map((row) => ({
     id: String(row.user_id || ""), name: String(row.name || ""), email: String(row.email || ""),
     department: String(row.department || ""), role: row.role as UserAccessRecord["role"],
     status: row.status as UserAccessRecord["status"], updatedAt: row.updated_at ? String(row.updated_at) : undefined,
     clickUpTaskId: row.clickup_task_id ? String(row.clickup_task_id) : undefined,
-    permissions: Array.isArray(row.permissions) ? row.permissions as UserAccessRecord["permissions"] : undefined,
+    permissions: Array.isArray(row.permissions) ? row.permissions.filter((p) => PORTAL_PERMISSIONS.includes(String(p) as never)) as UserAccessRecord["permissions"] : undefined,
   }));
+  const sentinel = records.find((row) => row.id === DEFAULT_ACCESS_ID);
+  return { users: records.filter((row) => row.id !== DEFAULT_ACCESS_ID), defaultPermissions: sentinel?.permissions || ["forms", "requests"] };
 }
 
 export async function saveRbacUsersToSupabase(users: UserAccessRecord[]): Promise<void> {
+  return saveRbacConfiguration({ users, defaultPermissions: ["forms", "requests"] });
+}
+
+export async function saveRbacConfiguration(config: RbacConfiguration): Promise<void> {
   const { url, key, isConfigured } = getSupabaseConfig();
   if (!isConfigured) throw new Error("Supabase is required for RBAC configuration.");
-  const rows = users.map((user) => ({
+  const rows = [...config.users, { id: DEFAULT_ACCESS_ID, name: "Others / Default access", email: "__default_access__@local.invalid", department: "System", role: roleFromPermissions(config.defaultPermissions), status: "active" as const, permissions: config.defaultPermissions }].map((user) => ({
     user_id: user.id, name: user.name, email: user.email, department: user.department,
     role: user.role, status: user.status, updated_at: new Date().toISOString(),
     clickup_task_id: user.clickUpTaskId || null,
-    permissions: user.permissions || null,
+    permissions: user.permissions || [],
   }));
   const response = await fetch(`${url}/rest/v1/${encodeURIComponent(RBAC_TABLE)}?on_conflict=user_id`, {
     method: "POST", headers: supabaseHeaders(key, { Prefer: "resolution=merge-duplicates,return=minimal" }),

@@ -1,5 +1,6 @@
 "use client";
 import { PageHeader } from "@/components/PageHeader";
+import { PORTAL_PERMISSIONS, roleFromPermissions } from "@/lib/rbac";
 import { PrimeLogo } from "@/components/PrimeLogo";
 
 import React, { useState, useEffect } from "react";
@@ -79,12 +80,7 @@ import {
   type WorkflowConfigurations,
   type WorkflowFormKey,
 } from "@/lib/adminSettings";
-import {
-  ROLE_DEFINITIONS,
-  type UserAccessRecord,
-  type UserRole,
-  type PortalPermission,
-} from "@/lib/rbac";
+import { type UserAccessRecord, type PortalPermission } from "@/lib/rbac";
 
 const DEFAULT_FORM_DESTINATIONS: FormDestinations = {
   rfp: { listId: "", workspaceId: "", label: "PRIME RFP submissions", enabled: false },
@@ -143,7 +139,8 @@ export default function AdminPage() {
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserDept, setNewUserDept] = useState("ISD");
-  const [newUserRole, setNewUserRole] = useState<UserRole>("requestor");
+  const [newUserPermissions, setNewUserPermissions] = useState<PortalPermission[]>(["forms", "requests"]);
+  const [defaultPermissions, setDefaultPermissions] = useState<PortalPermission[]>(["forms", "requests"]);
 
   const loadRbacData = async () => {
     setIsRefreshingRbac(true);
@@ -155,7 +152,7 @@ export default function AdminPage() {
         setUsers([]);
         throw new Error(data?.error || "Could not load shared Supabase RBAC configuration.");
       }
-      setUsers(data.users);
+      setUsers(data.users); setDefaultPermissions(Array.isArray(data.defaultPermissions) ? data.defaultPermissions : []);
     } catch (error: any) {
       setUsers([]);
       setRbacSaveMsg(error?.message || "Could not load shared Supabase RBAC configuration.");
@@ -493,12 +490,6 @@ export default function AdminPage() {
     finally { setIsSaving(false); setTimeout(() => setSaveMsg(""), 3000); }
   }
 
-  const handleRoleChange = (userId: string, newRole: UserRole) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
-    );
-  };
-
   const handleStatusToggle = (userId: string) => {
     setUsers((prev) =>
       prev.map((u) =>
@@ -512,7 +503,7 @@ export default function AdminPage() {
   const togglePermission = (userId: string, permission: PortalPermission) => {
     setUsers((prev) => prev.map((u) => {
       if (u.id !== userId) return u;
-      const current = u.permissions || (u.role === "admin" ? ["forms", "requests", "approvals", "settings"] : ["forms", "requests"]);
+      const current = u.permissions || [];
       const permissions = current.includes(permission) ? current.filter((p) => p !== permission) : [...current, permission];
       return { ...u, permissions };
     }));
@@ -535,16 +526,17 @@ export default function AdminPage() {
       name: newUserName.trim(),
       email: newUserEmail.trim(),
       department: newUserDept.trim() || "Operations",
-      role: newUserRole,
+      role: roleFromPermissions(newUserPermissions),
       status: "active",
       updatedAt: new Date().toISOString(),
+      permissions: newUserPermissions,
     };
 
     setUsers((prev) => [...prev, newUser]);
     setNewUserName("");
     setNewUserEmail("");
     setNewUserDept("ISD");
-    setNewUserRole("requestor");
+    setNewUserPermissions(["forms", "requests"]);
   };
 
   const handleSaveRbac = async () => {
@@ -557,7 +549,7 @@ export default function AdminPage() {
           "Content-Type": "application/json",
           "x-admin-token": ADMIN_TOKEN,
         },
-        body: JSON.stringify({ users }),
+        body: JSON.stringify({ users, defaultPermissions }),
       });
 
       const data = await res.json();
@@ -614,7 +606,6 @@ export default function AdminPage() {
     },
   ];
 
-  const roleEntries = Object.values(ROLE_DEFINITIONS);
 
   return (
     <div className="prime-page pb-20">
@@ -1126,39 +1117,13 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* Role Definitions Matrix */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {roleEntries.map((role) => (
-              <div
-                key={role.id}
-                className="bg-white border border-prime-rule p-4 rounded-none shadow-sm flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span
-                      className="text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider text-white"
-                      style={{ backgroundColor: role.badgeBg, color: role.badgeText }}
-                    >
-                      {role.name}
-                    </span>
-                  </div>
-                  <p className="text-xs text-prime-ink/80 mb-3">{role.description}</p>
-                </div>
-                <div>
-                  <h4 className="text-[11px] font-bold text-prime-blue uppercase tracking-wider mb-1.5 border-t border-prime-rule/50 pt-2">
-                    Permissions:
-                  </h4>
-                  <ul className="space-y-1">
-                    {role.permissions.map((p, idx) => (
-                      <li key={idx} className="text-[11px] text-prime-ink/75 flex items-start gap-1">
-                        <span className="text-prime-blue shrink-0">•</span>
-                        <span>{p}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            ))}
+          <div className="bg-white border border-prime-blue p-4 mb-6">
+            <h3 className="font-bold text-sm text-prime-blue">Others / Default access</h3>
+            <p className="text-xs text-prime-ink/70 mt-1 mb-3">Applies to authenticated ClickUp users without a named override.</p>
+            <div className="flex flex-wrap gap-3">
+              <label className="inline-flex items-center gap-1 text-xs font-bold"><input type="checkbox" checked={defaultPermissions.length === 4} onChange={() => setDefaultPermissions(defaultPermissions.length === 4 ? [] : [...PORTAL_PERMISSIONS])} /> Full access</label>
+              {PORTAL_PERMISSIONS.map((permission) => <label key={permission} className="inline-flex items-center gap-1 text-xs uppercase"><input type="checkbox" checked={defaultPermissions.includes(permission)} onChange={() => setDefaultPermissions(defaultPermissions.includes(permission) ? defaultPermissions.filter((p) => p !== permission) : [...defaultPermissions, permission])} /> {permission}</label>)}
+            </div>
           </div>
 
           {/* User Access Management Table */}
@@ -1177,7 +1142,6 @@ export default function AdminPage() {
                   <tr className="border-b border-prime-rule bg-prime-surface/20 text-prime-blue font-bold uppercase text-[10px] tracking-wider">
                     <th className="p-3">Member</th>
                     <th className="p-3">Department</th>
-                    <th className="p-3">Assigned Role</th>
                     <th className="p-3">Portal Access</th>
                     <th className="p-3">Status</th>
                     <th className="p-3 text-right">Actions</th>
@@ -1193,22 +1157,10 @@ export default function AdminPage() {
                         </td>
                         <td className="p-3 font-medium text-prime-ink/80">{u.department}</td>
                         <td className="p-3">
-                          <select
-                            value={u.role}
-                            onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
-                            className="text-xs font-semibold py-1 px-2 border border-prime-rule bg-white focus:outline-none focus:border-prime-blue cursor-pointer"
-                          >
-                            <option value="admin">Administrator</option>
-                            <option value="approver">Approver / TL</option>
-                            <option value="finance">Finance & Accounting</option>
-                            <option value="requestor">Requestor / Staff</option>
-                          </select>
-                        </td>
-                        <td className="p-3">
                           <div className="flex flex-wrap gap-x-2 gap-y-1 max-w-[260px]">
+                            <label className="inline-flex items-center gap-1 text-[10px] font-bold uppercase cursor-pointer"><input type="checkbox" checked={(u.permissions || []).length === 4} onChange={() => setUsers((prev) => prev.map((item) => item.id === u.id ? { ...item, permissions: (item.permissions || []).length === 4 ? [] : [...PORTAL_PERMISSIONS] } : item))} /> Full access</label>
                             {(["forms", "requests", "approvals", "settings"] as PortalPermission[]).map((permission) => {
-                              const defaults = u.role === "admin" ? ["forms", "requests", "approvals", "settings"] : ["forms", "requests"];
-                              const enabled = (u.permissions || defaults).includes(permission);
+                              const enabled = (u.permissions || []).includes(permission);
                               return <label key={permission} className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide cursor-pointer">
                                 <input type="checkbox" checked={enabled} onChange={() => togglePermission(u.id, permission)} />
                                 {permission}
@@ -1285,18 +1237,9 @@ export default function AdminPage() {
                   className="w-full text-xs p-2 border border-prime-rule bg-white focus:outline-none focus:border-prime-blue"
                 />
               </div>
-              <div>
-                <label className="block text-[10px] font-semibold text-prime-ink/70 mb-1">Role</label>
-                <select
-                  value={newUserRole}
-                  onChange={(e) => setNewUserRole(e.target.value as UserRole)}
-                  className="w-full text-xs p-2 border border-prime-rule bg-white focus:outline-none focus:border-prime-blue cursor-pointer"
-                >
-                  <option value="requestor">Requestor / Staff</option>
-                  <option value="approver">Approver / TL</option>
-                  <option value="finance">Finance & Accounting</option>
-                  <option value="admin">Administrator</option>
-                </select>
+              <div className="md:col-span-2 flex flex-wrap items-center gap-2">
+                <label className="inline-flex items-center gap-1 text-[10px] font-bold uppercase"><input type="checkbox" checked={newUserPermissions.length === 4} onChange={() => setNewUserPermissions(newUserPermissions.length === 4 ? [] : [...PORTAL_PERMISSIONS])} /> Full access</label>
+                {PORTAL_PERMISSIONS.map((permission) => <label key={permission} className="inline-flex items-center gap-1 text-[10px] uppercase"><input type="checkbox" checked={newUserPermissions.includes(permission)} onChange={() => setNewUserPermissions(newUserPermissions.includes(permission) ? newUserPermissions.filter((p) => p !== permission) : [...newUserPermissions, permission])} /> {permission}</label>)}
               </div>
               <div className="flex items-end">
                 <button
