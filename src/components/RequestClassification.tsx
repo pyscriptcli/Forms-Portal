@@ -66,15 +66,16 @@ export function RequestClassification({ value = "", onChange, hasError = false }
   }, []);
 
   return (
-    <section id="request-classification-section" className={`mb-8 border bg-prime-white px-4 py-2.5 relative overflow-visible ${hasError ? "border-2 border-red-600 ring-2 ring-red-200" : "border-prime-rule"}`} aria-labelledby="request-classification-heading">
+    <section id="request-classification-section" className={`mx-auto mb-8 w-full max-w-[850px] border bg-prime-white px-3 py-2.5 relative overflow-visible ${hasError ? "border-2 border-red-600 ring-2 ring-red-200" : "border-prime-rule"}`} aria-labelledby="request-classification-heading">
       <div className={`absolute top-0 left-0 right-0 h-1 ${hasError ? "bg-red-600" : "bg-prime-gold"}`} />
-      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex flex-col gap-1.5">
         <div ref={containerRef} className="relative min-w-0 flex-1">
+          <h2 id="request-classification-heading" className="mb-1 text-xs font-bold uppercase tracking-[0.12em] text-prime-blue">Nature of Transaction <span className="text-red-700" aria-hidden="true">*</span></h2>
           <label htmlFor="nature-of-transaction" className="sr-only">Nature of Transaction</label>
           <input id="nature-of-transaction" name="natureOfTransaction" type="hidden" value={value} required aria-invalid={hasError} />
           <button type="button" aria-labelledby="request-classification-heading" aria-haspopup="listbox" aria-expanded={isOpen} aria-controls="nature-of-transaction-options" onClick={() => setIsOpen((open) => !open)} className={`prime-field flex w-full items-center justify-between gap-3 text-left py-2 ${hasError ? "border-red-600" : ""}`}>
             <span className="min-w-0">
-              <span id="request-classification-heading" className="block truncate text-sm font-semibold">Nature of Transaction <span className="text-red-700" aria-hidden="true">*</span>{selected && <span className="font-normal text-prime-ink/70"> · {selected.value}</span>}</span>
+              <span className="block truncate text-sm font-semibold">{selected?.value || "Select a category"}</span>
               <span className="block truncate text-[11px] italic text-prime-ink/65">{selected?.description || "Choose a category"}</span>
             </span>
             <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
