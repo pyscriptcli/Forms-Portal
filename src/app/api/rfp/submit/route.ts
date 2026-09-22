@@ -4,6 +4,7 @@ import { createClickUpTask, deleteClickUpTask, getClickUpConfig, readNextRfpRefe
 import { sendApproverNotification } from "@/lib/email";
 import { fetchClickUpUser, getServerAuthSession } from "@/lib/auth";
 import { readFormDestinationFromSupabase, readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
+import type { FormDestinationKey } from "@/lib/adminSettings";
 import { formatSubmittedFilename } from "@/lib/rfpNaming";
 import { getSubmissionPayloadSize, MAX_SUBMISSION_PAYLOAD_BYTES } from "@/lib/submissionUploads";
 import { invalidateRfpCache } from "@/lib/rfpCache";
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
     const data: any = JSON.parse(dataStr);
     const [user, destination, workflowStatuses] = await Promise.all([
       fetchClickUpUser(accessToken),
-      readFormDestinationFromSupabase(formType as "rfp" | "gw-rfp" | "travel-budget"),
+      readFormDestinationFromSupabase(formType as FormDestinationKey),
       readWorkflowStatusesFromSupabase(),
     ]);
     if (user?.email && (formType === "rfp" || formType === "gw-rfp")) {

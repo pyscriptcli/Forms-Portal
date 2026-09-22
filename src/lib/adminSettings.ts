@@ -1,4 +1,11 @@
-export type FormDestinationKey = "rfp" | "gw-rfp" | "travel-budget";
+export type FormDestinationKey =
+  | "rfp"
+  | "rfb"
+  | "credit-sharing"
+  | "gw-rfp"
+  | "gw-rfb"
+  | "gw-credit-sharing"
+  | "travel-budget";
 
 export type FormDestination = {
   listId: string;
@@ -47,6 +54,30 @@ export const DEFAULT_FORM_DESTINATIONS: FormDestinations = {
     workspaceId: "9014981136",
     label: "GW RFP submissions",
     enabled: true,
+  },
+  rfb: {
+    listId: "",
+    workspaceId: "",
+    label: "PRIME RFB submissions",
+    enabled: false,
+  },
+  "credit-sharing": {
+    listId: "",
+    workspaceId: "",
+    label: "PRIME Credit Sharing submissions",
+    enabled: false,
+  },
+  "gw-rfb": {
+    listId: "",
+    workspaceId: "",
+    label: "GW RFB submissions",
+    enabled: false,
+  },
+  "gw-credit-sharing": {
+    listId: "",
+    workspaceId: "",
+    label: "GW Credit Sharing submissions",
+    enabled: false,
   },
   "travel-budget": {
     listId: "901420772915",

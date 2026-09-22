@@ -3,7 +3,7 @@ import {
   normalizeWorkflowStatuses,
   type WorkflowStatuses,
 } from "@/lib/adminSettings";
-import type { FormDestinationKey, FormDestination } from "@/lib/adminSettings";
+import { normalizeFormDestinations, type FormDestinationKey, type FormDestination } from "@/lib/adminSettings";
 import type { ClickUpFieldIdMapping } from "@/lib/clickupFields";
 import type { UserAccessRecord } from "@/lib/rbac";
 
@@ -145,12 +145,12 @@ export async function readFormDestinationsFromSupabase(): Promise<Record<FormDes
     display_name?: string;
     enabled?: boolean;
   }>;
-  return Object.fromEntries(rows.map((row) => [row.form_type, {
+  return normalizeFormDestinations(Object.fromEntries(rows.map((row) => [row.form_type, {
     listId: row.clickup_list_id || "",
     workspaceId: row.clickup_workspace_id || "",
     label: row.display_name || row.form_type,
     enabled: row.enabled !== false,
-  }])) as Record<FormDestinationKey, FormDestination>;
+  }])));
 }
 
 export async function readPortalSettingsFromSupabase(): Promise<{

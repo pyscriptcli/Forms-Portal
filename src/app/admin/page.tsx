@@ -70,7 +70,11 @@ import {
 
 const DEFAULT_FORM_DESTINATIONS: FormDestinations = {
   rfp: { listId: "", workspaceId: "", label: "PRIME RFP submissions", enabled: false },
+  rfb: { listId: "", workspaceId: "", label: "PRIME RFB submissions", enabled: false },
+  "credit-sharing": { listId: "", workspaceId: "", label: "PRIME Credit Sharing submissions", enabled: false },
   "gw-rfp": { listId: "", workspaceId: "", label: "GW RFP submissions", enabled: false },
+  "gw-rfb": { listId: "", workspaceId: "", label: "GW RFB submissions", enabled: false },
+  "gw-credit-sharing": { listId: "", workspaceId: "", label: "GW Credit Sharing submissions", enabled: false },
   "travel-budget": { listId: "", workspaceId: "", label: "Travel Budget requests", enabled: false },
 };
 
@@ -651,7 +655,11 @@ export default function AdminPage() {
               <tbody>
                 {([
                   ["rfp", "PRIME RFP"],
+                  ["rfb", "PRIME RFB"],
+                  ["credit-sharing", "PRIME Credit Sharing"],
                   ["gw-rfp", "GW RFP"],
+                  ["gw-rfb", "GW RFB"],
+                  ["gw-credit-sharing", "GW Credit Sharing"],
                   ["travel-budget", "Travel Budget Request"],
                 ] as [FormDestinationKey, string][]).map(([key, label]) => (
                   <tr key={key} className="border-b border-prime-rule last:border-b-0">

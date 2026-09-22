@@ -42,26 +42,30 @@ create table if not exists "forms-portal-form_destinations" (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint forms_portal_form_destinations_type_check
-    check (form_type in ('rfp', 'gw-rfp', 'travel-budget'))
+    check (form_type in ('rfp', 'rfb', 'credit-sharing', 'gw-rfp', 'gw-rfb', 'gw-credit-sharing', 'travel-budget'))
 );
 
 create index if not exists forms_portal_form_destinations_enabled_idx
   on "forms-portal-form_destinations" (enabled);
 
 delete from "forms-portal-form_destinations"
-where form_type not in ('rfp', 'gw-rfp', 'travel-budget');
+where form_type not in ('rfp', 'rfb', 'credit-sharing', 'gw-rfp', 'gw-rfb', 'gw-credit-sharing', 'travel-budget');
 
 alter table "forms-portal-form_destinations"
   drop constraint if exists forms_portal_form_destinations_type_check;
 alter table "forms-portal-form_destinations"
   add constraint forms_portal_form_destinations_type_check
-  check (form_type in ('rfp', 'gw-rfp', 'travel-budget'));
+  check (form_type in ('rfp', 'rfb', 'credit-sharing', 'gw-rfp', 'gw-rfb', 'gw-credit-sharing', 'travel-budget'));
 
 insert into "forms-portal-form_destinations"
   (form_type, display_name, clickup_workspace_id, clickup_list_id, enabled)
 values
   ('rfp', 'PRIME RFP submissions', '9014981136', '901420772915', true),
   ('gw-rfp', 'GW RFP submissions', '9014981136', '901420772915', true),
+  ('rfb', 'PRIME RFB submissions', '', '', false),
+  ('credit-sharing', 'PRIME Credit Sharing submissions', '', '', false),
+  ('gw-rfb', 'GW RFB submissions', '', '', false),
+  ('gw-credit-sharing', 'GW Credit Sharing submissions', '', '', false),
   ('travel-budget', 'Travel Budget requests', '9014981136', '901420772915', true)
 on conflict (form_type) do update set
   display_name = excluded.display_name,
