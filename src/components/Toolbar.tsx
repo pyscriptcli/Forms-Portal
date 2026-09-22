@@ -1,6 +1,7 @@
 "use client";
 
 import { FileDown, RotateCcw, Send, Loader2 } from "lucide-react";
+import { RequestClassification } from "@/components/RequestClassification";
 
 interface ToolbarProps {
   onPreviewPdf: () => void;
@@ -13,6 +14,9 @@ interface ToolbarProps {
   totalAmount: number;
   selectedForm?: string;
   onSelectForm?: (formKey: string) => void;
+  natureOfTransaction?: string;
+  onNatureOfTransactionChange?: (value: string) => void;
+  hasNatureOfTransactionError?: boolean;
 }
 
 const FORM_LABELS: Record<string, string> = {
@@ -28,6 +32,7 @@ const FORM_LABELS: Record<string, string> = {
 export function Toolbar({
   onPreviewPdf, onReset, onSubmit, isSubmitting, isGeneratingPdf,
   isRevision, taskId, selectedForm = "rfp", onSelectForm,
+  natureOfTransaction = "", onNatureOfTransactionChange, hasNatureOfTransactionError = false,
 }: ToolbarProps) {
   return (
     <div className="prime-toolbar">
@@ -37,6 +42,9 @@ export function Toolbar({
         </span>
         {isRevision && <span className="text-xs text-prime-blue">Revision · #{taskId}</span>}
       </div>
+      {(selectedForm === "rfp" || selectedForm === "gw-rfp") && onNatureOfTransactionChange && (
+        <RequestClassification compact value={natureOfTransaction} onChange={onNatureOfTransactionChange} hasError={hasNatureOfTransactionError} />
+      )}
       <div className="prime-toolbar-actions">
         <button type="button" onClick={onPreviewPdf} disabled={isGeneratingPdf} className="prime-button secondary">
           {isGeneratingPdf ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />} PDF

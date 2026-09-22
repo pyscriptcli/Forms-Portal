@@ -18,7 +18,6 @@ import { Toolbar } from "@/components/Toolbar";
 import { QuotationDropzone } from "@/components/QuotationDropzone";
 import { ExtractionBanner } from "@/components/ExtractionBanner";
 import { SupportingDocuments } from "@/components/SupportingDocuments";
-import { RequestClassification } from "@/components/RequestClassification";
 import { SubmissionModal } from "@/components/SubmissionModal";
 import { SubmissionLoadingModal, SubmissionStage } from "@/components/SubmissionLoadingModal";
 import { ValidationAlertBanner } from "@/components/ValidationAlertBanner";
@@ -680,6 +679,9 @@ function RfpAppContent() {
           taskId={activeTaskId}
           totalAmount={activeTotalAmount}
           selectedForm={selectedForm}
+          natureOfTransaction={formData.natureOfTransaction}
+          onNatureOfTransactionChange={(value) => setFormData((current) => ({ ...current, natureOfTransaction: value }))}
+          hasNatureOfTransactionError={Boolean(validationErrors["natureOfTransaction"])}
           onSelectForm={(formKey) => {
             setSelectedForm(formKey);
             setValidationErrors({});
@@ -724,15 +726,6 @@ function RfpAppContent() {
         <section id="rfp-sheet-container" className="prime-form-scroll mb-8" aria-label="Form document">
           {selectedForm === "travel-budget" ? <TravelBudgetSheet data={formData as any} onChange={setFormData as any} departments={departments.map((item) => item.department)} /> : selectedForm === "rfb" ? <PrimeRfbSheet data={primeSubformData} onChange={setPrimeSubformData} departments={departments.map((item) => item.department)} /> : selectedForm === "credit-sharing" ? <PrimeCreditSharingSheet data={primeSubformData} onChange={setPrimeSubformData} departments={departments.map((item) => item.department)} /> : selectedForm === "gw-rfb" ? <GreatWorkRfbSheet data={primeSubformData} onChange={setPrimeSubformData} departments={departments.map((item) => item.department)} /> : selectedForm === "gw-credit-sharing" ? <GreatWorkCreditSharingSheet data={primeSubformData} onChange={setPrimeSubformData} departments={departments.map((item) => item.department)} /> : <RfpSheet data={formData} onChange={setFormData} validationErrors={validationErrors} variant={selectedForm === "gw-rfp" ? "gw" : "prime"} rfpNumberStatus={rfpNumberStatus} canEditTlApproval={user?.role === "approver" || user?.role === "admin"} departments={departments.map((item) => item.department)} departmentAssignments={departments} tlOptions={departments.map((item) => ({ name: item.tlName, email: item.tlEmail }))} />}
         </section>
-
-        {/* Portal-only classification; deliberately outside the official RFP sheet. */}
-        {(selectedForm === "rfp" || selectedForm === "gw-rfp") && (
-          <RequestClassification
-            value={formData.natureOfTransaction}
-            onChange={(value) => setFormData((current) => ({ ...current, natureOfTransaction: value }))}
-            hasError={Boolean(validationErrors["natureOfTransaction"])}
-          />
-        )}
 
         {/* Supporting Documents Section */}
         <section className="mb-12">
