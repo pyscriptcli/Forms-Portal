@@ -51,6 +51,8 @@ describe("request details", () => {
   it("presents Finance work as milestone states with exact milestone timestamps and no ClickUp link", async () => {
     render(<RequestsPage />);
 
+    await waitFor(() => expect(screen.getByRole("tab", { name: /Completed/ })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("tab", { name: /Completed/ }));
     await waitFor(() => expect(screen.getByRole("region", { name: "Request details" })).toBeInTheDocument());
 
     // Click on Finance stage in the compact workflow rail

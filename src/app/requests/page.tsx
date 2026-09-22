@@ -253,6 +253,7 @@ function RequestsContent() {
 
   const [searchQuery, setSearchQuery] = useState(initialId);
   const [selectedDept, setSelectedDept] = useState("All Departments");
+  const [requestTab, setRequestTab] = useState<"pending" | "completed">("pending");
   const [allRequests, setAllRequests] = useState<TrackedRfp[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -337,7 +338,11 @@ function RequestsContent() {
 
   // Local filtering without network calls
   const filteredRequests = useMemo(() => {
-    let list = allRequests;
+    let list = allRequests.filter((request) =>
+      requestTab === "completed"
+        ? request.currentStage === "completed"
+        : request.currentStage !== "completed"
+    );
     if (selectedDept !== "All Departments") {
       list = list.filter((r) => r.department.toLowerCase() === selectedDept.toLowerCase());
     }
@@ -355,22 +360,14 @@ function RequestsContent() {
       );
     }
     return list;
-  }, [allRequests, selectedDept, searchQuery]);
+  }, [allRequests, requestTab, selectedDept, searchQuery]);
 
   // Initial auto-selection
   useEffect(() => {
-    if (!selectedRequest && filteredRequests.length > 0) {
-      if (initialId) {
-        const found = filteredRequests.find((r) => r.taskId === initialId);
-        if (found) {
-          setSelectedRequest(found);
-          activeRequestIdRef.current = found.taskId;
-          return;
-        }
-      }
-      setSelectedRequest(filteredRequests[0]);
-      activeRequestIdRef.current = filteredRequests[0].taskId;
-    }
+    if (selectedRequest && filteredRequests.some((request) => request.taskId === selectedRequest.taskId)) return;
+    const nextRequest = (initialId && filteredRequests.find((request) => request.taskId === initialId)) || filteredRequests[0] || null;
+    setSelectedRequest(nextRequest);
+    activeRequestIdRef.current = nextRequest?.taskId || null;
   }, [filteredRequests, initialId, selectedRequest]);
 
   const openRequest = (request: TrackedRfp) => {
@@ -440,6 +437,33 @@ function RequestsContent() {
       )}
 
       {/* Filters */}
+      <div className="flex items-center gap-1 border-b border-prime-rule mb-4" role="tablist" aria-label="Request status tabs">
+        {([
+          ["pending", "Pending"],
+          ["completed", "Completed"],
+        ] as const).map(([value, label]) => {
+          const count = allRequests.filter((request) =>
+            value === "completed" ? request.currentStage === "completed" : request.currentStage !== "completed"
+          ).length;
+          const isActive = requestTab === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setRequestTab(value)}
+              className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.14em] border-b-2 transition-colors cursor-pointer ${
+                isActive
+                  ? "border-prime-blue text-prime-blue"
+                  : "border-transparent text-prime-ink/60 hover:text-prime-blue"
+              }`}
+            >
+              {label} <span className="ml-1 text-[10px]">({count})</span>
+            </button>
+          );
+        })}
+      </div>
       <div className="flex flex-col sm:flex-row gap-2 mb-6">
         <div className="relative flex-1">
           <Search className="w-3.5 h-3.5 text-prime-ink absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
