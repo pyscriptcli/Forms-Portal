@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { approveTaskByApprover, buildTaskDescription, createClickUpTask, getClickUpConfig } from "@/lib/clickup";
+import { approveTaskByApprover, buildTaskDescription, createClickUpTask, getClickUpConfig, updateClickUpTask } from "@/lib/clickup";
 
 describe("ClickUp Configuration Multi-List Resolution", () => {
   const originalEnv = { ...process.env };
@@ -226,6 +226,28 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
       "oauth-token",
       "list-urgent",
     )).resolves.toMatchObject({ id: "task-urgent" });
+  });
+
+  it("keeps the Nature of Business tag when a request is revised", async () => {
+    process.env.CLICKUP_API_TOKEN = "pk_test_token_123";
+    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      if (String(url).endsWith("/task/task-revision")) {
+        const payload = JSON.parse(String(init?.body));
+        expect(payload.tags).toEqual(["PRIME", "Rent / Lease"]);
+        return Response.json({ id: "task-revision", url: "https://app.clickup.com/t/task-revision" });
+      }
+      return Response.json({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(updateClickUpTask(
+      "task-revision",
+      { entityCode: "PRIME", payee: "Vendor", totalAmount: 100, purpose: "Lease", natureOfTransaction: "Rent / Lease" },
+      "http://localhost:3000",
+      "rfp",
+      "oauth-token",
+      "list-revision",
+    )).resolves.toMatchObject({ id: "task-revision" });
   });
 
   it("advances approval and records approver metadata on the task", async () => {

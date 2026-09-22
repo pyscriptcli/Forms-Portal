@@ -537,6 +537,17 @@ async function getMatchingCustomFields(listId: string, token: string, data: any,
   }
 }
 
+function getClickUpTaskTags(data: any, formType: FormType): string[] {
+  const actualFormType = formType || data.formType || "rfp";
+  const entityTag = String(data.entityCode || "PRIME").trim().toUpperCase();
+  const tags = [entityTag === "GW" ? "GW" : "PRIME"];
+  const isUrgent = data.urgency === "urgent" || (data.urgencyOptions && data.urgencyOptions.includes("urgent"));
+  if (isUrgent) tags.push("Urgent");
+  const natureOfTransaction = String(data.natureOfTransaction || "").trim();
+  if ((actualFormType === "rfp" || actualFormType === "gw-rfp") && natureOfTransaction) tags.push(natureOfTransaction);
+  return Array.from(new Set(tags));
+}
+
 /**
  * Creates a new ClickUp Task for the RFP.
  */
@@ -611,13 +622,7 @@ export async function createClickUpTask(
     priority,
     notify_all: true,
   };
-  const entityTag = String(data.entityCode || "PRIME").trim().toUpperCase();
-  body.tags = [entityTag === "GW" ? "GW" : "PRIME"];
-  if (isUrgent) body.tags.push("Urgent");
-  if ((actualFormType === "rfp" || actualFormType === "gw-rfp") && String(data.natureOfTransaction || "").trim()) {
-    body.tags.push(String(data.natureOfTransaction).trim());
-  }
-  body.tags = Array.from(new Set(body.tags));
+  body.tags = getClickUpTaskTags(data, actualFormType);
 
   // ClickUp task assignees require user IDs. Resolve the requestor and selected
   // TL by their ClickUp display names first. Emails remain a compatibility
@@ -856,6 +861,7 @@ export async function updateClickUpTask(
     description: desc,
     markdown_description: desc,
     priority,
+    tags: getClickUpTaskTags(data, actualFormType),
   };
 
   if (data.dateNeeded) {
