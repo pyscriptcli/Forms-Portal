@@ -68,6 +68,28 @@ describe("rfpCache", () => {
     expect(secondResult.isStale).toBe(false);
   });
 
+  it("keeps cache entries separate for different authenticated ClickUp users", async () => {
+    const firstUserFetcher = vi.fn().mockResolvedValue([sampleTask("user-1")]);
+    const secondUserFetcher = vi.fn().mockResolvedValue([sampleTask("user-2")]);
+
+    await getRfpQueueFromCacheOrFetch({
+      workspaceId: "ws-1",
+      listId: "list-1",
+      cacheScope: "user:1",
+      fetcher: firstUserFetcher,
+    });
+    const secondUserResult = await getRfpQueueFromCacheOrFetch({
+      workspaceId: "ws-1",
+      listId: "list-1",
+      cacheScope: "user:2",
+      fetcher: secondUserFetcher,
+    });
+
+    expect(firstUserFetcher).toHaveBeenCalledTimes(1);
+    expect(secondUserFetcher).toHaveBeenCalledTimes(1);
+    expect(secondUserResult.requests[0].taskId).toBe("user-2");
+  });
+
   it("forceRefresh=true bypasses fresh cache and calls fetcher", async () => {
     const fetcher = vi.fn()
       .mockResolvedValueOnce([sampleTask("1")])

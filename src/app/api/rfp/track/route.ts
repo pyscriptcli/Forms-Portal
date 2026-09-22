@@ -83,22 +83,25 @@ export async function GET(req: NextRequest) {
     if (!rfpDestination?.enabled || !rfpDestination.listId) {
       throw new Error("No enabled RFP ClickUp destination is configured in Supabase.");
     }
-    const rfpClickUp = getClickUpConfig("rfp", undefined, rfpDestination.listId);
+    // The user OAuth token is the credential for all ClickUp reads. The server
+    // token is intentionally not used for request tracking.
+    const rfpClickUp = getClickUpConfig("rfp", accessToken, rfpDestination.listId);
     if (!rfpClickUp.isConfigured) {
-      throw new Error("The server-side ClickUp API token is not configured for the Supabase RFP destination.");
+      throw new Error("The authenticated ClickUp access token is not configured for request tracking.");
     }
 
     const workspaceId = rfpDestination.workspaceId || "default";
     const listId = rfpDestination.listId;
+    const cacheScope = user?.id ? `user:${user.id}` : `token:${accessToken}`;
 
     // 1. Direct ID lookup
     if (id) {
       // Check cache first
-      let parsed = findTaskInRfpCache(id, workspaceId, listId);
+      let parsed = findTaskInRfpCache(id, workspaceId, listId, cacheScope);
       let source: "clickup" | "cache" = "cache";
 
       if (!parsed) {
-        const task = await getClickUpTask(id, rfpClickUp.token);
+        const task = await getClickUpTask(id, accessToken);
         if (!task) {
           return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
         }
@@ -124,9 +127,10 @@ export async function GET(req: NextRequest) {
     const cacheResult = await getRfpQueueFromCacheOrFetch({
       workspaceId,
       listId,
+      cacheScope,
       forceRefresh,
       fetcher: async () => {
-        const rawTasks = await getListTasks(true, "rfp", undefined, listId);
+        const rawTasks = await getListTasks(true, "rfp", accessToken, listId);
         return rawTasks.map((task) =>
           mapClickUpTaskToTrackedRfp(task, settings.fieldMapping, settings.workflowStatuses)
         );

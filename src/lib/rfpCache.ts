@@ -21,12 +21,12 @@ const CACHE_TTL_MS = 15_000; // 15 seconds freshness window
 const cacheStore = new Map<string, RfpCacheEntry>();
 const inFlightPromises = new Map<string, Promise<TrackedRfp[]>>();
 
-export function getRfpCacheKey(workspaceId: string, listId: string): string {
-  return `${workspaceId.trim()}:${listId.trim()}`;
+export function getRfpCacheKey(workspaceId: string, listId: string, cacheScope = "shared"): string {
+  return `${cacheScope.trim()}:${workspaceId.trim()}:${listId.trim()}`;
 }
 
-export function getRfpCacheEntry(workspaceId: string, listId: string): RfpCacheEntry | undefined {
-  return cacheStore.get(getRfpCacheKey(workspaceId, listId));
+export function getRfpCacheEntry(workspaceId: string, listId: string, cacheScope = "shared"): RfpCacheEntry | undefined {
+  return cacheStore.get(getRfpCacheKey(workspaceId, listId, cacheScope));
 }
 
 /**
@@ -56,11 +56,12 @@ export function invalidateRfpCache(workspaceId?: string, listId?: string): void 
 export async function getRfpQueueFromCacheOrFetch(options: {
   workspaceId: string;
   listId: string;
+  cacheScope?: string;
   forceRefresh?: boolean;
   fetcher: () => Promise<TrackedRfp[]>;
 }): Promise<RfpQueueReadResult> {
-  const { workspaceId, listId, forceRefresh = false, fetcher } = options;
-  const key = getRfpCacheKey(workspaceId, listId);
+  const { workspaceId, listId, cacheScope = "shared", forceRefresh = false, fetcher } = options;
+  const key = getRfpCacheKey(workspaceId, listId, cacheScope);
   const now = Date.now();
   const existing = cacheStore.get(key);
 
@@ -132,9 +133,9 @@ export async function getRfpQueueFromCacheOrFetch(options: {
 /**
  * Searches the cached list for an individual taskId, avoiding full list re-fetches.
  */
-export function findTaskInRfpCache(taskId: string, workspaceId?: string, listId?: string): TrackedRfp | null {
+export function findTaskInRfpCache(taskId: string, workspaceId?: string, listId?: string, cacheScope = "shared"): TrackedRfp | null {
   if (workspaceId && listId) {
-    const entry = getRfpCacheEntry(workspaceId, listId);
+    const entry = getRfpCacheEntry(workspaceId, listId, cacheScope);
     return entry?.requests.find((r) => r.taskId === taskId) || null;
   }
   for (const entry of Array.from(cacheStore.values())) {
