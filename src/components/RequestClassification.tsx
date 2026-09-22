@@ -79,7 +79,7 @@ export function RequestClassification({ value = "", onChange, hasError = false, 
             <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
           </button>
           {isOpen && (
-            <div id="nature-of-transaction-options" role="listbox" aria-label="Nature of Transaction options" className={`absolute z-30 grid max-h-[min(70vh,31rem)] w-full grid-cols-1 overflow-y-auto border border-prime-blue bg-prime-white p-1 shadow-lg sm:grid-cols-2 ${compact ? "bottom-full mb-1" : "mt-1"}`}>
+            <div id="nature-of-transaction-options" role="listbox" aria-label="Nature of Transaction options" className={`absolute z-30 grid max-h-[min(70vh,31rem)] w-full grid-cols-1 overflow-y-auto border border-prime-blue bg-prime-white p-1 shadow-lg ${compact ? "bottom-full mb-1" : "mt-1"}`}>
               {NATURE_OF_TRANSACTION_OPTIONS.map((option) => (
                 <button key={option.value} type="button" role="option" aria-selected={value === option.value} onClick={() => { onChange(option.value); setIsOpen(false); }} className={`border-b border-prime-rule/60 px-2.5 py-1.5 text-left last:border-0 hover:bg-prime-gold/10 sm:border-r ${value === option.value ? "bg-prime-gold/15 ring-1 ring-inset ring-prime-gold" : ""}`}>
                   <span className="flex items-start gap-2">
