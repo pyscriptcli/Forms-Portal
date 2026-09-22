@@ -108,6 +108,7 @@ export default function AdminPage() {
   const [departments, setDepartments] = useState<Array<{ department: string; tlName: string; tlEmail: string }>>([]);
   const [tlOptions, setTlOptions] = useState<Array<{ name: string; email: string }>>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isRefreshingDestinations, setIsRefreshingDestinations] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
   // RBAC State
@@ -284,24 +285,48 @@ export default function AdminPage() {
     }
   }
 
+  function applyLoadedSettings(flags: AdminSettings & { tlOptions?: Array<{ name: string; email: string }> }) {
+    setSettings(flags);
+    if (flags.destinations) setDestinations(flags.destinations);
+    if (flags.workflowStatuses) setWorkflowStatuses(flags.workflowStatuses);
+    if (Array.isArray(flags.departments)) {
+      setDepartments(flags.departments.map((item: any) => typeof item === "string" ? { department: item, tlName: "", tlEmail: "" } : item));
+    }
+    if (Array.isArray(flags.tlOptions)) setTlOptions(flags.tlOptions);
+  }
+
+  async function loadAdminSettings(message?: string) {
+    const response = await fetch("/api/admin/settings", {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache" },
+    });
+    const flags = await response.json();
+    if (!response.ok || !flags || typeof flags !== "object") {
+      throw new Error(flags?.error || "Could not load shared Supabase configuration.");
+    }
+    applyLoadedSettings(flags);
+    if (message) setSaveMsg(message);
+  }
+
+  async function handleRefreshDestinations() {
+    setIsRefreshingDestinations(true);
+    setSaveMsg("");
+    try {
+      await loadAdminSettings("Form destinations refreshed from Supabase.");
+    } catch (error: any) {
+      setSaveMsg(error?.message || "Could not refresh form destinations from Supabase.");
+    } finally {
+      setIsRefreshingDestinations(false);
+    }
+  }
+
   useEffect(() => {
     if (isAdminAuthenticated()) {
       setAuthed(true);
-      // Load latest flags from server
-      fetch("/api/admin/settings", { cache: "no-store" })
-        .then((r) => r.json())
-        .then((flags) => {
-          if (flags && typeof flags === "object") {
-            setSettings(flags);
-            if (flags.destinations) setDestinations(flags.destinations);
-            if (flags.workflowStatuses) setWorkflowStatuses(flags.workflowStatuses);
-            if (Array.isArray(flags.departments)) setDepartments(flags.departments.map((item: any) => typeof item === "string" ? { department: item, tlName: "", tlEmail: "" } : item));
-            if (Array.isArray(flags.tlOptions)) setTlOptions(flags.tlOptions);
-          }
-        })
-        .catch(() => {
-          setSaveMsg("Could not load shared Supabase configuration.");
-        });
+      // Supabase is authoritative: always load a fresh, uncached server snapshot.
+      loadAdminSettings().catch((error: any) => {
+        setSaveMsg(error?.message || "Could not load shared Supabase configuration.");
+      });
 
       // Load RBAC users from the server-side RBAC database
       loadRbacData();
@@ -363,8 +388,6 @@ export default function AdminPage() {
   async function handleSaveDestinations() {
     setIsSaving(true);
     setSaveMsg("");
-    const updated = { ...settings, destinations };
-    setSettings(updated);
     try {
       const res = await fetch("/api/admin/settings", {
         method: "POST",
@@ -374,8 +397,10 @@ export default function AdminPage() {
         },
         body: JSON.stringify({ destinations }),
       });
-      if (!res.ok) throw new Error("Save failed");
-      setSaveMsg("Form destinations saved.");
+      const result = await res.json();
+      if (!res.ok) throw new Error(result?.error || "Save failed");
+      // Confirm the values from Supabase after the write. The browser never becomes the source of truth.
+      await loadAdminSettings("Form destinations saved and reloaded from Supabase.");
     } catch (error: any) {
       setSaveMsg(error?.message || "Error saving form destinations.");
     } finally {
@@ -631,15 +656,26 @@ export default function AdminPage() {
                 Configure the ClickUp Lists used by the portal. Values shown here are read from Supabase.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleSaveDestinations}
-              disabled={isSaving}
-              className="prime-button flex items-center justify-center gap-2 shrink-0"
-            >
-              <Save className="w-4 h-4" />
-              {isSaving ? "Saving..." : "Save destinations"}
-            </button>
+            <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleRefreshDestinations}
+                disabled={isSaving || isRefreshingDestinations}
+                className="prime-button-secondary flex items-center justify-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshingDestinations ? "animate-spin" : ""}`} />
+                {isRefreshingDestinations ? "Refreshing..." : "Refresh"}
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveDestinations}
+                disabled={isSaving || isRefreshingDestinations}
+                className="prime-button flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                {isSaving ? "Saving..." : "Save destinations"}
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto border border-prime-rule">

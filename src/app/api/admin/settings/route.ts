@@ -33,25 +33,28 @@ async function readFlags() {
 }
 
 export async function GET() {
-  const flags = await readFlags();
-  if (isSupabaseAdminConfigured()) {
-    try {
-      const [workflowStatuses, portalSettings, destinations, dropdowns] = await Promise.all([
-        readWorkflowStatusesFromSupabase(),
-        readPortalSettingsFromSupabase(),
-        readFormDestinationsFromSupabase(),
-        readDropdownOptionsFromSupabase(),
-      ]);
-      if (workflowStatuses) flags.workflowStatuses = workflowStatuses;
-      if (destinations) flags.destinations = destinations;
-      Object.assign(flags, portalSettings);
-      flags.departments = dropdowns?.department ?? [];
-      flags.tlOptions = dropdowns?.department.map((item) => ({ name: item.tlName, email: item.tlEmail })) ?? [];
-    } catch (error) {
-      console.error("Failed to read workflow statuses from Supabase:", error);
-    }
+  if (!isSupabaseAdminConfigured()) {
+    return NextResponse.json({ error: "Supabase is required for shared Admin configuration." }, { status: 503 });
   }
-  return NextResponse.json(flags, { headers: { "Cache-Control": "no-store, max-age=0" } });
+
+  try {
+    const flags = await readFlags();
+    const [workflowStatuses, portalSettings, destinations, dropdowns] = await Promise.all([
+      readWorkflowStatusesFromSupabase(),
+      readPortalSettingsFromSupabase(),
+      readFormDestinationsFromSupabase(),
+      readDropdownOptionsFromSupabase(),
+    ]);
+    if (workflowStatuses) flags.workflowStatuses = workflowStatuses;
+    if (destinations) flags.destinations = destinations;
+    Object.assign(flags, portalSettings);
+    flags.departments = dropdowns?.department ?? [];
+    flags.tlOptions = dropdowns?.department.map((item) => ({ name: item.tlName, email: item.tlEmail })) ?? [];
+    return NextResponse.json(flags, { headers: { "Cache-Control": "no-store, max-age=0" } });
+  } catch (error) {
+    console.error("Failed to read Admin configuration from Supabase:", error);
+    return NextResponse.json({ error: "Could not read Admin configuration from Supabase." }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -86,6 +89,7 @@ export async function POST(req: NextRequest) {
   }
   if (isSupabaseAdminConfigured()) {
     const portalSettings: Record<string, unknown> = {};
+    let persistedDestinations;
     if (typeof body.rfpAutofillEnabled === "boolean") portalSettings.rfpAutofillEnabled = body.rfpAutofillEnabled;
     if (typeof body.demoModeEnabled === "boolean") portalSettings.demoModeEnabled = body.demoModeEnabled;
     if (body.clickupFieldMapping && typeof body.clickupFieldMapping === "object") {
@@ -98,30 +102,27 @@ export async function POST(req: NextRequest) {
         ? [saveFormDestinationsToSupabase(normalizeFormDestinations(body.destinations))]
         : []),
     ]);
+    if (hasDestinations) {
+      // Return what was actually persisted, not the request body. Supabase remains authoritative.
+      persistedDestinations = await readFormDestinationsFromSupabase();
+    }
+
+    const updated = {
+      ...current,
+      ...(typeof body.rfpAutofillEnabled === "boolean" ? { rfpAutofillEnabled: body.rfpAutofillEnabled } : {}),
+      ...(typeof body.demoModeEnabled === "boolean" ? { demoModeEnabled: body.demoModeEnabled } : {}),
+      ...(persistedDestinations ? { destinations: persistedDestinations } : {}),
+      ...(body.workflowStatuses && typeof body.workflowStatuses === "object"
+        ? { workflowStatuses: normalizeWorkflowStatuses(body.workflowStatuses) }
+        : {}),
+      ...(body.clickupFieldMapping && typeof body.clickupFieldMapping === "object"
+        ? { clickupFieldMapping: normalizeFieldMapping(body.clickupFieldMapping) }
+        : {}),
+      ...(Array.isArray(body.departments) ? { departments: body.departments } : {}),
+      ...(Array.isArray(body.tlOptions) ? { tlOptions: body.tlOptions } : {}),
+    };
+
+    invalidateRfpCache();
+    return NextResponse.json({ success: true, flags: updated }, { headers: { "Cache-Control": "no-store, max-age=0" } });
   }
-
-  const updated = {
-    ...current,
-    ...(typeof body.rfpAutofillEnabled === "boolean"
-      ? { rfpAutofillEnabled: body.rfpAutofillEnabled }
-      : {}),
-    ...(typeof body.demoModeEnabled === "boolean" ? { demoModeEnabled: body.demoModeEnabled } : {}),
-    ...(body.destinations && typeof body.destinations === "object"
-      ? { destinations: normalizeFormDestinations(body.destinations) }
-      : {}),
-    ...(body.workflowStatuses && typeof body.workflowStatuses === "object"
-      ? { workflowStatuses: normalizeWorkflowStatuses(body.workflowStatuses) }
-      : {}),
-    ...(body.clickupFieldMapping && typeof body.clickupFieldMapping === "object"
-      ? { clickupFieldMapping: normalizeFieldMapping(body.clickupFieldMapping) }
-      : {}),
-    ...(Array.isArray(body.departments) ? { departments: body.departments } : {}),
-    ...(Array.isArray(body.tlOptions) ? { tlOptions: body.tlOptions } : {}),
-  };
-
-  invalidateRfpCache();
-
-  // Vercel has a read-only deployment filesystem. Supabase is authoritative
-  // for workflow statuses in production; JSON remains the local-dev fallback.
-  return NextResponse.json({ success: true, flags: updated });
 }
