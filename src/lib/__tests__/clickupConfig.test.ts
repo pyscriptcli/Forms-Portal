@@ -192,7 +192,7 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
     )).resolves.toMatchObject({ id: "task-names" });
   });
 
-  it("adds the GW and Urgent tags and ClickUp urgent priority", async () => {
+  it("adds the GW, transaction, and Urgent tags and ClickUp urgent priority", async () => {
     const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
       const href = String(url);
       if (href.endsWith("/list/list-urgent/field")) return Response.json({ fields: [] });
@@ -201,7 +201,7 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
       }
       if (href.endsWith("/list/list-urgent/task")) {
         const payload = JSON.parse(String(init?.body));
-        expect(payload.tags).toEqual(["GW", "Urgent"]);
+        expect(payload.tags).toEqual(["GW", "Urgent", "Utility Payment"]);
         expect(payload.priority).toBe(1);
         return Response.json({ id: "task-urgent", url: "https://app.clickup.com/t/task-urgent", status: { status: payload.status } });
       }
@@ -217,6 +217,7 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
         purpose: "Urgent supplies",
         items: [],
         urgency: "urgent",
+        natureOfTransaction: "Utility Payment",
         tlEmail: "tl@example.com",
         clickupWorkspaceId: "team-123",
       },

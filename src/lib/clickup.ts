@@ -614,6 +614,10 @@ export async function createClickUpTask(
   const entityTag = String(data.entityCode || "PRIME").trim().toUpperCase();
   body.tags = [entityTag === "GW" ? "GW" : "PRIME"];
   if (isUrgent) body.tags.push("Urgent");
+  if ((actualFormType === "rfp" || actualFormType === "gw-rfp") && String(data.natureOfTransaction || "").trim()) {
+    body.tags.push(String(data.natureOfTransaction).trim());
+  }
+  body.tags = Array.from(new Set(body.tags));
 
   // ClickUp task assignees require user IDs. Resolve the requestor and selected
   // TL by their ClickUp display names first. Emails remain a compatibility
