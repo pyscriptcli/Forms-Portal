@@ -21,6 +21,7 @@ export interface TrackedRfp {
   payee: string;
   department: string;
   totalAmount: number;
+  lineItems?: Array<{ description: string; unitPrice: number; quantity: number; amount: number }>;
   dateNeeded: string;
   urgency: "urgent" | "normal";
   purpose: string;
@@ -49,6 +50,19 @@ export interface TrackedRfp {
   milestoneTimestamps: MilestoneTimestamps;
   milestoneActors: MilestoneActors;
   dataSource?: "custom_field" | "legacy_fallback";
+}
+
+function parseLineItems(description: string): NonNullable<TrackedRfp["lineItems"]> {
+  const section = description.match(/##\s*Line Item Breakdown\s*\r?\n([\s\S]*?)(?:\r?\n\s*\r?\n|$)/i)?.[1] || "";
+  return section.split(/\r?\n/).slice(2).flatMap((line) => {
+    if (!line.trim().startsWith("|") || /Total Price for Payment/i.test(line)) return [];
+    const cells = line.split(/(?<!\\)\|/).slice(1, -1).map((cell) => cell.replace(/\\\|/g, "|").replace(/\*\*/g, "").trim());
+    if (cells.length < 4) return [];
+    const unitPrice = Number(cells[1].replace(/[,₱]/g, "")) || 0;
+    const quantity = Number(cells[2].replace(/,/g, "")) || 0;
+    const amount = Number(cells[3].replace(/[,₱]/g, "")) || quantity * unitPrice;
+    return cells[0] ? [{ description: cells[0], unitPrice, quantity, amount }] : [];
+  });
 }
 
 /**
@@ -99,6 +113,7 @@ export function mapClickUpTaskToTrackedRfp(
   const statuses = workflowStatusesOverride || DEFAULT_WORKFLOW_STATUSES;
   const statusStr = (task.status?.status || "").toLowerCase();
   const desc = task.markdown_description || task.description || "";
+  const lineItems = parseLineItems(desc);
   const taskCustomFields: Array<{ id: string; name?: string; value?: any }> = Array.isArray(task.custom_fields)
     ? task.custom_fields
     : [];
@@ -360,6 +375,7 @@ export function mapClickUpTaskToTrackedRfp(
     payee: String(payee || ""),
     department: String(department || "General"),
     totalAmount: Number(totalAmount || 0),
+    lineItems,
     dateNeeded,
     urgency,
     purpose: String(purpose || ""),

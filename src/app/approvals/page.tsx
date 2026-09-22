@@ -297,6 +297,11 @@ function ApprovalsContent() {
   );
   const primaryDocument = pdfAtt ?? formPreviewAtt;
   const portalDocumentUrl = (url: string) => `/api/rfp/attachment?url=${encodeURIComponent(url)}`;
+  const approvalLineItems = activeRequest?.lineItems?.length
+    ? activeRequest.lineItems
+    : activeRequest
+      ? [{ description: activeRequest.purpose || "Request total — see official RFP for line-item detail", unitPrice: activeRequest.totalAmount, quantity: 1, amount: activeRequest.totalAmount }]
+      : [];
   const renderDocument = (attachment: { name: string; url: string }, label: string) => {
     const isImage = /\.(jpeg|jpg|png|webp|gif)$/i.test(attachment.url) || /\.(jpeg|jpg|png|webp|gif)$/i.test(attachment.name);
     const isPdf = /\.pdf($|\?)/i.test(attachment.url) || /\.pdf$/i.test(attachment.name);
@@ -531,26 +536,44 @@ function ApprovalsContent() {
                 </p>
               </div>
 
-              {/* Approval breakdown: keep the decision-critical figures visible beside the source documents. */}
+              {/* Line-item breakdown mirrors the official RFP table for fast approval review. */}
               <div className="my-4 border border-prime-rule bg-white">
-                <div className="border-b border-prime-rule bg-prime-surface/30 px-3 py-2">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-prime-blue">Approval breakdown</h3>
-                  <p className="mt-0.5 text-[11px] text-prime-ink/60">Use the official RFP and supporting files below to verify the line-item detail.</p>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-prime-blue bg-[#e8eef9] px-3 py-2">
+                  <div>
+                    <h3 className="text-[11px] font-bold uppercase tracking-[0.16em] text-prime-blue">Payment item breakdown</h3>
+                    <p className="mt-0.5 text-[11px] text-prime-ink/65">Cross-check every amount against the supporting files below.</p>
+                  </div>
+                  <span className="border border-prime-blue/30 bg-white px-2 py-1 text-[10px] font-semibold text-prime-blue">{approvalLineItems.length} item{approvalLineItems.length === 1 ? "" : "s"}</span>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[520px] text-left text-xs">
-                    <thead className="border-b border-prime-rule bg-prime-surface/15 text-[10px] uppercase tracking-wider text-prime-ink/70">
-                      <tr><th className="px-3 py-2 font-semibold">Review item</th><th className="px-3 py-2 font-semibold">Details</th><th className="px-3 py-2 text-right font-semibold">Amount / status</th></tr>
+                  <table className="w-full min-w-[640px] border-collapse text-xs">
+                    <thead className="bg-[#dce5f7] text-prime-blue">
+                      <tr>
+                        <th className="w-[52%] border-b border-r border-prime-blue/50 px-3 py-2 text-left font-serif font-bold">Item / Description</th>
+                        <th className="w-[16%] border-b border-r border-prime-blue/50 px-3 py-2 text-right font-serif font-bold">Unit Price</th>
+                        <th className="w-[12%] border-b border-r border-prime-blue/50 px-3 py-2 text-center font-serif font-bold">Quantity</th>
+                        <th className="w-[20%] border-b border-prime-blue/50 px-3 py-2 text-right font-serif font-bold">Amount</th>
+                      </tr>
                     </thead>
-                    <tbody className="divide-y divide-prime-rule/60">
-                      <tr><td className="px-3 py-2 text-prime-ink/70">Payee / supplier</td><td className="px-3 py-2 font-medium text-prime-ink">{activeRequest.payee || "Not specified"}</td><td className="px-3 py-2 text-right text-prime-ink/60">{activeRequest.formType.toUpperCase()}</td></tr>
-                      <tr><td className="px-3 py-2 text-prime-ink/70">Business purpose</td><td className="px-3 py-2 text-prime-ink" colSpan={2}>{activeRequest.purpose || "Not specified"}</td></tr>
-                      <tr><td className="px-3 py-2 text-prime-ink/70">Total payable</td><td className="px-3 py-2 font-semibold text-prime-blue">See detailed line items in the Official Signed RFP</td><td className="px-3 py-2 text-right font-semibold text-prime-blue">₱{Number(activeRequest.totalAmount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td></tr>
-                      <tr><td className="px-3 py-2 text-prime-ink/70">Requested date</td><td className="px-3 py-2 text-prime-ink" colSpan={2}>{activeRequest.dateNeeded || "Immediate"}</td></tr>
-                      <tr><td className="px-3 py-2 text-prime-ink/70">Supporting documents</td><td className="px-3 py-2 text-prime-ink">{activeRequest.attachments.length} attached file{activeRequest.attachments.length === 1 ? "" : "s"}</td><td className="px-3 py-2 text-right text-prime-blue">Review below</td></tr>
+                    <tbody>
+                      {approvalLineItems.map((item, index) => (
+                        <tr key={`${item.description}-${index}`} className="border-b border-prime-blue/30 align-top">
+                          <td className="border-r border-prime-blue/30 px-3 py-3 leading-relaxed text-prime-ink">{item.description}</td>
+                          <td className="border-r border-prime-blue/30 px-3 py-3 text-right tabular-nums text-prime-ink">{Number(item.unitPrice || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td className="border-r border-prime-blue/30 px-3 py-3 text-center tabular-nums text-prime-ink">{item.quantity}</td>
+                          <td className="px-3 py-3 text-right tabular-nums text-prime-ink">{Number(item.amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                      ))}
                     </tbody>
+                    <tfoot>
+                      <tr className="bg-prime-surface/20">
+                        <td colSpan={3} className="border-r border-prime-blue/40 px-3 py-3 text-right font-serif font-bold text-prime-blue">Total Price for Payment:</td>
+                        <td className="px-3 py-3 text-right text-sm font-bold tabular-nums text-prime-blue">₱{Number(activeRequest.totalAmount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
+                {!activeRequest.lineItems?.length && <p className="border-t border-prime-rule bg-amber-50 px-3 py-2 text-[11px] text-amber-900">This legacy request predates stored line-item data. The row above shows the request total; open the official RFP for its original breakdown.</p>}
               </div>
 
               {/* Document Review Tabs */}

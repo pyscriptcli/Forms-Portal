@@ -124,6 +124,16 @@ export function buildTaskDescription(data: RfpFormData): string {
   const paymentDetails =
     bankParts.length > 0 ? `${methodsDisplay} (${bankParts.join(" • ")})` : methodsDisplay;
 
+  const escapeTableCell = (value: unknown) => String(value ?? "").replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim();
+  const itemRows = (data.items || [])
+    .filter((item) => item.description || Number(item.amount) > 0)
+    .map((item) => {
+      const quantity = Number(item.qty) || 1;
+      const unitPrice = Number(String(item.unitPrice).replace(/,/g, "")) || 0;
+      const amount = Number(item.amount) || quantity * unitPrice;
+      return `| ${escapeTableCell(item.description) || "Item"} | ${unitPrice.toFixed(2)} | ${quantity} | ${amount.toFixed(2)} |`;
+    });
+
   const lines = [
     `# 📋 Request for Payment (RFP)`,
     "",
@@ -138,6 +148,12 @@ export function buildTaskDescription(data: RfpFormData): string {
     `| **RFP ID** | **${data.rfpCodeSuffix || "Pending Finance number"}** |`,
     `| **Requested By** | **${data.requestedByName || "N/A"}** (Date: ${data.date || "N/A"}) |`,
     `| **Requested By Email** | ${data.requestedByEmail || "N/A"} |`,
+    "",
+    `## Line Item Breakdown`,
+    `| Item / Description | Unit Price | Quantity | Amount |`,
+    `| :--- | ---: | ---: | ---: |`,
+    ...(itemRows.length > 0 ? itemRows : [`| ${escapeTableCell(data.purpose) || "Request total"} | ${Number(data.totalAmount || 0).toFixed(2)} | 1 | ${Number(data.totalAmount || 0).toFixed(2)} |`]),
+    `| **Total Price for Payment** |  |  | **${Number(data.totalAmount || 0).toFixed(2)}** |`,
     "",
   ];
 
