@@ -16,6 +16,7 @@ import {
   type FormDestinationKey,
 } from "@/lib/adminSettings";
 import { formatRfpReference, formatRfpTaskName, highestRfpSequence } from "@/lib/rfpNaming";
+import { normalizeRfpLineItems, serializeRfpStructuredData } from "@/lib/rfpStructuredData";
 import {
   CLICKUP_METADATA_FIELDS,
   CLICKUP_AUDIT_FIELDS,
@@ -125,14 +126,10 @@ export function buildTaskDescription(data: RfpFormData): string {
     bankParts.length > 0 ? `${methodsDisplay} (${bankParts.join(" • ")})` : methodsDisplay;
 
   const escapeTableCell = (value: unknown) => String(value ?? "").replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim();
-  const itemRows = (data.items || [])
-    .filter((item) => item.description || Number(item.amount) > 0)
-    .map((item) => {
-      const quantity = Number(item.qty) || 1;
-      const unitPrice = Number(String(item.unitPrice).replace(/,/g, "")) || 0;
-      const amount = Number(item.amount) || quantity * unitPrice;
-      return `| ${escapeTableCell(item.description) || "Item"} | ${unitPrice.toFixed(2)} | ${quantity} | ${amount.toFixed(2)} |`;
-    });
+  const normalizedItems = normalizeRfpLineItems(data.items);
+  const itemRows = normalizedItems.map((item) =>
+    `| ${escapeTableCell(item.description)} | ${item.unitPrice.toFixed(2)} | ${item.quantity} | ${item.amount.toFixed(2)} |`
+  );
 
   const lines = [
     `# 📋 Request for Payment (RFP)`,
@@ -154,6 +151,10 @@ export function buildTaskDescription(data: RfpFormData): string {
     `| :--- | ---: | ---: | ---: |`,
     ...(itemRows.length > 0 ? itemRows : [`| ${escapeTableCell(data.purpose) || "Request total"} | ${Number(data.totalAmount || 0).toFixed(2)} | 1 | ${Number(data.totalAmount || 0).toFixed(2)} |`]),
     `| **Total Price for Payment** |  |  | **${Number(data.totalAmount || 0).toFixed(2)}** |`,
+    "",
+    `## Portal Structured Data`,
+    `The versioned JSON block below is maintained by Forms Portal and supports dynamic line items.`,
+    serializeRfpStructuredData(normalizedItems, data.totalAmount, data.currencyType === "other" ? data.currencyOther : data.currencyType || "PHP"),
     "",
   ];
 

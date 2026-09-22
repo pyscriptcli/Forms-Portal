@@ -9,6 +9,7 @@ import {
 } from "./clickupFields";
 import { DEFAULT_WORKFLOW_STATUSES, type WorkflowStatuses } from "./adminSettings";
 import { getMilestoneEntries } from "./rfpWorkflow";
+import { parseRfpStructuredData } from "./rfpStructuredData";
 
 export type MilestoneTimestamps = Partial<Record<RfpMilestoneKey, string>>;
 export type MilestoneActors = Partial<Record<RfpMilestoneKey, string>>;
@@ -52,7 +53,7 @@ export interface TrackedRfp {
   dataSource?: "custom_field" | "legacy_fallback";
 }
 
-function parseLineItems(description: string): NonNullable<TrackedRfp["lineItems"]> {
+function parseMarkdownLineItems(description: string): NonNullable<TrackedRfp["lineItems"]> {
   const section = description.match(/##\s*Line Item Breakdown\s*\r?\n([\s\S]*?)(?:\r?\n\s*\r?\n|$)/i)?.[1] || "";
   return section.split(/\r?\n/).slice(2).flatMap((line) => {
     if (!line.trim().startsWith("|") || /Total Price for Payment/i.test(line)) return [];
@@ -63,6 +64,12 @@ function parseLineItems(description: string): NonNullable<TrackedRfp["lineItems"
     const amount = Number(cells[3].replace(/[,₱]/g, "")) || quantity * unitPrice;
     return cells[0] ? [{ description: cells[0], unitPrice, quantity, amount }] : [];
   });
+}
+
+function parseLineItems(description: string): NonNullable<TrackedRfp["lineItems"]> {
+  const structured = parseRfpStructuredData(description);
+  if (structured?.lineItems.length) return structured.lineItems;
+  return parseMarkdownLineItems(description);
 }
 
 /**

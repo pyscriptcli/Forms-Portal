@@ -73,6 +73,8 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
 
     expect(description).toContain("| **RFP ID** | **RFP-092026-0042** |");
     expect(description).toContain("| **Requested By Email** | requestor@example.com |");
+    expect(description).toContain("```forms-portal-json");
+    expect(description).toContain('"schema":"forms-portal/rfp@1"');
   });
 
   it("does not report a mock task as a successful ClickUp submission", async () => {
