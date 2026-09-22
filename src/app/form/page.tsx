@@ -570,11 +570,15 @@ function RfpAppContent() {
 
       const sanitizedFormData = {
         ...formData,
-        supportingFiles: (formData.supportingFiles || []).map((f) => ({
+        // SupportingDocuments assigns each file its document type from the
+        // checklist selection; send that metadata alongside the raw files so
+        // the server can preserve the same label in ClickUp attachments.
+        supportingFiles: supportingFilesList.map((f) => ({
           id: f.id,
           name: f.name,
           size: f.size,
           type: f.type,
+          documentType: f.documentType,
           dataUrl: "", // Avoid duplicating binary file data in JSON
         })),
       };

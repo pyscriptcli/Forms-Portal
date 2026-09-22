@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Paperclip, UploadCloud, Trash2, FileText, Image as ImageIcon, Eye } from "lucide-react";
 import { SupportingFile } from "@/types/rfp";
 import { MAX_UPLOAD_FILE_BYTES } from "@/lib/submissionUploads";
@@ -22,21 +22,33 @@ export function SupportingDocuments({
   hasError = false,
   selectedDocumentTypes = [],
 }: SupportingDocumentsProps) {
-  const documentTypes = ["Invoice / Billing Statement", "Statement of Account (SOA)", "Signed Contract / Agreement", "Purchase Order / Cost Estimate", "Liquidation / Completion Receipt", "Other"];
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [selectionError, setSelectionError] = useState<string | null>(null);
 
-  const handleFileSelection = (selectedFiles: FileList | null) => {
+  useEffect(() => {
+    const allowedTypes = new Set(selectedDocumentTypes);
+    const retainedIndexes = files
+      .map((file, index) => ({ file, index }))
+      .filter(({ file }) => file.documentType && allowedTypes.has(file.documentType));
+    if (retainedIndexes.length !== files.length) {
+      onFilesChange(retainedIndexes.map(({ file }) => file));
+      onRawFilesChange(retainedIndexes.map(({ index }) => rawFiles[index]).filter(Boolean));
+    }
+  }, [selectedDocumentTypes.join("|")]);
+
+  const handleFileSelection = (documentType: string, selectedFiles: FileList | null) => {
     if (!selectedFiles || selectedFiles.length === 0) return;
 
-    const selected = Array.from(selectedFiles);
-    const oversized = selected.find((file) => file.size > MAX_UPLOAD_FILE_BYTES);
+    const file = selectedFiles[0];
+    const oversized = file.size > MAX_UPLOAD_FILE_BYTES;
     if (oversized) {
-      setSelectionError(`${oversized.name} exceeds the 4 MB submission limit and cannot be attached.`);
+      setSelectionError(`${file.name} exceeds the 4 MB submission limit and cannot be attached.`);
       return;
     }
-    const newFilesList = selected;
-    const updatedRaw = [...rawFiles, ...newFilesList];
+    const existingIndex = files.findIndex((item) => item.documentType === documentType);
+    const updatedRaw = [...rawFiles];
+    if (existingIndex >= 0) updatedRaw[existingIndex] = file;
+    else updatedRaw.push(file);
     if (updatedRaw.reduce((total, file) => total + file.size, 0) > MAX_UPLOAD_FILE_BYTES) {
       setSelectionError("The combined supporting files exceed the 4 MB submission limit.");
       return;
@@ -44,26 +56,23 @@ export function SupportingDocuments({
     setSelectionError(null);
     onRawFilesChange(updatedRaw);
 
-    // Convert to previewable SupportingFile list
-    const filePromises = newFilesList.map((file) => {
-      return new Promise<SupportingFile>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          resolve({
-            id: Math.random().toString(36).substring(2, 9),
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            dataUrl: e.target?.result as string,
-          });
-        };
-        reader.readAsDataURL(file);
-      });
-    });
-
-    Promise.all(filePromises).then((newItems) => {
-      onFilesChange([...files, ...newItems]);
-    });
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const newItem: SupportingFile = {
+        id: existingIndex >= 0 ? files[existingIndex].id : Math.random().toString(36).substring(2, 9),
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        dataUrl: e.target?.result as string,
+        documentType,
+      };
+      if (existingIndex >= 0) {
+        onFilesChange(files.map((item, index) => index === existingIndex ? newItem : item));
+      } else {
+        onFilesChange([...files, newItem]);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const removeFile = (index: number) => {
@@ -144,41 +153,58 @@ export function SupportingDocuments({
         </div>
       )}
 
-      {/* Dropzone */}
-      <div
-        onClick={() => fileInputRef.current?.click()}
-        onDragOver={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          handleFileSelection(e.dataTransfer.files);
-        }}
-        className={`border-2 border-dashed ${
-          hasError
-            ? "border-prime-rule bg-prime-white hover:border-prime-blue"
-            : "border-prime-rule hover:border-prime-gold hover:bg-prime-white"
-        } rounded-none p-6 text-center cursor-pointer transition-all`}
-      >
-        <UploadCloud className="w-8 h-8 text-prime-blue mx-auto mb-2" />
-        <p className="text-sm font-medium text-prime-ink">
-          Click to upload or drag & drop supporting files here
-        </p>
-        <p className="text-xs text-prime-ink mt-1">
-          Supports PDF, PNG, JPG, and DOCX. Complete submission limit: 4 MB.
-        </p>
-        {selectionError && <p role="alert" className="mt-2 text-xs text-red-700">{selectionError}</p>}
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
-          className="hidden"
-          onChange={(e) => handleFileSelection(e.target.files)}
-        />
-      </div>
+      {selectedDocumentTypes.length === 0 ? (
+        <div className="border border-dashed border-prime-rule p-6 text-center text-sm text-prime-ink">
+          Select the document types attached in the form above to create their upload boxes here.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {selectedDocumentTypes.map((documentType) => {
+            const file = files.find((item) => item.documentType === documentType);
+            const inputKey = documentType.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+            return (
+              <div
+                key={documentType}
+                onClick={() => fileInputRefs.current[inputKey]?.click()}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); handleFileSelection(documentType, e.dataTransfer.files); }}
+                className={`border-2 border-dashed ${file ? "border-prime-gold bg-prime-gold/5" : "border-prime-rule hover:border-prime-gold hover:bg-prime-white"} rounded-none p-4 text-left cursor-pointer transition-all`}
+              >
+                <div className="flex items-start gap-3">
+                  <UploadCloud className="w-6 h-6 text-prime-blue shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-prime-blue">{documentType}</p>
+                    <p className="mt-1 text-xs font-medium text-prime-ink truncate">
+                      {file ? file.name : "Click to upload or drag & drop this document"}
+                    </p>
+                    {file && <p className="text-[11px] text-prime-ink">{formatFileSize(file.size)} · ready</p>}
+                    {!file && <p className="text-[11px] text-prime-ink mt-1">PDF, PNG, JPG, or DOCX</p>}
+                  </div>
+                  {file && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); removeFile(files.indexOf(file)); }}
+                      className="ml-auto p-1.5 text-prime-ink hover:text-prime-blue"
+                      title={`Remove ${documentType}`}
+                      aria-label={`Remove ${documentType}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                <input
+                  ref={(element) => { fileInputRefs.current[inputKey] = element; }}
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                  className="hidden"
+                  onChange={(e) => { handleFileSelection(documentType, e.target.files); e.currentTarget.value = ""; }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {selectionError && <p role="alert" className="mt-2 text-xs text-red-700">{selectionError}</p>}
 
       {/* File List */}
       {files.length > 0 && (
@@ -197,16 +223,7 @@ export function SupportingDocuments({
                   )}
                 </div>
                 <div className="truncate">
-                  <label className="block text-[10px] font-bold uppercase tracking-wide text-prime-blue">Document type</label>
-                  <select
-                    aria-label={`Document type for ${file.name}`}
-                    value={file.documentType || ""}
-                    onChange={(e) => onFilesChange(files.map((item, i) => i === idx ? { ...item, documentType: e.target.value } : item))}
-                    className="mb-1 max-w-full border-b border-prime-rule bg-transparent text-[11px] text-prime-ink focus:outline-none"
-                  >
-                    <option value="">Select what this file is</option>
-                    {documentTypes.map((type) => <option key={type} value={type}>{type}</option>)}
-                  </select>
+                  <label className="block text-[10px] font-bold uppercase tracking-wide text-prime-blue">{file.documentType || "Supporting document"}</label>
                   <p className="text-xs font-medium text-prime-ink truncate" title={file.name}>
                     {file.name}
                   </p>

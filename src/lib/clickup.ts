@@ -592,6 +592,7 @@ export async function createClickUpTask(
     data.requestedByEmail,
     data.tlEmail || data.approverEmail,
   ].map((email) => String(email || "").trim().toLowerCase()).filter(Boolean)));
+  const requestorId = data.requestedByClickUpId ? Number(data.requestedByClickUpId) || data.requestedByClickUpId : null;
   if (assigneeEmails.length > 0) {
     try {
       const teamId = data.clickupWorkspaceId || process.env.CLICKUP_TEAM_ID || process.env.CLICKUP_WORKSPACE_ID || "";
@@ -600,13 +601,22 @@ export async function createClickUpTask(
         headers: { Authorization: authorizationHeader(token, isOAuth) },
       });
       if (membersRes.ok) {
-        const members = await membersRes.json() as { members?: Array<{ user?: { id?: string; email?: string } }> };
-        const assigneeIds = (members.members || [])
-          .filter((item) => assigneeEmails.includes(String(item.user?.email || "").trim().toLowerCase()))
-          .map((item) => item.user?.id)
-          .filter((id): id is string => Boolean(id))
+        const members = await membersRes.json() as {
+          members?: Array<{ id?: string | number; email?: string; user?: { id?: string | number; email?: string } }>;
+        };
+        const memberUsers = members.members || [];
+        const assigneeIds = memberUsers
+          .filter((item) => assigneeEmails.includes(String(item.user?.email || item.email || "").trim().toLowerCase()))
+          .map((item) => item.user?.id ?? item.id)
+          .filter((id): id is string | number => Boolean(id))
           .map((id) => Number(id) || id);
+        if (requestorId) assigneeIds.unshift(requestorId);
         if (assigneeIds.length > 0) body.assignees = Array.from(new Set(assigneeIds));
+        if (assigneeEmails.some((email) => !memberUsers.some((item) => email === String(item.user?.email || item.email || "").trim().toLowerCase()))) {
+          console.warn("Some requested ClickUp assignees were not found in the configured Workspace.");
+        }
+      } else {
+        console.warn(`ClickUp member lookup failed (${membersRes.status}); task will be created without resolved assignees.`);
       }
     } catch (error) {
       console.warn("Could not resolve requestor/TL emails to ClickUp assignees:", error);
@@ -699,6 +709,23 @@ export async function createClickUpTask(
   const createdTask = await createRes.json();
   const taskId = createdTask.id;
   const taskUrl = createdTask.url || `https://app.clickup.com/t/${taskId}`;
+
+  // Apply assignees explicitly after creation as well. This makes assignment
+  // reliable when ClickUp accepts the create request but does not apply the
+  // assignees embedded in that request.
+  if (taskId && Array.isArray(body.assignees) && body.assignees.length > 0) {
+    const assigneeUpdate = await fetch(`${CLICKUP_API_BASE}/task/${taskId}`, {
+      method: "PUT",
+      headers: {
+        Authorization: authorizationHeader(token, isOAuth),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ assignees: { add: body.assignees } }),
+    });
+    if (!assigneeUpdate.ok) {
+      console.warn(`ClickUp task ${taskId} was created, but assignees could not be applied (${assigneeUpdate.status}).`);
+    }
+  }
 
   return {
     id: taskId,

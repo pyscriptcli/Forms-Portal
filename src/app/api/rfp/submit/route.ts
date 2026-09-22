@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
     if (user?.email && (formType === "rfp" || formType === "gw-rfp")) {
       data.requestedByEmail = user.email;
       data.requestedByName = data.requestedByName || user.username;
+      data.requestedByClickUpId = user.id;
     }
 
     const destinationListId = destination?.enabled ? destination.listId : undefined;
@@ -119,7 +120,13 @@ export async function POST(req: NextRequest) {
       ...supportingFiles.map((file, index) => ({
         file,
         filename: isRfp
-          ? formatSubmittedFilename(data.rfpCodeSuffix, "SUP", data.payee || "Payee", undefined, index + 1)
+          ? formatSubmittedFilename(
+            data.rfpCodeSuffix,
+            data.supportingFiles?.[index]?.documentType || "SUP",
+            data.payee || "Payee",
+            undefined,
+            index + 1,
+          )
           : file.name,
       })),
     ];

@@ -151,6 +151,9 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
       "oauth-token",
       "list-123",
     )).resolves.toMatchObject({ id: "task-1" });
+    expect(fetchMock.mock.calls.some(([url, init]) =>
+      String(url).endsWith("/task/task-1") && init?.method === "PUT"
+    )).toBe(true);
   });
 
   it("adds the GW and Urgent tags and ClickUp urgent priority", async () => {
