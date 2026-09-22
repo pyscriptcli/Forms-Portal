@@ -28,38 +28,45 @@ export function SignatureModal({
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      setActiveTab("upload");
-      setUploadedImage(null);
-      setHasDrawing(false);
-    }
-    if (isOpen && activeTab === "draw") {
-      setTimeout(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
+    if (!isOpen) return;
+    setActiveTab("upload");
+    setUploadedImage(null);
+    setHasDrawing(false);
+    isDrawingRef.current = false;
+    lastPointRef.current = null;
+  }, [isOpen]);
 
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width * 2;
-        canvas.height = rect.height * 2;
-        ctx.scale(2, 2);
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-        ctx.strokeStyle = "#003366";
-        ctx.lineWidth = 2.5;
+  useEffect(() => {
+    if (!isOpen || activeTab !== "draw") return;
 
-        if (currentSignature && !uploadedImage) {
-          const img = new Image();
-          img.onload = () => {
-            ctx.drawImage(img, 0, 0, rect.width, rect.height);
-            setHasDrawing(true);
-          };
-          img.src = currentSignature;
-        }
-      }, 50);
-    }
-  }, [isOpen, activeTab]);
+    const frame = window.requestAnimationFrame(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const scale = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, rect.width * scale);
+      canvas.height = Math.max(1, rect.height * scale);
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "#003366";
+      ctx.lineWidth = 2.5;
+
+      if (currentSignature && !uploadedImage) {
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, rect.width, rect.height);
+          setHasDrawing(true);
+        };
+        img.src = currentSignature;
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isOpen, activeTab, currentSignature, uploadedImage]);
 
   if (!isOpen) return null;
 

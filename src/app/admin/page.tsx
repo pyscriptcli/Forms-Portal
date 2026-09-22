@@ -62,7 +62,6 @@ import {
 } from "@/lib/adminSettings";
 import {
   ROLE_DEFINITIONS,
-  DEFAULT_USERS,
   type UserAccessRecord,
   type UserRole,
   type PortalPermission,
@@ -112,7 +111,8 @@ export default function AdminPage() {
   const [saveMsg, setSaveMsg] = useState("");
 
   // RBAC State
-  const [users, setUsers] = useState<UserAccessRecord[]>(DEFAULT_USERS);
+  // Supabase is the sole source of truth. Do not hydrate this state from browser storage or defaults.
+  const [users, setUsers] = useState<UserAccessRecord[]>([]);
   const [isSavingRbac, setIsSavingRbac] = useState(false);
   const [isRefreshingRbac, setIsRefreshingRbac] = useState(false);
   const [rbacSaveMsg, setRbacSaveMsg] = useState("");
@@ -123,14 +123,18 @@ export default function AdminPage() {
 
   const loadRbacData = async () => {
     setIsRefreshingRbac(true);
+    setRbacSaveMsg("");
     try {
-      const res = await fetch("/api/admin/rbac");
+      const res = await fetch("/api/admin/rbac", { cache: "no-store" });
       const data = await res.json();
-      if (data && Array.isArray(data.users)) {
-        setUsers(data.users);
+      if (!res.ok || !data || !Array.isArray(data.users) || data.source !== "supabase") {
+        setUsers([]);
+        throw new Error(data?.error || "Could not load shared Supabase RBAC configuration.");
       }
-    } catch {
-      setRbacSaveMsg("Could not load shared Supabase RBAC configuration.");
+      setUsers(data.users);
+    } catch (error: any) {
+      setUsers([]);
+      setRbacSaveMsg(error?.message || "Could not load shared Supabase RBAC configuration.");
     } finally {
       setIsRefreshingRbac(false);
     }
@@ -1033,7 +1037,7 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Local Database Indicator Banner */}
+          {/* Supabase source-of-truth indicator */}
           <div className="mb-6 p-3 bg-prime-surface/40 border border-prime-rule flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2.5">
               <Database className="w-4 h-4 text-prime-blue shrink-0" />
@@ -1041,7 +1045,7 @@ export default function AdminPage() {
                 <span className="font-bold text-prime-blue">RBAC Database:</span>{" "}
                 <span className="font-mono text-prime-ink/80">forms-portal-RBAC</span>
                 <span className="ml-2 inline-flex items-center px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800">
-                  Local storage
+                  Supabase · authoritative
                 </span>
               </div>
             </div>

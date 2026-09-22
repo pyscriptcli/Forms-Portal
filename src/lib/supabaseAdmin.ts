@@ -224,7 +224,7 @@ export async function saveFormDestinationsToSupabase(destinations: Record<FormDe
 export async function readRbacUsersFromSupabase(): Promise<UserAccessRecord[]> {
   const { url, key, isConfigured } = getSupabaseConfig();
   if (!isConfigured) throw new Error("Supabase is required for RBAC configuration.");
-  const response = await fetch(`${url}/rest/v1/${encodeURIComponent(RBAC_TABLE)}?select=user_id,name,email,department,role,status,updated_at,clickup_task_id&order=name.asc`, {
+  const response = await fetch(`${url}/rest/v1/${encodeURIComponent(RBAC_TABLE)}?select=user_id,name,email,department,role,status,updated_at,clickup_task_id,permissions&order=name.asc`, {
     headers: supabaseHeaders(key), cache: "no-store",
   });
   if (!response.ok) throw new Error(`Supabase RBAC read failed (${response.status}): ${await response.text()}`);
