@@ -52,6 +52,7 @@ describe("ClickUp status webhook audit persistence", () => {
       clickupFieldMapping: {
         "RFP Process History": "history-field-id",
         "RFP Last Status Event ID": "event-field-id",
+        "TS RFP - Finance Processing": "finance-processing-ts-field-id",
       },
     } as never);
     vi.mocked(readWorkflowStatusesFromSupabase).mockResolvedValue({
@@ -69,6 +70,7 @@ describe("ClickUp status webhook audit persistence", () => {
       custom_fields: [
         { id: "history-field-id", name: "RFP Process History", type: "text", value: null },
         { id: "event-field-id", name: "RFP Last Status Event ID", type: "short_text", value: null },
+        { id: "finance-processing-ts-field-id", name: "TS RFP - Finance Processing", type: "date", value: null },
       ],
     });
   });
@@ -79,6 +81,12 @@ describe("ClickUp status webhook audit persistence", () => {
     const response = await POST(webhookRequest());
 
     expect(response.status).toBe(200);
+    expect(setTaskCustomFieldValue).toHaveBeenCalledWith(
+      "task-1",
+      "finance-processing-ts-field-id",
+      eventDate,
+      "pk_server_token"
+    );
     expect(setTaskCustomFieldValue).toHaveBeenCalledWith(
       "task-1",
       "history-field-id",
@@ -107,6 +115,29 @@ describe("ClickUp status webhook audit persistence", () => {
 
     expect(response.status).toBe(200);
     expect(body.duplicate).toBe(true);
+    expect(setTaskCustomFieldValue).not.toHaveBeenCalled();
+  });
+
+  it("does not invent a timestamp when ClickUp omits the activity date", async () => {
+    const request = new Request("http://localhost/api/clickup/webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: "taskStatusUpdated",
+        task_id: "task-1",
+        history_items: [{
+          id: "event-without-date",
+          before: { status: "FINANCE VALIDATION" },
+          after: { status: "FINANCE PROCESSING" },
+        }],
+      }),
+    }) as never;
+
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.reason).toContain("authoritative status event timestamp");
     expect(setTaskCustomFieldValue).not.toHaveBeenCalled();
   });
 });

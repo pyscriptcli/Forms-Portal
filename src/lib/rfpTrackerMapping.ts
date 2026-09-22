@@ -1,5 +1,6 @@
 import { resolveRfpMilestone, ORDERED_MILESTONE_KEYS, type RfpMilestoneKey } from "./rfpWorkflow";
 import {
+  CLICKUP_MILESTONE_FIELDS,
   CLICKUP_METADATA_FIELDS,
   resolveFieldIdMapping,
   type ClickUpFieldIdMapping,
@@ -104,11 +105,10 @@ export function mapClickUpTaskToTrackedRfp(
   }
 
   // Resolve mapping
-  const fieldMapping = configuredMapping && Object.keys(configuredMapping).length > 0
-    ? configuredMapping
-    : resolveFieldIdMapping(
-        taskCustomFields.map((cf) => ({ id: cf.id, name: cf.name || "", type: "text" }))
-      );
+  const discoveredFieldMapping = resolveFieldIdMapping(
+    taskCustomFields.map((cf) => ({ id: cf.id, name: cf.name || "", type: "text" }))
+  );
+  const fieldMapping = { ...discoveredFieldMapping, ...(configuredMapping || {}) };
 
   // Helper to read field value: check configured field ID first, then field name
   const getFieldValue = (fieldName: string): any => {
@@ -140,12 +140,12 @@ export function mapClickUpTaskToTrackedRfp(
   // 2. Read Metadata using Custom Fields
   let requestId = getFieldValue(CLICKUP_METADATA_FIELDS.requestId);
   let department = getFieldValue(CLICKUP_METADATA_FIELDS.department);
-  let rawAmount = getFieldValue(CLICKUP_METADATA_FIELDS.totalAmount);
+  const rawAmount = getFieldValue(CLICKUP_METADATA_FIELDS.totalAmount);
   let purpose = getFieldValue(CLICKUP_METADATA_FIELDS.purpose);
   let requestedBy = getFieldValue(CLICKUP_METADATA_FIELDS.requestedBy);
   let requestedByEmail = getFieldValue(CLICKUP_METADATA_FIELDS.requestedByEmail);
   let approverName = getFieldValue(CLICKUP_METADATA_FIELDS.approverName);
-  let approverEmail = getFieldValue(CLICKUP_METADATA_FIELDS.approverEmail);
+  const approverEmail = getFieldValue(CLICKUP_METADATA_FIELDS.approverEmail);
 
   let dataSource: "custom_field" | "legacy_fallback" = "custom_field";
 
@@ -280,19 +280,15 @@ export function mapClickUpTaskToTrackedRfp(
     currentMilestone = "Revision Requested";
   }
 
-  // 5. Milestone Timestamps Mapping using Native ClickUp Timestamps
+  // 5. Milestone timestamps come only from the TS custom fields populated by
+  // the status webhook. Never infer them from task-wide date_updated.
   const milestoneTimestamps: MilestoneTimestamps = {};
-  const createdMs = Number(task.date_created) || Date.now();
-  const updatedMs = Number(task.date_updated) || createdMs;
-  const activeMilestoneIdx = ORDERED_MILESTONE_KEYS.indexOf(resolved.key);
-  const effectiveMilestoneIdx = isDone ? ORDERED_MILESTONE_KEYS.length - 1 : activeMilestoneIdx;
-
-  for (let idx = 0; idx < ORDERED_MILESTONE_KEYS.length; idx++) {
-    const key = ORDERED_MILESTONE_KEYS[idx];
-    if (idx <= effectiveMilestoneIdx && effectiveMilestoneIdx >= 0) {
-      // Reached milestone: use date_created for submission, date_updated for subsequent reached milestones
-      const nativeTimestampMs = idx === 0 ? createdMs : updatedMs;
-      milestoneTimestamps[key] = formatMilestoneTimestamp(nativeTimestampMs);
+  for (const key of ORDERED_MILESTONE_KEYS) {
+    const fieldName = CLICKUP_MILESTONE_FIELDS[key as keyof typeof CLICKUP_MILESTONE_FIELDS];
+    const value = fieldName ? getFieldValue(fieldName) : undefined;
+    if (value !== undefined && value !== null && value !== "") {
+      const formatted = formatMilestoneTimestamp(value);
+      if (formatted !== "Timestamp unavailable") milestoneTimestamps[key] = formatted;
     }
   }
 

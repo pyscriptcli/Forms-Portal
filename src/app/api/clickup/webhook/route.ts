@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { getClickUpConfig, getClickUpTask, setTaskCustomFieldValue, getListCustomFields } from "@/lib/clickup";
+import { getClickUpConfig, getClickUpTask, setTaskCustomFieldValue } from "@/lib/clickup";
 import {
   CLICKUP_AUDIT_FIELDS,
+  CLICKUP_MILESTONE_FIELDS,
   resolveFieldIdMapping,
 } from "@/lib/clickupFields";
 import { getMilestoneEntries } from "@/lib/rfpWorkflow";
@@ -46,8 +47,8 @@ export async function POST(req: NextRequest) {
 
   const secret = process.env.CLICKUP_WEBHOOK_SECRET || portalSettings?.clickupWebhookSecret || "";
 
-  // In production, enforce webhook signature verification if secret and signature are present
-  if (secret && signature && !verifyClickUpWebhookSignature(rawBody, signature, secret)) {
+  // A configured webhook secret requires a valid signature on every request.
+  if (secret && !verifyClickUpWebhookSignature(rawBody, signature, secret)) {
     console.warn("Unauthorized ClickUp webhook call: invalid signature");
     return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
   }
@@ -59,9 +60,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
   }
 
-  // Only handle taskStatusUpdated
   if (payload.event !== "taskStatusUpdated") {
     return NextResponse.json({ success: true, ignored: true, reason: "Non-status event" });
+  }
+
+  const configuredWebhookId = portalSettings?.clickupWebhookId?.trim();
+  if (configuredWebhookId && String(payload.webhook_id || "") !== configuredWebhookId) {
+    return NextResponse.json({ success: true, ignored: true, reason: "Unknown webhook" });
   }
 
   const taskId = payload.task_id;
@@ -76,7 +81,10 @@ export async function POST(req: NextRequest) {
   }
 
   const eventId = String(historyItem.id || "");
-  const eventDate = Number(historyItem.date) || Date.now();
+  const eventDate = Number(historyItem.date);
+  if (!eventId || !Number.isFinite(eventDate) || eventDate <= 0) {
+    return NextResponse.json({ success: true, ignored: true, reason: "Missing authoritative status event timestamp" });
+  }
   const newStatus = historyItem.after?.status || payload.after?.status || "";
   const beforeStatus = historyItem.before?.status || payload.before?.status || "None";
   const actor = historyItem.user?.username || historyItem.user?.email || "ClickUp User";
@@ -100,6 +108,11 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error(`Failed to fetch ClickUp task ${taskId} for webhook processing:`, err);
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
+  }
+
+  const taskListId = String(task.list?.id || task.list_id || "");
+  if (taskListId && taskListId !== String(destination.listId)) {
+    return NextResponse.json({ success: true, ignored: true, reason: "Task is outside the configured RFP List" });
   }
 
   const availableFields = Array.isArray(task.custom_fields) ? task.custom_fields : [];
@@ -131,6 +144,20 @@ export async function POST(req: NextRequest) {
   }
 
   const milestoneKey = matchedEntry.key;
+
+  // ClickUp activity is authoritative. Persist its exact event time to the
+  // matching TS field; never substitute Date.now() or task date_updated.
+  const milestoneFieldName = CLICKUP_MILESTONE_FIELDS[milestoneKey as keyof typeof CLICKUP_MILESTONE_FIELDS];
+  const milestoneFieldId = milestoneFieldName ? fieldMapping[milestoneFieldName] : undefined;
+  if (milestoneFieldId) {
+    const timestampWritten = await setTaskCustomFieldValue(taskId, milestoneFieldId, eventDate, clickUp.token);
+    if (!timestampWritten) {
+      return NextResponse.json({ success: false, error: "Could not persist milestone timestamp." }, { status: 502 });
+    }
+  } else {
+    console.warn(`No ClickUp timestamp field mapping found for milestone ${milestoneKey}.`);
+  }
+
   // 4. Append to Process History and Update Last Status Event ID
   const historyFieldId = fieldMapping[CLICKUP_AUDIT_FIELDS.processHistory];
   if (historyFieldId) {

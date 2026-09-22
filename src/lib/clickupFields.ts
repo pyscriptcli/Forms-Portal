@@ -1,4 +1,4 @@
-import type { WorkflowStatuses } from "./adminSettings";
+import type { RfpMilestoneKey } from "./rfpWorkflow";
 
 /**
  * ClickUp Custom Fields Contract for PRIME Forms Portal RFP Tracking
@@ -24,6 +24,34 @@ export const CLICKUP_AUDIT_FIELDS = {
   revisionRequestedAt: "RFP Revision Requested At",
   revisionRequestedBy: "RFP Revision Requested By",
 } as const;
+
+/**
+ * Timestamp fields populated from ClickUp status-change activity.
+ * The TS RFP naming matches the fields configured on the RFP List.
+ */
+export const CLICKUP_MILESTONE_FIELDS: Record<Exclude<RfpMilestoneKey, "revisionRequested">, string> = {
+  requestorFormSubmission: "TS RFP - Requestor Form Submission",
+  tlReviewAndApproval: "TS RFP - TL Review and Approval",
+  financeValidation: "TS RFP - Finance Validation",
+  financeProcessing: "TS RFP - Finance Processing",
+  paymentPreparation: "TS RFP - Payment Preparation",
+  managementApproval: "TS RFP - CFO/CEO Sign-Off",
+  paymentRelease: "TS RFP - Payment Release",
+  paymentDocumentation: "TS RFP - Payment Documentation",
+  recordsFiling: "TS RFP - Records Filing",
+};
+
+const LEGACY_MILESTONE_FIELD_NAMES: Record<string, string> = {
+  "RFP TS - Requestor Form Submission": CLICKUP_MILESTONE_FIELDS.requestorFormSubmission,
+  "RFP TS - TL Review and Approval": CLICKUP_MILESTONE_FIELDS.tlReviewAndApproval,
+  "RFP TS - Finance Validation": CLICKUP_MILESTONE_FIELDS.financeValidation,
+  "RFP TS - Finance Processing": CLICKUP_MILESTONE_FIELDS.financeProcessing,
+  "RFP TS - Payment Preparation": CLICKUP_MILESTONE_FIELDS.paymentPreparation,
+  "RFP TS - CFO CEO Sign-Off": CLICKUP_MILESTONE_FIELDS.managementApproval,
+  "RFP TS - Payment Release": CLICKUP_MILESTONE_FIELDS.paymentRelease,
+  "RFP TS - Payment Documentation": CLICKUP_MILESTONE_FIELDS.paymentDocumentation,
+  "RFP TS - Records Filing": CLICKUP_MILESTONE_FIELDS.recordsFiling,
+};
 
 export type AuditFieldKey = keyof typeof CLICKUP_AUDIT_FIELDS;
 
@@ -61,7 +89,7 @@ export function resolveFieldIdMapping(availableFields: ClickUpFieldDefinition[])
   };
 
   // 1. Metadata fields
-  for (const [key, name] of Object.entries(CLICKUP_METADATA_FIELDS)) {
+  for (const name of Object.values(CLICKUP_METADATA_FIELDS)) {
     const id = findMatch(name);
     if (id) mapping[name] = id;
   }
@@ -70,6 +98,17 @@ export function resolveFieldIdMapping(availableFields: ClickUpFieldDefinition[])
   for (const name of Object.values(CLICKUP_AUDIT_FIELDS)) {
     const id = findMatch(name);
     if (id) mapping[name] = id;
+  }
+
+  // 3. Milestone timestamp fields. Support the earlier RFP TS naming as a
+  // read-only compatibility alias while preferring the configured TS RFP name.
+  for (const name of Object.values(CLICKUP_MILESTONE_FIELDS)) {
+    const id = findMatch(name);
+    if (id) mapping[name] = id;
+  }
+  for (const [legacyName, canonicalName] of Object.entries(LEGACY_MILESTONE_FIELD_NAMES)) {
+    const id = findMatch(legacyName);
+    if (id && !mapping[canonicalName]) mapping[canonicalName] = id;
   }
 
   return mapping;

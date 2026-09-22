@@ -27,7 +27,7 @@ describe("rfpTrackerMapping", () => {
   });
 
   describe("mapClickUpTaskToTrackedRfp", () => {
-    it("extracts metadata from custom fields and milestone timestamps from native ClickUp dates", () => {
+    it("extracts metadata and milestone timestamps from ClickUp custom fields", () => {
       const mockTask = {
         id: "task-123",
         name: "[RFP-092026-0001] PRIME – Acmo Vendor – Office Supplies",
@@ -44,6 +44,10 @@ describe("rfpTrackerMapping", () => {
           { id: "f-req-email", name: "RFP Requestor Email", value: "jane@primephilippines.com" },
           { id: "f-app-name", name: "RFP Approver Name", value: "John Approver" },
           { id: "f-app-email", name: "RFP Approver Email", value: "john@primephilippines.com" },
+          { id: "f-submission-ts", name: "TS RFP - Requestor Form Submission", value: "1726472580000" },
+          { id: "f-tl-ts", name: "TS RFP - TL Review and Approval", value: "1726472580000" },
+          { id: "f-validation-ts", name: "TS RFP - Finance Validation", value: "1726472580000" },
+          { id: "f-processing-ts", name: "TS RFP - Finance Processing", value: "1726472580000" },
         ],
         url: "https://app.clickup.com/t/task-123",
         team_id: "9014981136",
@@ -102,7 +106,7 @@ describe("rfpTrackerMapping", () => {
       expect(result.dataSource).toBe("legacy_fallback");
     });
 
-    it("uses native ClickUp timestamp for reached milestones without needing custom fields", () => {
+    it("does not infer milestone timestamps from task date_updated", () => {
       const mockTask = {
         id: "task-missing-ts",
         name: "[RFP-092026-0004] PRIME – Bestprints – Quotation printing",
@@ -114,12 +118,9 @@ describe("rfpTrackerMapping", () => {
 
       const result = mapClickUpTaskToTrackedRfp(mockTask);
 
-      expect(result.milestoneTimestamps.requestorFormSubmission).toBeTruthy();
-      // Reached milestones display exact native update timestamp
-      expect(result.milestoneTimestamps.tlReviewAndApproval).toBeTruthy();
-      expect(result.milestoneTimestamps.tlReviewAndApproval).not.toBe("Timestamp unavailable");
-      expect(result.milestoneTimestamps.financeValidation).toBeTruthy();
-      expect(result.milestoneTimestamps.financeValidation).not.toBe("Timestamp unavailable");
+      expect(result.milestoneTimestamps.requestorFormSubmission).toBeUndefined();
+      expect(result.milestoneTimestamps.tlReviewAndApproval).toBeUndefined();
+      expect(result.milestoneTimestamps.financeValidation).toBeUndefined();
       // Unreached milestones remain undefined (UI renders Pending)
       expect(result.milestoneTimestamps.financeProcessing).toBeUndefined();
     });
