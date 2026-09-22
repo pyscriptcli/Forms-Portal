@@ -583,29 +583,46 @@ export async function createClickUpTask(
     notify_all: true,
   };
 
-  // ClickUp task assignees require a user ID. Resolve the Admin-configured TL
-  // email at submission time so the selected TL receives the task directly.
-  const assigneeEmail = data.tlEmail || data.approverEmail || "";
-  if (assigneeEmail) {
+  // ClickUp task assignees require user IDs. Resolve both the requestor and
+  // selected TL by email so both receive status-change notifications.
+  const assigneeEmails = Array.from(new Set([
+    data.requestedByEmail,
+    data.tlEmail || data.approverEmail,
+  ].map((email) => String(email || "").trim().toLowerCase()).filter(Boolean)));
+  if (assigneeEmails.length > 0) {
     try {
-      const teamId = process.env.CLICKUP_TEAM_ID || process.env.CLICKUP_WORKSPACE_ID || "";
+      const teamId = data.clickupWorkspaceId || process.env.CLICKUP_TEAM_ID || process.env.CLICKUP_WORKSPACE_ID || "";
       if (!teamId) throw new Error("CLICKUP_TEAM_ID is not configured");
       const membersRes = await fetch(`${CLICKUP_API_BASE}/team/${teamId}/member`, {
         headers: { Authorization: authorizationHeader(token, isOAuth) },
       });
       if (membersRes.ok) {
         const members = await membersRes.json() as { members?: Array<{ user?: { id?: string; email?: string } }> };
-        const member = members.members?.find((item) => item.user?.email?.toLowerCase() === assigneeEmail.toLowerCase());
-        if (member?.user?.id) body.assignees = [Number(member.user.id) || member.user.id];
+        const assigneeIds = (members.members || [])
+          .filter((item) => assigneeEmails.includes(String(item.user?.email || "").trim().toLowerCase()))
+          .map((item) => item.user?.id)
+          .filter((id): id is string => Boolean(id))
+          .map((id) => Number(id) || id);
+        if (assigneeIds.length > 0) body.assignees = Array.from(new Set(assigneeIds));
       }
     } catch (error) {
-      console.warn("Could not resolve configured TL email to a ClickUp assignee:", error);
+      console.warn("Could not resolve requestor/TL emails to ClickUp assignees:", error);
     }
   }
 
-  // Sync Due Date to ClickUp if dateNeeded is provided
-  if (data.dateNeeded) {
-    const dueDateMs = new Date(data.dateNeeded).getTime();
+  // Sync the form's Date Accomplished and Due Date as ClickUp's date-only
+  // start and due dates.
+  const startDate = data.dateAccomplished || data.date || "";
+  if (startDate) {
+    const startDateMs = new Date(startDate).getTime();
+    if (!isNaN(startDateMs)) {
+      body.start_date = startDateMs;
+      body.start_date_time = false;
+    }
+  }
+  const dueDate = data.dueDate || data.dateNeeded || "";
+  if (dueDate) {
+    const dueDateMs = new Date(dueDate).getTime();
     if (!isNaN(dueDateMs)) {
       body.due_date = dueDateMs;
       body.due_date_time = false;

@@ -107,6 +107,50 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
     )).resolves.toMatchObject({ id: "task-1" });
   });
 
+  it("sets form dates and assigns both requestor and TL by email", async () => {
+    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const href = String(url);
+      if (href.endsWith("/list/list-123/field")) return Response.json({ fields: [] });
+      if (href.endsWith("/team/team-123/member")) {
+        return Response.json({ members: [
+          { user: { id: "101", email: "requestor@example.com" } },
+          { user: { id: "202", email: "tl@example.com" } },
+        ] });
+      }
+      if (href.endsWith("/list/list-123/task")) {
+        const payload = JSON.parse(String(init?.body));
+        expect(payload.start_date).toBe(new Date("09/22/2026").getTime());
+        expect(payload.start_date_time).toBe(false);
+        expect(payload.due_date).toBe(new Date("09/29/2026").getTime());
+        expect(payload.due_date_time).toBe(false);
+        expect(payload.assignees).toEqual([101, 202]);
+        return Response.json({ id: "task-1", url: "https://app.clickup.com/t/task-1", status: { status: payload.status } });
+      }
+      return Response.json({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(createClickUpTask(
+      {
+        payee: "Vendor",
+        totalAmount: 100,
+        purpose: "Supplies",
+        items: [],
+        date: "09/22/2026",
+        dateAccomplished: "09/22/2026",
+        dueDate: "09/29/2026",
+        dateNeeded: "09/29/2026",
+        requestedByEmail: "requestor@example.com",
+        tlEmail: "tl@example.com",
+        clickupWorkspaceId: "team-123",
+      },
+      "http://localhost:3000",
+      "rfp",
+      "oauth-token",
+      "list-123",
+    )).resolves.toMatchObject({ id: "task-1" });
+  });
+
   it("advances approval and records approver metadata on the task", async () => {
     process.env.CLICKUP_API_TOKEN = "pk_test_token_123";
     const fetchMock = vi.fn()
