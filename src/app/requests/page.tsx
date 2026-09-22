@@ -231,6 +231,11 @@ function RequestTimeline({ request }: { request: TrackedRfp }) {
                         ? "Pending"
                         : tsDisplay || "Timestamp unavailable"}
                     </p>
+                    {!isMilestonePending && request.milestoneActors?.[milestone.key] && (
+                      <p className="mt-0.5 text-[10px] leading-tight text-prime-ink/60">
+                        Moved by {request.milestoneActors[milestone.key]}
+                      </p>
+                    )}
                   </div>
                 </div>
               );

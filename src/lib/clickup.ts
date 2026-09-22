@@ -586,14 +586,24 @@ export async function createClickUpTask(
   body.tags = [entityTag === "GW" ? "GW" : "PRIME"];
   if (isUrgent) body.tags.push("Urgent");
 
-  // ClickUp task assignees require user IDs. Resolve both the requestor and
-  // selected TL by email so both receive status-change notifications.
+  // ClickUp task assignees require user IDs. Resolve the requestor and selected
+  // TL by their ClickUp display names first. Emails remain a compatibility
+  // fallback, while the requestor's authenticated ClickUp ID is authoritative
+  // when available.
+  const normalizeAssigneeValue = (value: unknown) => String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+  const assigneeNames = Array.from(new Set([
+    data.requestedByName,
+    data.tlSignatureName || data.approverName || data.approvedByName,
+  ].map(normalizeAssigneeValue).filter(Boolean)));
   const assigneeEmails = Array.from(new Set([
     data.requestedByEmail,
     data.tlEmail || data.approverEmail,
-  ].map((email) => String(email || "").trim().toLowerCase()).filter(Boolean)));
+  ].map(normalizeAssigneeValue).filter(Boolean)));
   const requestorId = data.requestedByClickUpId ? Number(data.requestedByClickUpId) || data.requestedByClickUpId : null;
-  if (assigneeEmails.length > 0) {
+  if (assigneeNames.length > 0 || assigneeEmails.length > 0 || requestorId) {
     try {
       const teamId = data.clickupWorkspaceId || process.env.CLICKUP_TEAM_ID || process.env.CLICKUP_WORKSPACE_ID || "";
       if (!teamId) throw new Error("CLICKUP_TEAM_ID is not configured");
@@ -602,17 +612,33 @@ export async function createClickUpTask(
       });
       if (membersRes.ok) {
         const members = await membersRes.json() as {
-          members?: Array<{ id?: string | number; email?: string; user?: { id?: string | number; email?: string } }>;
+          members?: Array<{
+            id?: string | number;
+            email?: string;
+            username?: string;
+            name?: string;
+            user?: { id?: string | number; email?: string; username?: string; name?: string };
+          }>;
         };
         const memberUsers = members.members || [];
         const assigneeIds = memberUsers
-          .filter((item) => assigneeEmails.includes(String(item.user?.email || item.email || "").trim().toLowerCase()))
+          .filter((item) => {
+            const memberName = normalizeAssigneeValue(item.user?.username || item.user?.name || item.username || item.name);
+            const memberEmail = normalizeAssigneeValue(item.user?.email || item.email);
+            return assigneeNames.includes(memberName) || assigneeEmails.includes(memberEmail);
+          })
           .map((item) => item.user?.id ?? item.id)
           .filter((id): id is string | number => Boolean(id))
           .map((id) => Number(id) || id);
         if (requestorId) assigneeIds.unshift(requestorId);
         if (assigneeIds.length > 0) body.assignees = Array.from(new Set(assigneeIds));
-        if (assigneeEmails.some((email) => !memberUsers.some((item) => email === String(item.user?.email || item.email || "").trim().toLowerCase()))) {
+        const unresolvedNames = assigneeNames.filter((name) => !memberUsers.some((item) =>
+          name === normalizeAssigneeValue(item.user?.username || item.user?.name || item.username || item.name)
+        ));
+        const unresolvedEmails = assigneeEmails.filter((email) => !memberUsers.some((item) =>
+          email === normalizeAssigneeValue(item.user?.email || item.email)
+        ));
+        if (unresolvedNames.length > 0 || unresolvedEmails.length > 0) {
           console.warn("Some requested ClickUp assignees were not found in the configured Workspace.");
         }
       } else {

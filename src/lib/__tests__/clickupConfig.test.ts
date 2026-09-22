@@ -156,6 +156,42 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
     )).toBe(true);
   });
 
+  it("resolves requestor and TL assignees from their ClickUp names", async () => {
+    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const href = String(url);
+      if (href.endsWith("/list/list-names/field")) return Response.json({ fields: [] });
+      if (href.endsWith("/team/team-123/member")) {
+        return Response.json({ members: [
+          { user: { id: "301", username: "Jane Requestor" } },
+          { user: { id: "302", username: "Eng. Team Leader" } },
+        ] });
+      }
+      if (href.endsWith("/list/list-names/task")) {
+        const payload = JSON.parse(String(init?.body));
+        expect(payload.assignees).toEqual([301, 302]);
+        return Response.json({ id: "task-names", url: "https://app.clickup.com/t/task-names", status: { status: payload.status } });
+      }
+      return Response.json({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(createClickUpTask(
+      {
+        payee: "Vendor",
+        totalAmount: 100,
+        purpose: "Supplies",
+        items: [],
+        requestedByName: "Jane Requestor",
+        tlSignatureName: "Eng. Team Leader",
+        clickupWorkspaceId: "team-123",
+      },
+      "http://localhost:3000",
+      "rfp",
+      "oauth-token",
+      "list-names",
+    )).resolves.toMatchObject({ id: "task-names" });
+  });
+
   it("adds the GW and Urgent tags and ClickUp urgent priority", async () => {
     const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
       const href = String(url);

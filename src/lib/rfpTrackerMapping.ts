@@ -6,8 +6,10 @@ import {
   type ClickUpFieldIdMapping,
 } from "./clickupFields";
 import { DEFAULT_WORKFLOW_STATUSES, type WorkflowStatuses } from "./adminSettings";
+import { getMilestoneEntries } from "./rfpWorkflow";
 
 export type MilestoneTimestamps = Partial<Record<RfpMilestoneKey, string>>;
+export type MilestoneActors = Partial<Record<RfpMilestoneKey, string>>;
 
 export interface TrackedRfp {
   taskId: string;
@@ -41,6 +43,7 @@ export interface TrackedRfp {
   dateCreated: string;
   attachments: Array<{ id: string; name: string; url: string; type?: string }>;
   milestoneTimestamps: MilestoneTimestamps;
+  milestoneActors: MilestoneActors;
   dataSource?: "custom_field" | "legacy_fallback";
 }
 
@@ -292,6 +295,24 @@ export function mapClickUpTaskToTrackedRfp(
     }
   }
 
+  // The webhook writes the authoritative ClickUp activity actor alongside
+  // each status transition in process history. Associate the latest event
+  // for each configured milestone so the frontend can show who moved it.
+  const milestoneActors: MilestoneActors = {};
+  const processHistory = getFieldValue("RFP Process History");
+  if (typeof processHistory === "string" && processHistory.trim()) {
+    const normalizeStatus = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
+    const milestoneEntries = getMilestoneEntries(statuses);
+    for (const line of processHistory.split(/\r?\n/)) {
+      const match = line.match(/^\[[^\]]+\]\s+(.+?):\s+"[^"]*"\s+->\s+"([^"]+)"/);
+      if (!match) continue;
+      const actor = match[1].trim();
+      const afterStatus = match[2].trim();
+      const entry = milestoneEntries.find((candidate) => normalizeStatus(candidate.status) === normalizeStatus(afterStatus));
+      if (entry && actor) milestoneActors[entry.key] = actor;
+    }
+  }
+
   // 6. Attachments (Sanitize and extract clean links)
   const attachments = Array.isArray(task.attachments)
     ? task.attachments.map((att: any) => ({
@@ -332,6 +353,7 @@ export function mapClickUpTaskToTrackedRfp(
     dateCreated,
     attachments,
     milestoneTimestamps,
+    milestoneActors,
     dataSource,
   };
 }

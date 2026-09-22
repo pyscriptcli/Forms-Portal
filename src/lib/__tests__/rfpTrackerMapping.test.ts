@@ -48,6 +48,7 @@ describe("rfpTrackerMapping", () => {
           { id: "f-tl-ts", name: "TS RFP - TL Review and Approval", value: "1726472580000" },
           { id: "f-validation-ts", name: "TS RFP - Finance Validation", value: "1726472580000" },
           { id: "f-processing-ts", name: "TS RFP - Finance Processing", value: "1726472580000" },
+          { id: "f-history", name: "RFP Process History", value: "[2024-09-16T07:43:00.000Z] Finance User: \"FINANCE VALIDATION\" -> \"FINANCE PROCESSING\" (Event: event-1)" },
         ],
         url: "https://app.clickup.com/t/task-123",
         team_id: "9014981136",
@@ -70,6 +71,7 @@ describe("rfpTrackerMapping", () => {
       expect(result.milestoneTimestamps.tlReviewAndApproval).toBeTruthy();
       expect(result.milestoneTimestamps.financeValidation).toBeTruthy();
       expect(result.milestoneTimestamps.financeProcessing).toMatch(/Sep 16, 2024, 3:43\s*PM/i);
+      expect(result.milestoneActors.financeProcessing).toBe("Finance User");
       expect(result.milestoneTimestamps.recordsFiling).toBeUndefined();
 
       // Privacy scrubbing: raw clickup URL or sensitive internal metadata not on result
