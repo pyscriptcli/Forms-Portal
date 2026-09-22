@@ -296,11 +296,12 @@ function ApprovalsContent() {
       !a.name.toLowerCase().startsWith("rfp_")
   );
   const primaryDocument = pdfAtt ?? formPreviewAtt;
+  const portalDocumentUrl = (url: string) => `/api/rfp/attachment?url=${encodeURIComponent(url)}`;
   const renderDocument = (attachment: { name: string; url: string }, label: string) => {
     const isImage = /\.(jpeg|jpg|png|webp|gif)$/i.test(attachment.url) || /\.(jpeg|jpg|png|webp|gif)$/i.test(attachment.name);
     const isPdf = /\.pdf($|\?)/i.test(attachment.url) || /\.pdf$/i.test(attachment.name);
-    if (isImage) return <img src={attachment.url} alt={label} className="max-w-full max-h-[400px] object-contain border border-prime-rule mx-auto" />;
-    if (isPdf) return <iframe src={`${attachment.url}#toolbar=1&view=FitH`} title={label} className="h-[400px] w-full border border-prime-rule bg-white" />;
+    if (isImage) return <img src={portalDocumentUrl(attachment.url)} alt={label} className="max-w-full max-h-[400px] object-contain border border-prime-rule mx-auto" />;
+    if (isPdf) return <iframe src={`${portalDocumentUrl(attachment.url)}#toolbar=1&view=FitH`} title={label} className="h-[400px] w-full border border-prime-rule bg-white" />;
     return <div className="py-8 text-center"><Paperclip className="w-8 h-8 text-prime-ink mx-auto mb-2" /><p className="text-xs font-medium text-prime-ink">{attachment.name}</p></div>;
   };
 
@@ -530,6 +531,28 @@ function ApprovalsContent() {
                 </p>
               </div>
 
+              {/* Approval breakdown: keep the decision-critical figures visible beside the source documents. */}
+              <div className="my-4 border border-prime-rule bg-white">
+                <div className="border-b border-prime-rule bg-prime-surface/30 px-3 py-2">
+                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-prime-blue">Approval breakdown</h3>
+                  <p className="mt-0.5 text-[11px] text-prime-ink/60">Use the official RFP and supporting files below to verify the line-item detail.</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[520px] text-left text-xs">
+                    <thead className="border-b border-prime-rule bg-prime-surface/15 text-[10px] uppercase tracking-wider text-prime-ink/70">
+                      <tr><th className="px-3 py-2 font-semibold">Review item</th><th className="px-3 py-2 font-semibold">Details</th><th className="px-3 py-2 text-right font-semibold">Amount / status</th></tr>
+                    </thead>
+                    <tbody className="divide-y divide-prime-rule/60">
+                      <tr><td className="px-3 py-2 text-prime-ink/70">Payee / supplier</td><td className="px-3 py-2 font-medium text-prime-ink">{activeRequest.payee || "Not specified"}</td><td className="px-3 py-2 text-right text-prime-ink/60">{activeRequest.formType.toUpperCase()}</td></tr>
+                      <tr><td className="px-3 py-2 text-prime-ink/70">Business purpose</td><td className="px-3 py-2 text-prime-ink" colSpan={2}>{activeRequest.purpose || "Not specified"}</td></tr>
+                      <tr><td className="px-3 py-2 text-prime-ink/70">Total payable</td><td className="px-3 py-2 font-semibold text-prime-blue">See detailed line items in the Official Signed RFP</td><td className="px-3 py-2 text-right font-semibold text-prime-blue">₱{Number(activeRequest.totalAmount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td></tr>
+                      <tr><td className="px-3 py-2 text-prime-ink/70">Requested date</td><td className="px-3 py-2 text-prime-ink" colSpan={2}>{activeRequest.dateNeeded || "Immediate"}</td></tr>
+                      <tr><td className="px-3 py-2 text-prime-ink/70">Supporting documents</td><td className="px-3 py-2 text-prime-ink">{activeRequest.attachments.length} attached file{activeRequest.attachments.length === 1 ? "" : "s"}</td><td className="px-3 py-2 text-right text-prime-blue">Review below</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
               {/* Document Review Tabs */}
               <div className="my-5 border border-prime-rule">
                 <div className="flex items-center border-b border-prime-rule bg-prime-white">
@@ -568,7 +591,7 @@ function ApprovalsContent() {
                         {renderDocument(primaryDocument, "Official Signed RFP")}
                         <div className="mt-2">
                           <a
-                              href={primaryDocument.url}
+                              href={portalDocumentUrl(primaryDocument.url)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-xs font-medium text-prime-blue hover:underline inline-flex items-center gap-1"
@@ -592,7 +615,7 @@ function ApprovalsContent() {
                           <Paperclip className="w-8 h-8 text-prime-ink mx-auto mb-2" />
                           <p className="text-xs font-medium text-prime-ink">{quoteAtt.name}</p>
                           <a
-                            href={quoteAtt.url}
+                            href={portalDocumentUrl(quoteAtt.url)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 bg-prime-blue text-prime-white text-xs font-medium shadow-none"
@@ -617,7 +640,7 @@ function ApprovalsContent() {
                     </div>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {activeRequest.attachments.map((attachment) => (
-                        <a key={attachment.id} href={attachment.url} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-2 border border-prime-rule bg-white px-3 py-2 text-xs text-prime-blue hover:border-prime-gold">
+                        <a key={attachment.id} href={portalDocumentUrl(attachment.url)} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-2 border border-prime-rule bg-white px-3 py-2 text-xs text-prime-blue hover:border-prime-gold">
                           <FileText className="h-3.5 w-3.5 shrink-0" />
                           <span className="min-w-0 flex-1 truncate" title={attachment.name}>{attachment.name}</span>
                           <ExternalLink className="h-3 w-3 shrink-0" />
