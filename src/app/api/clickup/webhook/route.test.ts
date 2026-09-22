@@ -53,6 +53,7 @@ describe("ClickUp status webhook audit persistence", () => {
         "RFP Process History": "history-field-id",
         "RFP Last Status Event ID": "event-field-id",
         "TS RFP - Finance Processing": "finance-processing-ts-field-id",
+        "BY RFP - Finance Processing": "finance-processing-by-field-id",
       },
     } as never);
     vi.mocked(readWorkflowStatusesFromSupabase).mockResolvedValue({
@@ -71,6 +72,7 @@ describe("ClickUp status webhook audit persistence", () => {
         { id: "history-field-id", name: "RFP Process History", type: "text", value: null },
         { id: "event-field-id", name: "RFP Last Status Event ID", type: "short_text", value: null },
         { id: "finance-processing-ts-field-id", name: "TS RFP - Finance Processing", type: "date", value: null },
+        { id: "finance-processing-by-field-id", name: "BY RFP - Finance Processing", type: "short_text", value: null },
       ],
     });
   });
@@ -91,6 +93,12 @@ describe("ClickUp status webhook audit persistence", () => {
       "task-1",
       "history-field-id",
       expect.stringContaining("FINANCE PROCESSING"),
+      "pk_server_token"
+    );
+    expect(setTaskCustomFieldValue).toHaveBeenCalledWith(
+      "task-1",
+      "finance-processing-by-field-id",
+      "Finance User",
       "pk_server_token"
     );
     expect(setTaskCustomFieldValue).toHaveBeenCalledWith(

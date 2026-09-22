@@ -41,6 +41,19 @@ export const CLICKUP_MILESTONE_FIELDS: Record<Exclude<RfpMilestoneKey, "revision
   recordsFiling: "TS RFP - Records Filing",
 };
 
+/** Text companion fields populated with the ClickUp user who entered each status. */
+export const CLICKUP_MILESTONE_ACTOR_FIELDS: Record<Exclude<RfpMilestoneKey, "revisionRequested">, string> = {
+  requestorFormSubmission: "BY RFP - Requestor Form Submission",
+  tlReviewAndApproval: "BY RFP - TL Review and Approval",
+  financeValidation: "BY RFP - Finance Validation",
+  financeProcessing: "BY RFP - Finance Processing",
+  paymentPreparation: "BY RFP - Payment Preparation",
+  managementApproval: "BY RFP - CFO/CEO Sign-Off",
+  paymentRelease: "BY RFP - Payment Release",
+  paymentDocumentation: "BY RFP - Payment Documentation",
+  recordsFiling: "BY RFP - Records Filing",
+};
+
 const LEGACY_MILESTONE_FIELD_NAMES: Record<string, string> = {
   "RFP TS - Requestor Form Submission": CLICKUP_MILESTONE_FIELDS.requestorFormSubmission,
   "RFP TS - TL Review and Approval": CLICKUP_MILESTONE_FIELDS.tlReviewAndApproval,
@@ -106,6 +119,10 @@ export function resolveFieldIdMapping(availableFields: ClickUpFieldDefinition[])
     const id = findMatch(name);
     if (id) mapping[name] = id;
   }
+  for (const name of Object.values(CLICKUP_MILESTONE_ACTOR_FIELDS)) {
+    const id = findMatch(name);
+    if (id) mapping[name] = id;
+  }
   for (const [legacyName, canonicalName] of Object.entries(LEGACY_MILESTONE_FIELD_NAMES)) {
     const id = findMatch(legacyName);
     if (id && !mapping[canonicalName]) mapping[canonicalName] = id;
@@ -121,6 +138,7 @@ export function validateFieldMapping(mapping: ClickUpFieldIdMapping) {
   const allExpectedFields = [
     ...Object.values(CLICKUP_METADATA_FIELDS),
     ...Object.values(CLICKUP_AUDIT_FIELDS),
+    ...Object.values(CLICKUP_MILESTONE_ACTOR_FIELDS),
   ];
   const uniqueExpected = Array.from(new Set(allExpectedFields));
 

@@ -1,6 +1,7 @@
 import { resolveRfpMilestone, ORDERED_MILESTONE_KEYS, type RfpMilestoneKey } from "./rfpWorkflow";
 import {
   CLICKUP_MILESTONE_FIELDS,
+  CLICKUP_MILESTONE_ACTOR_FIELDS,
   CLICKUP_METADATA_FIELDS,
   resolveFieldIdMapping,
   type ClickUpFieldIdMapping,
@@ -299,6 +300,11 @@ export function mapClickUpTaskToTrackedRfp(
   // each status transition in process history. Associate the latest event
   // for each configured milestone so the frontend can show who moved it.
   const milestoneActors: MilestoneActors = {};
+  for (const key of ORDERED_MILESTONE_KEYS) {
+    const fieldName = CLICKUP_MILESTONE_ACTOR_FIELDS[key as keyof typeof CLICKUP_MILESTONE_ACTOR_FIELDS];
+    const value = fieldName ? getFieldValue(fieldName) : undefined;
+    if (typeof value === "string" && value.trim()) milestoneActors[key] = value.trim();
+  }
   const processHistory = getFieldValue("RFP Process History");
   if (typeof processHistory === "string" && processHistory.trim()) {
     const normalizeStatus = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
@@ -309,7 +315,7 @@ export function mapClickUpTaskToTrackedRfp(
       const actor = match[1].trim();
       const afterStatus = match[2].trim();
       const entry = milestoneEntries.find((candidate) => normalizeStatus(candidate.status) === normalizeStatus(afterStatus));
-      if (entry && actor) milestoneActors[entry.key] = actor;
+      if (entry && actor && !milestoneActors[entry.key]) milestoneActors[entry.key] = actor;
     }
   }
 

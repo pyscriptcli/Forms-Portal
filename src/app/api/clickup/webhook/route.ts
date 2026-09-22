@@ -4,6 +4,7 @@ import { getClickUpConfig, getClickUpTask, setTaskCustomFieldValue } from "@/lib
 import {
   CLICKUP_AUDIT_FIELDS,
   CLICKUP_MILESTONE_FIELDS,
+  CLICKUP_MILESTONE_ACTOR_FIELDS,
   resolveFieldIdMapping,
 } from "@/lib/clickupFields";
 import { getMilestoneEntries } from "@/lib/rfpWorkflow";
@@ -158,6 +159,12 @@ export async function POST(req: NextRequest) {
     console.warn(`No ClickUp timestamp field mapping found for milestone ${milestoneKey}.`);
   }
 
+  const actorFieldName = CLICKUP_MILESTONE_ACTOR_FIELDS[milestoneKey as keyof typeof CLICKUP_MILESTONE_ACTOR_FIELDS];
+  const actorFieldId = actorFieldName ? fieldMapping[actorFieldName] : undefined;
+  if (actorFieldId && actor) {
+    await setTaskCustomFieldValue(taskId, actorFieldId, actor, clickUp.token);
+  }
+
   // 4. Append to Process History and Update Last Status Event ID
   const historyFieldId = fieldMapping[CLICKUP_AUDIT_FIELDS.processHistory];
   if (historyFieldId) {
@@ -190,6 +197,7 @@ export async function POST(req: NextRequest) {
     taskId,
     milestone: milestoneKey,
     timestamp: eventDate,
+    actor,
     eventId,
   });
 }

@@ -48,6 +48,21 @@ export const CONTRACT_FIELD_GROUPS = [
       { name: "RFP Process History", type: "Text / Long Text", desc: "Audit log of all milestone timestamps & events" },
     ],
   },
+  {
+    title: "3. Milestone Actor Attribution (9 Fields)",
+    description: "Text companion fields populated automatically with the ClickUp user who moved each status.",
+    fields: [
+      { name: "BY RFP - Requestor Form Submission", type: "Short Text", desc: "ClickUp user who entered Requestor Form Submission" },
+      { name: "BY RFP - TL Review and Approval", type: "Short Text", desc: "ClickUp user who entered TL Review and Approval" },
+      { name: "BY RFP - Finance Validation", type: "Short Text", desc: "ClickUp user who entered Finance Validation" },
+      { name: "BY RFP - Finance Processing", type: "Short Text", desc: "ClickUp user who entered Finance Processing" },
+      { name: "BY RFP - Payment Preparation", type: "Short Text", desc: "ClickUp user who entered Payment Preparation" },
+      { name: "BY RFP - CFO/CEO Sign-Off", type: "Short Text", desc: "ClickUp user who entered CFO/CEO Sign-Off" },
+      { name: "BY RFP - Payment Release", type: "Short Text", desc: "ClickUp user who entered Payment Release" },
+      { name: "BY RFP - Payment Documentation", type: "Short Text", desc: "ClickUp user who entered Payment Documentation" },
+      { name: "BY RFP - Records Filing", type: "Short Text", desc: "ClickUp user who entered Records Filing" },
+    ],
+  },
 ];
 import {
   validateAdminCredentials,
