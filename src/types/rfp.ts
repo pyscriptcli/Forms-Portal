@@ -83,6 +83,8 @@ export interface RfpFormData {
   
   // Section 5: Purpose / Business Justification
   purpose: string;
+  // Portal-only classification; intentionally excluded from the official RFP PDF.
+  natureOfTransaction?: string;
   
   // Section 6: Supporting Documents Attached
   attachedDocs?: AttachedDocsChecklist;

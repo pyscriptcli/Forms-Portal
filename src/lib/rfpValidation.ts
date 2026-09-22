@@ -138,6 +138,17 @@ export function validateRfpForm(data: RfpFormData): ValidationResult {
     errors["purpose"] = item.message;
   }
 
+  if (!data.natureOfTransaction?.trim()) {
+    const item: ValidationErrorItem = {
+      id: "request-classification-section",
+      field: "natureOfTransaction",
+      label: "Nature of Transaction",
+      message: "Nature of Transaction is required.",
+    };
+    items.push(item);
+    errors["natureOfTransaction"] = item.message;
+  }
+
   // 6. Payment Details (Payment Methods Checkboxes)
   const methods =
     data.paymentMethods && data.paymentMethods.length > 0

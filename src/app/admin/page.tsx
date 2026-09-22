@@ -24,7 +24,7 @@ import {
 
 export const CONTRACT_FIELD_GROUPS = [
   {
-    title: "1. Core Request Metadata (9 Fields)",
+    title: "1. Core Request Metadata (10 Fields)",
     description: "Populated automatically upon submission and approval.",
     fields: [
       { name: "RFP ID", type: "Short Text", desc: "Sequential request ID (e.g. RFP-092026-0001)" },
@@ -32,6 +32,7 @@ export const CONTRACT_FIELD_GROUPS = [
       { name: "RFP Department", type: "Short Text", desc: "Requesting department (e.g. Accounting, ISD)" },
       { name: "RFP Amount", type: "Currency / Number", desc: "Total payable amount in PHP" },
       { name: "RFP Purpose", type: "Text", desc: "Itemized purpose or particulars" },
+      { name: "RFP Nature of Transaction", type: "Dropdown / Short Text", desc: "Portal-only transaction category for ClickUp reference and reporting" },
       { name: "RFP Requestor Name", type: "Short Text", desc: "Full name of requestor" },
       { name: "RFP Requestor Email", type: "Email / Text", desc: "Corporate email of requestor" },
       { name: "RFP Approver Name", type: "Short Text", desc: "Full name of approving Team Leader" },

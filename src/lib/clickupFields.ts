@@ -10,6 +10,7 @@ export const CLICKUP_METADATA_FIELDS = {
   department: "RFP Department",
   totalAmount: "RFP Amount",
   purpose: "RFP Purpose",
+  natureOfTransaction: "RFP Nature of Transaction",
   requestedBy: "RFP Requestor Name",
   requestedByEmail: "RFP Requestor Email",
   approverName: "RFP Approver Name",

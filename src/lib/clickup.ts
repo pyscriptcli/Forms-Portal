@@ -261,7 +261,12 @@ export async function getListCustomFields(
     });
     if (!res.ok) return [];
     const json = await res.json();
-    return json.fields || [];
+    return (json.fields || []).map((field: any) => ({
+      id: String(field.id || ""),
+      name: String(field.name || ""),
+      type: String(field.type || "text"),
+      type_config: field.type_config,
+    }));
   } catch (err) {
     console.error(`Error getting custom fields for list ${listId}:`, err);
     return [];
@@ -470,7 +475,11 @@ async function getMatchingCustomFields(listId: string, token: string, data: any,
       if (fieldId && rawVal !== undefined && rawVal !== null && rawVal !== "") {
         const fieldDef = availableFields.find((f) => f.id === fieldId);
         const actualType = (fieldDef?.type || defaultFieldType).toLowerCase();
-        const formatted = formatCustomFieldValueForWrite(actualType, rawVal);
+        const dropdownOptions = fieldDef && (fieldDef as any).type_config?.options;
+        const dropdownOption = actualType === "drop_down" && Array.isArray(dropdownOptions)
+          ? dropdownOptions.find((option: any) => String(option?.name || "").trim().toLowerCase() === String(rawVal).trim().toLowerCase())
+          : undefined;
+        const formatted = dropdownOption?.id || formatCustomFieldValueForWrite(actualType, rawVal);
         if (formatted !== null) {
           customFieldsPayload.push({ id: fieldId, value: formatted });
         }
@@ -483,6 +492,7 @@ async function getMatchingCustomFields(listId: string, token: string, data: any,
     addIfMapped(CLICKUP_METADATA_FIELDS.department, data.department || "");
     addIfMapped(CLICKUP_METADATA_FIELDS.totalAmount, Number(data.totalAmount || data.amount || 0), "money");
     addIfMapped(CLICKUP_METADATA_FIELDS.purpose, data.purpose || "");
+    addIfMapped(CLICKUP_METADATA_FIELDS.natureOfTransaction, data.natureOfTransaction || "");
     addIfMapped(CLICKUP_METADATA_FIELDS.requestedBy, data.requestedByName || "");
     addIfMapped(CLICKUP_METADATA_FIELDS.requestedByEmail, data.requestedByEmail || "");
     addIfMapped(CLICKUP_METADATA_FIELDS.approverName, data.tlSignatureName || data.approvedByName || "");
