@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
 
     const data: any = JSON.parse(dataStr);
     if ((formType === "rfp" || formType === "gw-rfp") && !String(data.natureOfTransaction || "").trim()) {
-      return NextResponse.json({ success: false, message: "Nature of Transaction is required before submitting." }, { status: 400 });
+      return NextResponse.json({ success: false, message: "Nature of Business is required before submitting." }, { status: 400 });
     }
     const [user, destination, workflowStatuses] = await Promise.all([
       fetchClickUpUser(accessToken),

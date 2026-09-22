@@ -142,8 +142,8 @@ export function validateRfpForm(data: RfpFormData): ValidationResult {
     const item: ValidationErrorItem = {
       id: "request-classification-section",
       field: "natureOfTransaction",
-      label: "Nature of Transaction",
-      message: "Nature of Transaction is required.",
+      label: "Nature of Business",
+      message: "Nature of Business is required.",
     };
     items.push(item);
     errors["natureOfTransaction"] = item.message;
