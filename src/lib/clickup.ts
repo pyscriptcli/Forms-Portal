@@ -641,6 +641,11 @@ export async function createClickUpTask(
     data.tlEmail || data.approverEmail,
   ].map(normalizeAssigneeValue).filter(Boolean)));
   const requestorId = data.requestedByClickUpId ? Number(data.requestedByClickUpId) || data.requestedByClickUpId : null;
+  // The authenticated requestor ID comes directly from ClickUp's /user endpoint
+  // and must not depend on the workspace member lookup succeeding. This keeps
+  // self-assignment reliable even when the member endpoint is unavailable or
+  // the OAuth token cannot enumerate every workspace member.
+  const assigneeIds: Array<string | number> = requestorId ? [requestorId] : [];
   if (assigneeNames.length > 0 || assigneeEmails.length > 0 || requestorId) {
     try {
       const teamId = data.clickupWorkspaceId || process.env.CLICKUP_TEAM_ID || process.env.CLICKUP_WORKSPACE_ID || "";
@@ -659,7 +664,7 @@ export async function createClickUpTask(
           }>;
         };
         const memberUsers = members.members || [];
-        const assigneeIds = memberUsers
+        const resolvedMemberIds = memberUsers
           .filter((item) => {
             const memberName = normalizeAssigneeValue(item.user?.username || item.user?.name || item.username || item.name);
             const memberEmail = normalizeAssigneeValue(item.user?.email || item.email);
@@ -668,8 +673,7 @@ export async function createClickUpTask(
           .map((item) => item.user?.id ?? item.id)
           .filter((id): id is string | number => Boolean(id))
           .map((id) => Number(id) || id);
-        if (requestorId) assigneeIds.unshift(requestorId);
-        if (assigneeIds.length > 0) body.assignees = Array.from(new Set(assigneeIds));
+        assigneeIds.push(...resolvedMemberIds);
         const unresolvedNames = assigneeNames.filter((name) => !memberUsers.some((item) =>
           name === normalizeAssigneeValue(item.user?.username || item.user?.name || item.username || item.name)
         ));
@@ -680,12 +684,13 @@ export async function createClickUpTask(
           console.warn("Some requested ClickUp assignees were not found in the configured Workspace.");
         }
       } else {
-        console.warn(`ClickUp member lookup failed (${membersRes.status}); task will be created without resolved assignees.`);
+        console.warn(`ClickUp member lookup failed (${membersRes.status}); continuing with authenticated requestor assignment when available.`);
       }
     } catch (error) {
       console.warn("Could not resolve requestor/TL emails to ClickUp assignees:", error);
     }
   }
+  if (assigneeIds.length > 0) body.assignees = Array.from(new Set(assigneeIds));
 
   // Sync the form's Date Accomplished and Due Date as ClickUp's date-only
   // start and due dates.

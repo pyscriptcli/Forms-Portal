@@ -228,6 +228,35 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
     )).resolves.toMatchObject({ id: "task-urgent" });
   });
 
+  it("keeps the authenticated requestor assigned when workspace member lookup fails", async () => {
+    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const href = String(url);
+      if (href.endsWith("/team/team-123/member")) return new Response("forbidden", { status: 403 });
+      if (href.endsWith("/list/list-self/task")) {
+        const payload = JSON.parse(String(init?.body));
+        expect(payload.assignees).toEqual([101]);
+        return Response.json({ id: "task-self", url: "https://app.clickup.com/t/task-self", status: { status: payload.status } });
+      }
+      return Response.json({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(createClickUpTask(
+      {
+        payee: "Vendor",
+        totalAmount: 100,
+        purpose: "Supplies",
+        items: [],
+        requestedByClickUpId: "101",
+        clickupWorkspaceId: "team-123",
+      },
+      "http://localhost:3000",
+      "rfp",
+      "oauth-token",
+      "list-self",
+    )).resolves.toMatchObject({ id: "task-self" });
+  });
+
   it("keeps the Nature of Business tag when a request is revised", async () => {
     process.env.CLICKUP_API_TOKEN = "pk_test_token_123";
     const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
