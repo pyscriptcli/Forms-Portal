@@ -43,14 +43,14 @@ export function Toolbar({
         {isRevision && <span className="text-xs text-prime-blue">Revision · #{taskId}</span>}
       </div>
       <div className="prime-toolbar-actions">
-        <button type="button" onClick={onPreviewPdf} disabled={isGeneratingPdf} className="prime-button secondary" aria-label="Download PDF" title="Download PDF">
-          {isGeneratingPdf ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}<span className="sr-only">PDF</span>
+        <button type="button" onClick={onPreviewPdf} disabled={isGeneratingPdf} className="prime-button secondary prime-toolbar-icon-button" aria-label="Download PDF" title="Download PDF">
+          {isGeneratingPdf ? <Loader2 size={17} className="animate-spin" /> : <FileDown size={17} />}<span className="sr-only">PDF</span>
         </button>
-        <button type="button" onClick={onReset} className="prime-button secondary" aria-label="Reset form" title="Reset form"><RotateCcw size={16} /><span className="sr-only">Reset</span></button>
+        <button type="button" onClick={onReset} className="prime-button secondary prime-toolbar-icon-button" aria-label="Reset form" title="Reset form"><RotateCcw size={17} /><span className="sr-only">Reset</span></button>
         {(selectedForm === "rfp" || selectedForm === "gw-rfp") && onNatureOfTransactionChange && (
           <RequestClassification compact value={natureOfTransaction} onChange={onNatureOfTransactionChange} hasError={hasNatureOfTransactionError} />
         )}
-        <button id="submit-to-clickup-btn" type="button" onClick={onSubmit} disabled={isSubmitting || isGeneratingPdf} className="prime-button">
+        <button id="submit-to-clickup-btn" type="button" onClick={onSubmit} disabled={isSubmitting || isGeneratingPdf} className="prime-button prime-toolbar-submit">
           {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
           {isSubmitting ? "Submitting…" : isRevision ? "Update request" : "Submit request"}
         </button>

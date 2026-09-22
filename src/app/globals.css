@@ -63,8 +63,20 @@ input::placeholder, textarea::placeholder { color: var(--prime-gray); opacity: 0
 .prime-document input, .prime-document textarea { min-width: 0; font-family: var(--font-ui); }
 .prime-document th, .prime-document label { font-weight: 500; text-transform: uppercase; letter-spacing: .08em; }
 .prime-toolbar { position: sticky; top: 80px; z-index: 20; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding: 16px 0; margin-bottom: 24px; background: var(--prime-warm-white); border-block: 1px solid var(--color-prime-rule); }
-.prime-toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.prime-toolbar .prime-button { padding: 10px 12px; letter-spacing: .08em; }
+.prime-toolbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: 1 1 auto; min-width: 0; flex-wrap: wrap; }
+.prime-toolbar .prime-button { min-height: 44px; padding: 10px 12px; letter-spacing: .08em; }
+.prime-toolbar-icon-button { width: 44px; min-width: 44px; padding: 0 !important; }
+.prime-toolbar-submit { white-space: nowrap; }
+.prime-classification-compact { position: relative; min-width: 0; width: min(100%, 292px); flex: 0 1 292px; }
+.prime-classification-trigger { display: flex; min-height: 44px; width: 100%; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid var(--prime-blue); background: var(--prime-warm-white); padding: 5px 10px; color: var(--prime-blue); text-align: left; }
+.prime-classification-trigger:hover, .prime-classification-trigger.is-open { border-color: var(--prime-gold); box-shadow: inset 0 -2px var(--prime-gold); }
+.prime-classification-trigger.has-error { border-color: #b91c1c; }
+.prime-classification-copy { display: grid; min-width: 0; gap: 1px; }
+.prime-classification-label { color: var(--prime-gray); font-size: 9px; font-weight: 700; letter-spacing: .13em; line-height: 1.2; text-transform: uppercase; }
+.prime-classification-value { display: flex; min-width: 0; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; line-height: 1.35; }
+.prime-classification-value span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prime-classification-menu { right: 0; width: min(420px, calc(100vw - 24px)); }
+.prime-classification-menu [role="option"] { min-height: 54px; }
 .prime-toolbar select { width: min(100%,300px); }
 .prime-form-picker { position: relative; z-index: 21; }
 .prime-form-picker-trigger { min-width: min(100%, 312px); min-height: 52px; display: inline-flex; align-items: center; justify-content: space-between; gap: 24px; padding: 8px 12px; border: 1px solid var(--prime-blue); background: var(--prime-warm-white); color: var(--prime-blue); text-align: left; }
@@ -218,4 +230,12 @@ input::placeholder, textarea::placeholder { color: var(--prime-gray); opacity: 0
 .gw-rfp-sheet [class*="bg-[#e6ecfe]"] { background-color: #f9eded !important; }
 .gw-rfp-sheet [class*="text-[#003366]"] { color: #a33f55 !important; }
 .gw-rfp-sheet [class*="border-[#c7d8ea]"] { border-color: #efd0d0 !important; }
+
+
+@media (max-width: 767px) {
+  .prime-toolbar { align-items: flex-start; }
+  .prime-toolbar-actions { width: 100%; justify-content: flex-start; }
+  .prime-classification-compact { flex: 1 1 220px; width: auto; }
+  .prime-toolbar-submit { flex: 1 1 auto; }
+}
 
