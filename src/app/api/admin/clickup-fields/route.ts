@@ -3,12 +3,17 @@ import {
   getClickUpConfig,
   getListCustomFields,
   createClickUpWebhook,
+  getListTasks,
+  getClickUpTaskTimeInStatus,
+  setTaskCustomFieldValue,
 } from "@/lib/clickup";
 import {
+  CLICKUP_MILESTONE_FIELDS,
   resolveFieldIdMapping,
   validateFieldMapping,
 } from "@/lib/clickupFields";
-import { ADMIN_TOKEN } from "@/lib/adminSettings";
+import { getMilestoneEntries } from "@/lib/rfpWorkflow";
+import { ADMIN_TOKEN, DEFAULT_WORKFLOW_STATUSES } from "@/lib/adminSettings";
 import {
   isSupabaseAdminConfigured,
   readFormDestinationFromSupabase,
@@ -76,6 +81,66 @@ export async function POST(req: NextRequest) {
         { success: false, message: "ClickUp API token or RFP List ID is not configured. Webhook registration requires a personal ClickUp API token from the same workspace; an OAuth token may return OAUTH_027." },
         { status: 400 }
       );
+    }
+
+    if (action === "sync_task_timestamps") {
+      const availableFields = await getListCustomFields(listId, token);
+      const fieldMapping = resolveFieldIdMapping(availableFields);
+      const workflowStatuses = (await readWorkflowStatusesFromSupabase()) || DEFAULT_WORKFLOW_STATUSES;
+      const statusEntries = getMilestoneEntries(workflowStatuses);
+      const normalizeStatus = (value: unknown) => String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
+      const entryByStatus = new Map(statusEntries.map((entry) => [normalizeStatus(entry.status), entry]));
+      const tasks = await getListTasks(true, "rfp", undefined, listId, {
+        includeMarkdownDescription: false,
+        subtasks: false,
+      });
+      let timestampCount = 0;
+      const updatedTaskIds = new Set<string>();
+
+      for (const task of tasks) {
+        const taskFields = Array.isArray(task.custom_fields) ? task.custom_fields : [];
+        const taskMapping = {
+          ...fieldMapping,
+          ...resolveFieldIdMapping(taskFields.map((field: any) => ({
+            id: String(field.id || ""),
+            name: String(field.name || ""),
+            type: String(field.type || "text"),
+          }))),
+        };
+        const timeInStatus = await getClickUpTaskTimeInStatus(String(task.id), token);
+        if (!timeInStatus) continue;
+        const history = [
+          ...(Array.isArray(timeInStatus.status_history) ? timeInStatus.status_history : []),
+          ...(timeInStatus.current_status ? [timeInStatus.current_status] : []),
+        ];
+        const writtenFieldIds = new Set<string>();
+
+        for (const statusRecord of history) {
+          const entry = entryByStatus.get(normalizeStatus(statusRecord.status));
+          const since = statusRecord.total_time?.since;
+          const eventDate = Number(since);
+          if (!entry || !Number.isFinite(eventDate) || eventDate <= 0) continue;
+
+          const fieldName = CLICKUP_MILESTONE_FIELDS[entry.key as keyof typeof CLICKUP_MILESTONE_FIELDS];
+          const fieldId = fieldName ? taskMapping[fieldName] : undefined;
+          const existingField = taskFields.find((field: any) => String(field.id) === String(fieldId));
+          if (!fieldId || writtenFieldIds.has(String(fieldId)) || existingField?.value !== null && existingField?.value !== undefined && existingField?.value !== "") continue;
+
+          const written = await setTaskCustomFieldValue(String(task.id), fieldId, eventDate, token);
+          if (written) {
+            writtenFieldIds.add(String(fieldId));
+            timestampCount += 1;
+            updatedTaskIds.add(String(task.id));
+          }
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Synchronized ${timestampCount} missing milestone timestamp${timestampCount === 1 ? "" : "s"} across ${updatedTaskIds.size} task${updatedTaskIds.size === 1 ? "" : "s"}.`,
+        tasksScanned: tasks.length,
+        timestampsWritten: timestampCount,
+      });
     }
 
     if (action === "create_webhook") {
