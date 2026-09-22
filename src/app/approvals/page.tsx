@@ -82,9 +82,6 @@ function ApprovalsContent() {
   const [revisionReason, setRevisionReason] = useState("");
   const [isSubmittingRevision, setIsSubmittingRevision] = useState(false);
 
-  // Active preview tab for documents
-  const [activeDocTab, setActiveDocTab] = useState<"form" | "quote">("form");
-
   const [actionSuccessMessage, setActionSuccessMessage] = useState("");
 
   useEffect(() => {
@@ -283,30 +280,17 @@ function ApprovalsContent() {
     }
   };
 
-  // Find form preview image and quotation attachment from active request
-  const formPreviewAtt = activeRequest?.attachments.find(
-    (a) => a.name.toLowerCase().includes("preview") || a.name.toLowerCase().endsWith(".png")
-  );
-  const pdfAtt = activeRequest?.attachments.find(
-    (a) => a.name.toLowerCase().endsWith(".pdf")
-  );
-  const quoteAtt = activeRequest?.attachments.find(
-    (a) =>
-      !a.name.toLowerCase().includes("preview") &&
-      !a.name.toLowerCase().startsWith("rfp_")
-  );
-  const primaryDocument = pdfAtt ?? formPreviewAtt;
-  const portalDocumentUrl = (url: string) => `/api/rfp/attachment?url=${encodeURIComponent(url)}`;
+  const portalDocumentUrl = (attachment: { id: string; name: string }) => `/api/rfp/attachment?taskId=${encodeURIComponent(activeRequest?.taskId || "")}&attachmentId=${encodeURIComponent(attachment.id)}&name=${encodeURIComponent(attachment.name)}`;
   const approvalLineItems = activeRequest?.lineItems?.length
     ? activeRequest.lineItems
     : activeRequest
       ? [{ description: activeRequest.purpose || "Request total — see official RFP for line-item detail", unitPrice: activeRequest.totalAmount, quantity: 1, amount: activeRequest.totalAmount }]
       : [];
-  const renderDocument = (attachment: { name: string; url: string }, label: string) => {
+  const renderDocument = (attachment: { id: string; name: string; url: string }, label: string) => {
     const isImage = /\.(jpeg|jpg|png|webp|gif)$/i.test(attachment.url) || /\.(jpeg|jpg|png|webp|gif)$/i.test(attachment.name);
     const isPdf = /\.pdf($|\?)/i.test(attachment.url) || /\.pdf$/i.test(attachment.name);
-    if (isImage) return <img src={portalDocumentUrl(attachment.url)} alt={label} className="max-w-full max-h-[400px] object-contain border border-prime-rule mx-auto" />;
-    if (isPdf) return <iframe src={`${portalDocumentUrl(attachment.url)}#toolbar=1&view=FitH`} title={label} className="h-[400px] w-full border border-prime-rule bg-white" />;
+    if (isImage) return <img src={portalDocumentUrl(attachment)} alt={label} className="max-w-full max-h-[400px] object-contain border border-prime-rule mx-auto" />;
+    if (isPdf) return <iframe src={`${portalDocumentUrl(attachment)}#toolbar=1&view=FitH`} title={label} className="h-[400px] w-full border border-prime-rule bg-white" />;
     return <div className="py-8 text-center"><Paperclip className="w-8 h-8 text-prime-ink mx-auto mb-2" /><p className="text-xs font-medium text-prime-ink">{attachment.name}</p></div>;
   };
 
@@ -576,103 +560,56 @@ function ApprovalsContent() {
                 {!activeRequest.lineItems?.length && <p className="border-t border-prime-rule bg-amber-50 px-3 py-2 text-[11px] text-amber-900">This legacy request predates stored line-item data. The row above shows the request total; open the official RFP for its original breakdown.</p>}
               </div>
 
-              {/* Document Review Tabs */}
-              <div className="my-5 border border-prime-rule">
-                <div className="flex items-center border-b border-prime-rule bg-prime-white">
-                  <button
-                    type="button"
-                    onClick={() => setActiveDocTab("form")}
-                    className={`px-4 py-2 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
-                      activeDocTab === "form"
-                        ? "bg-prime-white text-prime-blue border-b-2 border-prime-blue"
-                        : "text-prime-ink hover:text-prime-ink"
-                    }`}
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    <span>Official Signed RFP</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveDocTab("quote")}
-                    className={`px-4 py-2 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
-                      activeDocTab === "quote"
-                        ? "bg-prime-white text-prime-blue border-b-2 border-prime-blue"
-                        : "text-prime-ink hover:text-prime-ink"
-                    }`}
-                  >
-                    <Paperclip className="w-3.5 h-3.5" />
-                    <span>Supplier Quotation / Invoices ({quoteAtt ? "1" : "None"})</span>
-                  </button>
-                </div>
-
-                {/* Tab Content */}
-                <div className="p-4 bg-prime-white max-h-[450px] overflow-y-auto flex items-center justify-center">
-                  {activeDocTab === "form" ? (
-                    primaryDocument ? (
-                      <div className="text-center">
-                        {renderDocument(primaryDocument, "Official Signed RFP")}
-                        <div className="mt-2">
-                          <a
-                              href={portalDocumentUrl(primaryDocument.url)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs font-medium text-prime-blue hover:underline inline-flex items-center gap-1"
-                            >
-                              <span>Open official RFP in new tab</span>
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="py-8 text-center text-xs text-prime-ink">
-                        No official RFP preview is available yet. Use the attachment links below.
-                      </div>
-                    )
-                  ) : quoteAtt ? (
-                    <div className="text-center w-full">
-                      {quoteAtt.url.match(/\.(jpeg|jpg|png|webp|pdf)/i) ? (
-                        renderDocument(quoteAtt, "Supplier quotation or invoice")
-                      ) : (
-                        <div className="py-8">
-                          <Paperclip className="w-8 h-8 text-prime-ink mx-auto mb-2" />
-                          <p className="text-xs font-medium text-prime-ink">{quoteAtt.name}</p>
-                          <a
-                            href={portalDocumentUrl(quoteAtt.url)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 bg-prime-blue text-prime-white text-xs font-medium shadow-none"
-                          >
-                            <span>Open Attachment in New Tab</span>
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="py-8 text-center text-xs text-prime-ink italic">
-                      No external supplier quotation was attached to this RFP.
-                    </div>
-                  )}
-                </div>
-                {activeRequest && activeRequest.attachments.length > 0 && (
-                  <div className="border-t border-prime-rule bg-prime-surface/20 px-4 py-3">
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-prime-blue">All attached documents</p>
-                      <span className="text-[10px] text-prime-ink/60">{activeRequest.attachments.length} file{activeRequest.attachments.length === 1 ? "" : "s"}</span>
-                    </div>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {activeRequest.attachments.map((attachment) => (
-                        <a key={attachment.id} href={portalDocumentUrl(attachment.url)} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-2 border border-prime-rule bg-white px-3 py-2 text-xs text-prime-blue hover:border-prime-gold">
-                          <FileText className="h-3.5 w-3.5 shrink-0" />
-                          <span className="min-w-0 flex-1 truncate" title={attachment.name}>{attachment.name}</span>
-                          <ExternalLink className="h-3 w-3 shrink-0" />
-                        </a>
-                      ))}
+              {/* Requestor-only document portal. Generated and finance files are excluded upstream. */}
+              <section className="my-5 border border-prime-rule bg-prime-white" aria-labelledby="requestor-documents-heading">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-prime-rule bg-prime-surface/30 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <Paperclip className="h-4 w-4 text-prime-blue" />
+                    <div>
+                      <h3 id="requestor-documents-heading" className="text-xs font-bold uppercase tracking-[0.14em] text-prime-blue">Requestor attachments</h3>
+                      <p className="mt-0.5 text-[11px] text-prime-ink/65">Documents uploaded by the requestor for this payment.</p>
                     </div>
                   </div>
+                  <span className="border border-prime-rule bg-white px-2 py-1 text-[10px] font-semibold text-prime-ink/70">{activeRequest.requestorDocuments.length} file{activeRequest.requestorDocuments.length === 1 ? "" : "s"}</span>
+                </div>
+
+                {activeRequest.requestorDocuments.length > 0 ? (
+                  <div className="grid gap-3 p-4 md:grid-cols-2">
+                    {activeRequest.requestorDocuments.map((document) => {
+                      const canPreview = /(?:image\/|application\/pdf)/i.test(document.type || "") || /\.(?:pdf|png|jpe?g|webp|gif)$/i.test(document.originalName);
+                      return (
+                        <article key={document.id || document.name} className="min-w-0 border border-prime-rule bg-white p-3">
+                          <div className="flex items-start gap-3">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center border border-prime-rule text-prime-blue"><FileText className="h-4 w-4" /></span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-prime-gold">{document.documentType}</p>
+                              <p className="mt-1 truncate text-xs font-medium text-prime-ink" title={document.originalName}>{document.originalName}</p>
+                              <p className="mt-0.5 text-[10px] uppercase text-prime-ink/55">{document.type || "File attachment"}</p>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {canPreview && (
+                              <details className="w-full border border-prime-rule bg-prime-surface/10 open:border-prime-blue/40">
+                                <summary className="cursor-pointer px-3 py-2 text-[11px] font-semibold text-prime-blue">Preview in portal</summary>
+                                <div className="border-t border-prime-rule p-2">{renderDocument(document, document.originalName)}</div>
+                              </details>
+                            )}
+                            <a href={portalDocumentUrl(document)} target="_blank" rel="noopener noreferrer" aria-label={`Open ${document.originalName} in portal`} className="inline-flex items-center gap-1.5 bg-prime-blue px-3 py-2 text-[11px] font-semibold text-white hover:bg-prime-blue/90">
+                              Open in portal <ExternalLink className="h-3 w-3" />
+                            </a>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="px-4 py-10 text-center">
+                    <Paperclip className="mx-auto h-7 w-7 text-prime-ink/35" />
+                    <p className="mt-2 text-sm font-medium text-prime-ink">No requestor attachments</p>
+                    <p className="mt-1 text-xs text-prime-ink/60">The requestor did not upload supporting documents for this request.</p>
+                  </div>
                 )}
-              </div>
+              </section>
 
               {approvalTab === "pending" ? <>{/* Approver endorsement */}
               <div className="pt-4 border-t border-prime-rule">

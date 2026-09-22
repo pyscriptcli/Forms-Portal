@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatFinanceOutputFilename,
+  formatRequestorAttachmentFilename,
   formatRfpReference,
   formatRfpTaskName,
   formatSubmittedFilename,
@@ -28,6 +29,12 @@ describe("RFP naming conventions", () => {
   it("uses YYYYMMDD for Finance output filenames", () => {
     expect(formatFinanceOutputFilename("RFP-092026-0142", "POP", "Meralco", new Date(2026, 8, 20))).toBe(
       "RFP-092026-0142_POP_Meralco_20260920.pdf"
+    );
+  });
+
+  it("preserves requestor file extensions and sanitizes dynamic names", () => {
+    expect(formatRequestorAttachmentFilename("RFP-092026-0003", "Invoice / Billing", "Vendor Quote FINAL.PNG", "image/png", 2)).toBe(
+      "RFP-092026-0003_REQUESTOR_INVOICE_BILLING_02_VENDOR_QUOTE_FINAL.png"
     );
   });
 });

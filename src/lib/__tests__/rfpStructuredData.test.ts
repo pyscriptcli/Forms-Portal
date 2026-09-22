@@ -12,11 +12,18 @@ describe("RFP structured data", () => {
       schema: "forms-portal/rfp@1",
       currency: "PHP",
       totalAmount: 5238.72,
+      documents: [],
       lineItems: [
         { description: "Vinyl board", quantity: 2, unit: "pc", unitPrice: 693.36, amount: 1386.72 },
         { description: "Canvas frame", quantity: 1, unit: "set", unitPrice: 3852, amount: 3852 },
       ],
     });
+  });
+
+  it("round-trips and sanitizes an attachment manifest", () => {
+    const documents = [{ source: "requestor", kind: "supporting", documentType: "Supplier quotation", originalName: "quote.png", storedName: "RFP-1_REQUESTOR_QUOTATION_01_QUOTE.png", mimeType: "image/png", sequence: 1 }];
+    const parsed = parseRfpStructuredData(serializeRfpStructuredData([], 100, "PHP", documents));
+    expect(parsed?.documents).toEqual(documents);
   });
 
   it("rejects malformed or unknown structured payloads", () => {

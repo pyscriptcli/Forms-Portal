@@ -154,7 +154,7 @@ export function buildTaskDescription(data: RfpFormData): string {
     "",
     `## Portal Structured Data`,
     `The versioned JSON block below is maintained by Forms Portal and supports dynamic line items.`,
-    serializeRfpStructuredData(normalizedItems, data.totalAmount, data.currencyType === "other" ? data.currencyOther : data.currencyType || "PHP"),
+    serializeRfpStructuredData(normalizedItems, data.totalAmount, data.currencyType === "other" ? data.currencyOther : data.currencyType || "PHP", data.attachmentManifest),
     "",
   ];
 

@@ -37,6 +37,29 @@ export function formatSubmittedFilename(reference: string, documentType: string,
   return `${reference}_${countedType}_${normalizePayeeToken(payee)}${suffix}.pdf`;
 }
 
+function safeFilenameToken(value: string, fallback: string): string {
+  return value.normalize("NFKD").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").toUpperCase() || fallback;
+}
+
+export function requestorAttachmentExtension(filename: string, mimeType = ""): string {
+  const match = filename.trim().match(/\.([a-zA-Z0-9]{1,8})$/);
+  if (match) return match[1].toLowerCase();
+  const byMime: Record<string, string> = { "application/pdf": "pdf", "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "application/msword": "doc", "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx" };
+  return byMime[mimeType.toLowerCase()] || "bin";
+}
+
+export function formatRequestorAttachmentFilename(reference: string, documentType: string, originalName: string, mimeType: string, sequence: number): string {
+  const category = safeFilenameToken(documentType, "SUPPORTING");
+  const originalStem = originalName.replace(/\.[^.]+$/, "");
+  const stem = safeFilenameToken(originalStem, "DOCUMENT").slice(0, 48);
+  const extension = requestorAttachmentExtension(originalName, mimeType);
+  return `${reference}_REQUESTOR_${category}_${String(sequence).padStart(2, "0")}_${stem}.${extension}`;
+}
+
+export function formatPortalPreviewFilename(reference: string, originalName: string, mimeType: string): string {
+  return `${reference}_PORTAL_PREVIEW.${requestorAttachmentExtension(originalName, mimeType)}`;
+}
+
 export function formatFinanceOutputFilename(reference: string, documentType: string, payee: string, issuedDate: Date): string {
   const date = `${issuedDate.getFullYear()}${String(issuedDate.getMonth() + 1).padStart(2, "0")}${String(issuedDate.getDate()).padStart(2, "0")}`;
   return `${reference}_${documentType.trim().toUpperCase()}_${normalizePayeeToken(payee)}_${date}.pdf`;

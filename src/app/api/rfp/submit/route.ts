@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { FormType } from "@/types/rfp";
-import { createClickUpTask, deleteClickUpTask, getClickUpConfig, readNextRfpReferenceFromClickUp, updateClickUpTask, uploadAttachmentToTask } from "@/lib/clickup";
+import { FormType, type RfpAttachmentManifestEntry } from "@/types/rfp";
+import { createClickUpTask, deleteClickUpTask, getClickUpConfig, getClickUpTask, readNextRfpReferenceFromClickUp, updateClickUpTask, uploadAttachmentToTask } from "@/lib/clickup";
 import { sendApproverNotification } from "@/lib/email";
 import { fetchClickUpUser, getServerAuthSession } from "@/lib/auth";
 import { readFormDestinationFromSupabase, readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
 import type { FormDestinationKey } from "@/lib/adminSettings";
-import { formatSubmittedFilename } from "@/lib/rfpNaming";
+import { formatPortalPreviewFilename, formatRequestorAttachmentFilename, formatSubmittedFilename } from "@/lib/rfpNaming";
 import { getSubmissionPayloadSize, MAX_SUBMISSION_PAYLOAD_BYTES } from "@/lib/submissionUploads";
 import { invalidateRfpCache } from "@/lib/rfpCache";
+import { parseRfpStructuredData } from "@/lib/rfpStructuredData";
 
 export const maxDuration = 60;
 
@@ -93,6 +94,42 @@ export async function POST(req: NextRequest) {
       data.rfpCodeSuffix = (await readNextRfpReferenceFromClickUp(referenceMonth, serverClickUp.token, destinationListId)).reference;
     }
 
+    const typeLabel = formType === "gw-rfp" ? "GW-RFP" : formType.toUpperCase();
+    const entityName = formType === "po" ? (data.vendorName || "Vendor") : (data.payee || "Payee");
+    const sanitizedName = entityName.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const isRfp = formType === "rfp" || formType === "gw-rfp";
+    const reference = String(data.rfpCodeSuffix || data.taskId || "RFP");
+    const officialFilename = isRfp ? formatSubmittedFilename(reference, "RFP", data.payee || "Payee") : `${typeLabel}_${sanitizedName}_${data.date || "document"}.pdf`;
+    const previewFilename = previewImageBlob instanceof File && previewImageBlob.size > 0
+      ? (isRfp ? formatPortalPreviewFilename(reference, previewImageBlob.name || "preview.jpg", previewImageBlob.type) : previewImageBlob.name || `${typeLabel}_${sanitizedName}_Preview.jpg`)
+      : "";
+    const requestorFilenames = supportingFiles.map((file, index) => isRfp
+      ? formatRequestorAttachmentFilename(reference, data.supportingFiles?.[index]?.documentType || "Supporting document", file.name, file.type, index + 1)
+      : file.name);
+
+    let preservedRequestorDocuments: RfpAttachmentManifestEntry[] = [];
+    if (isRfp && data.taskId && supportingFiles.length === 0) {
+      const existingTask = await getClickUpTask(data.taskId, accessToken);
+      const existingDescription = String(existingTask?.markdown_description || existingTask?.description || "");
+      preservedRequestorDocuments = (parseRfpStructuredData(existingDescription)?.documents || [])
+        .filter((entry) => entry.source === "requestor" && entry.kind === "supporting");
+    }
+
+    if (isRfp) {
+      data.attachmentManifest = [
+        { source: "generated", kind: "official_rfp", documentType: "Official RFP", originalName: "form.pdf", storedName: officialFilename, mimeType: "application/pdf", sequence: 1 },
+        ...(previewFilename ? [{ source: "generated", kind: "preview", documentType: "Portal preview", originalName: previewImageBlob instanceof File ? previewImageBlob.name : "preview", storedName: previewFilename, mimeType: previewImageBlob instanceof File ? previewImageBlob.type : "image/jpeg", sequence: 1 }] : []),
+        ...preservedRequestorDocuments,
+        ...supportingFiles.map((file, index) => ({ source: "requestor", kind: "supporting", documentType: data.supportingFiles?.[index]?.documentType || "Supporting document", originalName: file.name, storedName: requestorFilenames[index], mimeType: file.type || "application/octet-stream", sequence: index + 1 })),
+      ];
+    }
+
+    const attachmentEntries: AttachmentEntry[] = [
+      { file: pdfBlob, filename: officialFilename },
+      ...(previewImageBlob instanceof File && previewImageBlob.size > 0 ? [{ file: previewImageBlob, filename: previewFilename }] : []),
+      ...supportingFiles.map((file, index) => ({ file, filename: requestorFilenames[index] })),
+    ];
+
     const host = req.headers.get("host") || "localhost:3000";
     const protocol = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
@@ -106,33 +143,6 @@ export async function POST(req: NextRequest) {
     }
     if (!isRevision) createdTaskId = taskResult.id;
 
-    const typeLabel = formType === "gw-rfp" ? "GW-RFP" : formType.toUpperCase();
-    const entityName = formType === "po" ? (data.vendorName || "Vendor") : (data.payee || "Payee");
-    const sanitizedName = entityName.replace(/[^a-zA-Z0-9_-]/g, "_");
-    const isRfp = formType === "rfp" || formType === "gw-rfp";
-    const attachmentEntries: AttachmentEntry[] = [
-      {
-        file: pdfBlob,
-        filename: isRfp
-          ? formatSubmittedFilename(data.rfpCodeSuffix, "RFP", data.payee || "Payee")
-          : `${typeLabel}_${sanitizedName}_${data.date || "document"}.pdf`,
-      },
-      ...(previewImageBlob instanceof File && previewImageBlob.size > 0
-        ? [{ file: previewImageBlob, filename: previewImageBlob.name || `${typeLabel}_${sanitizedName}_Preview.jpg` }]
-        : []),
-      ...supportingFiles.map((file, index) => ({
-        file,
-        filename: isRfp
-          ? formatSubmittedFilename(
-            data.rfpCodeSuffix,
-            data.supportingFiles?.[index]?.documentType || "SUP",
-            data.payee || "Payee",
-            undefined,
-            index + 1,
-          )
-          : file.name,
-      })),
-    ];
     await uploadAttachments(taskResult.id, attachmentEntries, accessToken);
 
     if (formType === "rfp" && (data.approverEmail || data.approverName || data.approvedByName)) {

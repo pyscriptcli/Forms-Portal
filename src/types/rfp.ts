@@ -41,6 +41,16 @@ export interface SupportingFile {
   documentType?: string;
 }
 
+export interface RfpAttachmentManifestEntry {
+  source: "generated" | "requestor" | "finance";
+  kind: "official_rfp" | "preview" | "supporting" | "finance_output";
+  documentType: string;
+  originalName: string;
+  storedName: string;
+  mimeType: string;
+  sequence: number;
+}
+
 export interface AttachedDocsChecklist {
   invoiceBilling?: boolean;
   soa?: boolean;
@@ -137,6 +147,7 @@ export interface RfpFormData {
 
   // Supporting files
   supportingFiles?: SupportingFile[];
+  attachmentManifest?: RfpAttachmentManifestEntry[];
   urgency: UrgencyLevel;
   urgencyOptions?: string[];
   dateNeeded: string;

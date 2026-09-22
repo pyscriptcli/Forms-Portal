@@ -10,6 +10,7 @@ import {
 import { DEFAULT_WORKFLOW_STATUSES, type WorkflowStatuses } from "./adminSettings";
 import { getMilestoneEntries } from "./rfpWorkflow";
 import { parseRfpStructuredData } from "./rfpStructuredData";
+import { resolveRequestorDocuments, type RequestorDocument } from "./rfpAttachments";
 
 export type MilestoneTimestamps = Partial<Record<RfpMilestoneKey, string>>;
 export type MilestoneActors = Partial<Record<RfpMilestoneKey, string>>;
@@ -48,6 +49,7 @@ export interface TrackedRfp {
   revisionRequestedBy?: string;
   dateCreated: string;
   attachments: Array<{ id: string; name: string; url: string; type?: string }>;
+  requestorDocuments: RequestorDocument[];
   milestoneTimestamps: MilestoneTimestamps;
   milestoneActors: MilestoneActors;
   dataSource?: "custom_field" | "legacy_fallback";
@@ -120,7 +122,8 @@ export function mapClickUpTaskToTrackedRfp(
   const statuses = workflowStatusesOverride || DEFAULT_WORKFLOW_STATUSES;
   const statusStr = (task.status?.status || "").toLowerCase();
   const desc = task.markdown_description || task.description || "";
-  const lineItems = parseLineItems(desc);
+  const structuredData = parseRfpStructuredData(desc);
+  const lineItems = structuredData?.lineItems.length ? structuredData.lineItems : parseLineItems(desc);
   const taskCustomFields: Array<{ id: string; name?: string; value?: any }> = Array.isArray(task.custom_fields)
     ? task.custom_fields
     : [];
@@ -368,6 +371,7 @@ export function mapClickUpTaskToTrackedRfp(
         type: att.mimetype || att.type,
       }))
     : [];
+  const requestorDocuments = resolveRequestorDocuments(attachments, structuredData ? structuredData.documents : undefined);
 
   const urgency: "urgent" | "normal" = task.priority?.priority === "urgent" ? "urgent" : "normal";
   const dateNeeded = task.due_date ? new Date(Number(task.due_date)).toISOString().split("T")[0] : "";
@@ -401,6 +405,7 @@ export function mapClickUpTaskToTrackedRfp(
     revisionRequestedBy,
     dateCreated,
     attachments,
+    requestorDocuments,
     milestoneTimestamps,
     milestoneActors,
     dataSource,
