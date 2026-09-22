@@ -52,6 +52,7 @@ describe("request details", () => {
     render(<RequestsPage />);
 
     await waitFor(() => expect(screen.getByRole("tab", { name: /Completed/ })).toBeInTheDocument());
+    expect(screen.queryByRole("combobox", { name: /department/i })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: /Completed/ }));
     await waitFor(() => expect(screen.getByRole("region", { name: "Request details" })).toBeInTheDocument());
 

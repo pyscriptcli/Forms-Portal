@@ -6,7 +6,6 @@ import { PageHeader } from "@/components/PageHeader";
 import { useSearchParams } from "next/navigation";
 import {
   Search,
-  Building2,
   Loader2,
   CheckCircle2,
   AlertTriangle,
@@ -19,10 +18,7 @@ import {
   Check,
 } from "lucide-react";
 import { TrackedRfp } from "../api/rfp/track/route";
-import { DEPARTMENT_NAMES } from "@/types/rfp";
 import type { RfpMilestoneKey } from "@/lib/rfpWorkflow";
-
-const DEPARTMENTS = ["All Departments", ...DEPARTMENT_NAMES];
 
 interface WorkflowMilestoneDef {
   key: RfpMilestoneKey;
@@ -252,13 +248,11 @@ function RequestsContent() {
   const initialId = searchParams.get("id") ?? "";
 
   const [searchQuery, setSearchQuery] = useState(initialId);
-  const [selectedDept, setSelectedDept] = useState("All Departments");
   const [requestTab, setRequestTab] = useState<"pending" | "completed">("pending");
   const [allRequests, setAllRequests] = useState<TrackedRfp[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<TrackedRfp | null>(null);
-  const [viewerCanViewAll, setViewerCanViewAll] = useState(false);
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
   const [isStale, setIsStale] = useState(false);
   const [staleWarning, setStaleWarning] = useState<string | null>(null);
@@ -284,7 +278,6 @@ function RequestsContent() {
       if (res.ok && data.success) {
         const nextRequests: TrackedRfp[] = data.requests ?? [];
         setAllRequests(nextRequests);
-        setViewerCanViewAll(Boolean(data.viewerCanViewAll));
         setFetchedAt(data.fetchedAt || new Date().toISOString());
         setIsStale(Boolean(data.isStale));
         setStaleWarning(data.warning || null);
@@ -343,9 +336,6 @@ function RequestsContent() {
         ? request.currentStage === "completed"
         : request.currentStage !== "completed"
     );
-    if (selectedDept !== "All Departments") {
-      list = list.filter((r) => r.department.toLowerCase() === selectedDept.toLowerCase());
-    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(
@@ -360,7 +350,7 @@ function RequestsContent() {
       );
     }
     return list;
-  }, [allRequests, requestTab, selectedDept, searchQuery]);
+  }, [allRequests, requestTab, searchQuery]);
 
   // Initial auto-selection
   useEffect(() => {
@@ -476,21 +466,6 @@ function RequestsContent() {
             className="w-full min-h-11 pl-9 pr-3 bg-prime-white border border-prime-rule focus:border-prime-blue text-xs focus:outline-none transition-colors"
           />
         </div>
-        {viewerCanViewAll && (
-          <div className="relative">
-            <Building2 className="w-3.5 h-3.5 text-prime-ink absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <select
-              aria-label="Filter requests by department"
-              value={selectedDept}
-              onChange={(e) => setSelectedDept(e.target.value)}
-              className="min-h-11 pl-9 pr-4 bg-prime-white border border-prime-rule focus:border-prime-blue text-xs focus:outline-none cursor-pointer transition-colors"
-            >
-              {DEPARTMENTS.map((d) => (
-                <option key={d}>{d}</option>
-              ))}
-            </select>
-          </div>
-        )}
       </div>
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
@@ -645,7 +620,6 @@ function RequestsContent() {
                 type="button"
                 onClick={() => {
                   setSearchQuery("");
-                  setSelectedDept("All Departments");
                 }}
                 className="prime-button secondary"
               >

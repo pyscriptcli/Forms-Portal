@@ -3,7 +3,6 @@ import { getClickUpConfig, getListTasks, getClickUpTask } from "@/lib/clickup";
 import { getServerAuthSession } from "@/lib/auth";
 import { readFormDestinationFromSupabase } from "@/lib/supabaseAdmin";
 import type { FormDestinationKey } from "@/lib/adminSettings";
-import { type UserRole } from "@/lib/rbac";
 import { DEFAULT_WORKFLOW_STATUSES, type WorkflowStatuses } from "@/lib/adminSettings";
 import { readPortalSettingsFromSupabase, readWorkflowStatusesFromSupabase } from "@/lib/supabaseAdmin";
 import { resolveRfpMilestone } from "@/lib/rfpWorkflow";
@@ -18,29 +17,14 @@ export type { TrackedRfp, MilestoneTimestamps };
 interface ViewerAccess {
   email: string;
   username: string;
-  role: UserRole;
-  canViewAll: boolean;
-  department: string;
 }
 
 async function getViewerAccess(user: { email?: string; username?: string } | null): Promise<ViewerAccess> {
   const email = (user?.email || "").trim().toLowerCase();
   const username = (user?.username || "").trim().toLowerCase();
-  const users = await import("@/lib/supabaseAdmin").then(({ readRbacUsersFromSupabase }) => readRbacUsersFromSupabase());
-
-  const record = users.find((candidate) =>
-    candidate.status === "active" && (
-      candidate.email.toLowerCase() === email ||
-      candidate.name.toLowerCase() === username
-    )
-  );
-  const role = record?.role || "requestor";
   return {
     email,
     username,
-    role,
-    department: record?.department?.trim().toLowerCase() || "",
-    canViewAll: role === "admin" || role === "finance",
   };
 }
 
@@ -109,14 +93,14 @@ export async function GET(req: NextRequest) {
         source = "clickup";
       }
 
-      if (!viewer.canViewAll && !taskBelongsToViewer(parsed, viewer)) {
+      if (!taskBelongsToViewer(parsed, viewer)) {
         return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
       }
 
       return NextResponse.json({
         success: true,
         requests: [parsed],
-        viewerCanViewAll: viewer.canViewAll,
+        viewerCanViewAll: false,
         fetchedAt: new Date().toISOString(),
         isStale: false,
         source,
@@ -139,10 +123,9 @@ export async function GET(req: NextRequest) {
 
     let parsed = [...cacheResult.requests];
 
-    // Requestors are restricted server-side.
-    if (!viewer.canViewAll) {
-      parsed = parsed.filter((request) => taskBelongsToViewer(request, viewer));
-    }
+    // This is the personal Requests view: every viewer is restricted to tasks
+    // submitted by their own authenticated ClickUp identity.
+    parsed = parsed.filter((request) => taskBelongsToViewer(request, viewer));
 
     // Apply filters
     if (query) {
@@ -177,7 +160,7 @@ export async function GET(req: NextRequest) {
       success: true,
       requests: parsed,
       count: parsed.length,
-      viewerCanViewAll: viewer.canViewAll,
+      viewerCanViewAll: false,
       fetchedAt: cacheResult.fetchedAt,
       isStale: cacheResult.isStale,
       source: cacheResult.source,
@@ -193,10 +176,6 @@ export async function GET(req: NextRequest) {
 }
 
 function taskBelongsToViewer(request: TrackedRfp, viewer: ViewerAccess): boolean {
-  if (viewer.canViewAll) return true;
-  if (viewer.role === "approver") {
-    return Boolean(viewer.department) && request.department.trim().toLowerCase() === viewer.department;
-  }
   const viewerEmail = viewer.email;
   const viewerName = viewer.username.replace(/\s+/g, " ").trim();
   if (request.requestedByEmail && viewerEmail) {
