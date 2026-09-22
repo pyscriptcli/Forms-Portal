@@ -138,17 +138,18 @@ export async function POST(req: NextRequest) {
   const workflowStatuses = normalizeWorkflowStatuses(configuredStatuses || DEFAULT_WORKFLOW_STATUSES);
   const entries = getMilestoneEntries(workflowStatuses);
   const matchedEntry = entries.find((entry) => normStatus(entry.status) === normStatus(newStatus));
+  const isRevisionStatus = normStatus(newStatus).includes("revision");
 
-  if (!matchedEntry) {
+  if (!matchedEntry && !isRevisionStatus) {
     console.log(`Unknown ClickUp status "${newStatus}" ignored by webhook.`);
     return NextResponse.json({ success: true, ignored: true, reason: `Unknown status "${newStatus}"` });
   }
 
-  const milestoneKey = matchedEntry.key;
+  const milestoneKey = matchedEntry?.key;
 
   // ClickUp activity is authoritative. Persist its exact event time to the
   // matching TS field; never substitute Date.now() or task date_updated.
-  const milestoneFieldName = CLICKUP_MILESTONE_FIELDS[milestoneKey as keyof typeof CLICKUP_MILESTONE_FIELDS];
+  const milestoneFieldName = milestoneKey && CLICKUP_MILESTONE_FIELDS[milestoneKey as keyof typeof CLICKUP_MILESTONE_FIELDS];
   const milestoneFieldId = milestoneFieldName ? fieldMapping[milestoneFieldName] : undefined;
   if (milestoneFieldId) {
     const timestampWritten = await setTaskCustomFieldValue(taskId, milestoneFieldId, eventDate, clickUp.token);
@@ -159,7 +160,7 @@ export async function POST(req: NextRequest) {
     console.warn(`No ClickUp timestamp field mapping found for milestone ${milestoneKey}.`);
   }
 
-  const actorFieldName = CLICKUP_MILESTONE_ACTOR_FIELDS[milestoneKey as keyof typeof CLICKUP_MILESTONE_ACTOR_FIELDS];
+  const actorFieldName = milestoneKey && CLICKUP_MILESTONE_ACTOR_FIELDS[milestoneKey as keyof typeof CLICKUP_MILESTONE_ACTOR_FIELDS];
   const actorFieldId = actorFieldName ? fieldMapping[actorFieldName] : undefined;
   if (actorFieldId && actor) {
     await setTaskCustomFieldValue(taskId, actorFieldId, actor, clickUp.token);
@@ -195,7 +196,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     success: true,
     taskId,
-    milestone: milestoneKey,
+    milestone: milestoneKey || "revisionRequested",
     timestamp: eventDate,
     actor,
     eventId,

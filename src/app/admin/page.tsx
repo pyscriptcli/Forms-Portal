@@ -39,11 +39,12 @@ export const CONTRACT_FIELD_GROUPS = [
     ],
   },
   {
-    title: "2. Process Audit & Idempotency (4 Fields)",
+    title: "2. Process Audit & Idempotency (5 Fields)",
     description: "Enforces single-write idempotency and stores revision history.",
     fields: [
       { name: "RFP Revision Requested At", type: "Date & Time", desc: "Timestamp of the latest revision request" },
       { name: "RFP Revision Requested By", type: "Short Text", desc: "User or role who returned the request" },
+      { name: "RFP Revision Reason", type: "Long Text", desc: "Reason entered by the approver/TL in ClickUp" },
       { name: "RFP Last Status Event ID", type: "Short Text", desc: "Webhook event ID to prevent duplicate writes" },
       { name: "RFP Process History", type: "Text / Long Text", desc: "Audit log of all milestone timestamps & events" },
     ],

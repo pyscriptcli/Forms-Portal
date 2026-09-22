@@ -23,6 +23,7 @@ export const CLICKUP_AUDIT_FIELDS = {
   lastStatusEventId: "RFP Last Status Event ID",
   revisionRequestedAt: "RFP Revision Requested At",
   revisionRequestedBy: "RFP Revision Requested By",
+  revisionReason: "RFP Revision Reason",
 } as const;
 
 /**

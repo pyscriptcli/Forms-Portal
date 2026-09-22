@@ -180,8 +180,11 @@ function RequestTimeline({ request }: { request: TrackedRfp }) {
         </div>
 
         {isSelectedActive && request.isRevisionRequested ? (
-          <div className="p-2 border border-prime-gold bg-prime-gold/10 text-xs text-prime-blue font-medium">
-            Revision requested: {request.revisionReason || "Please review notes and update submission."}
+          <div className="p-3 border border-prime-gold bg-prime-gold/10 text-xs text-prime-blue">
+            <p className="font-semibold uppercase tracking-[0.12em]">Revision Requested</p>
+            {request.revisionRequestedAt && <p className="mt-1">{request.revisionRequestedAt}</p>}
+            {request.revisionRequestedBy && <p className="mt-0.5">Requested by {request.revisionRequestedBy}</p>}
+            <p className="mt-2 font-medium">Reason: {request.revisionReason || "Please review notes and update submission."}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">

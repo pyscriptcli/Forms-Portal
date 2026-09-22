@@ -126,5 +126,27 @@ describe("rfpTrackerMapping", () => {
       // Unreached milestones remain undefined (UI renders Pending)
       expect(result.milestoneTimestamps.financeProcessing).toBeUndefined();
     });
+
+    it("maps the ClickUp revision reason, timestamp, actor, and prior workflow stage", () => {
+      const result = mapClickUpTaskToTrackedRfp({
+        id: "task-revision",
+        name: "[RFP-092026-0005] PRIME – Supplier – Supplies",
+        status: { status: "REVISION REQUESTED" },
+        date_created: "1789547820000",
+        custom_fields: [
+          { id: "revision-reason", name: "RFP Revision Reason", value: "Attach the signed quotation." },
+          { id: "revision-at", name: "RFP Revision Requested At", value: "1789617000000" },
+          { id: "revision-by", name: "RFP Revision Requested By", value: "Finance User" },
+          { id: "history", name: "RFP Process History", value: "[2026-09-16T01:20:00.000Z] Finance User: \"FINANCE VALIDATION\" -> \"REVISION REQUESTED\" (Event: event-2)" },
+        ],
+      });
+
+      expect(result.isRevisionRequested).toBe(true);
+      expect(result.currentStage).toBe("revision_requested");
+      expect(result.stageIndex).toBe(2);
+      expect(result.revisionReason).toBe("Attach the signed quotation.");
+      expect(result.revisionRequestedAt).toMatch(/Sep 17, 2026/i);
+      expect(result.revisionRequestedBy).toBe("Finance User");
+    });
   });
 });

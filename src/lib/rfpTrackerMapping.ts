@@ -3,6 +3,7 @@ import {
   CLICKUP_MILESTONE_FIELDS,
   CLICKUP_MILESTONE_ACTOR_FIELDS,
   CLICKUP_METADATA_FIELDS,
+  CLICKUP_AUDIT_FIELDS,
   resolveFieldIdMapping,
   type ClickUpFieldIdMapping,
 } from "./clickupFields";
@@ -41,6 +42,8 @@ export interface TrackedRfp {
   isRevisionRequested: boolean;
   revisionReason?: string;
   revisionBy?: "tl" | "finance" | "approver";
+  revisionRequestedAt?: string;
+  revisionRequestedBy?: string;
   dateCreated: string;
   attachments: Array<{ id: string; name: string; url: string; type?: string }>;
   milestoneTimestamps: MilestoneTimestamps;
@@ -245,12 +248,20 @@ export function mapClickUpTaskToTrackedRfp(
 
   let isRevisionRequested = false;
   let revisionReason = "";
+  const revisionReasonField = getFieldValue(CLICKUP_AUDIT_FIELDS.revisionReason);
+  if (revisionReasonField !== undefined && revisionReasonField !== null) {
+    revisionReason = String(revisionReasonField).trim();
+  }
+  const revisionRequestedAtValue = getFieldValue(CLICKUP_AUDIT_FIELDS.revisionRequestedAt);
+  const revisionRequestedAt = formatMilestoneTimestamp(revisionRequestedAtValue);
+  const revisionRequestedByValue = getFieldValue(CLICKUP_AUDIT_FIELDS.revisionRequestedBy);
+  const revisionRequestedBy = revisionRequestedByValue ? String(revisionRequestedByValue).trim() : undefined;
   let revisionBy: "tl" | "finance" | "approver" = "approver";
 
   if (desc.includes("Revision Requested") || task.name.toLowerCase().includes("revision") || normalizedStatus.includes("revision")) {
     isRevisionRequested = true;
     const revMatch = desc.match(/(?:\*\*)?Reason:(?:\*\*)?\s*([^\n\r]+)/i);
-    if (revMatch) revisionReason = revMatch[1].trim();
+    if (revMatch && !revisionReason) revisionReason = revMatch[1].trim();
     if (/Revision Requested by Finance/i.test(desc)) {
       revisionBy = "finance";
     } else {
@@ -258,7 +269,15 @@ export function mapClickUpTaskToTrackedRfp(
     }
   }
 
-  const resolved = resolveRfpMilestone(statusStr, statuses);
+  const processHistory = getFieldValue(CLICKUP_AUDIT_FIELDS.processHistory);
+  let previousStatus = "";
+  if (isRevisionRequested && typeof processHistory === "string") {
+    for (const line of processHistory.split(/\r?\n/)) {
+      const match = line.match(/^\[[^\]]+\]\s+.+?:\s+"([^"]*)"\s+->\s+"([^"]+)"/);
+      if (match) previousStatus = match[1].trim();
+    }
+  }
+  const resolved = resolveRfpMilestone(isRevisionRequested && previousStatus ? previousStatus : statusStr, statuses);
   let currentStage: TrackedRfp["currentStage"] = isDone
     ? "completed"
     : resolved.stageIndex === 5
@@ -305,7 +324,6 @@ export function mapClickUpTaskToTrackedRfp(
     const value = fieldName ? getFieldValue(fieldName) : undefined;
     if (typeof value === "string" && value.trim()) milestoneActors[key] = value.trim();
   }
-  const processHistory = getFieldValue("RFP Process History");
   if (typeof processHistory === "string" && processHistory.trim()) {
     const normalizeStatus = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
     const milestoneEntries = getMilestoneEntries(statuses);
@@ -356,6 +374,8 @@ export function mapClickUpTaskToTrackedRfp(
     isRevisionRequested,
     revisionReason,
     revisionBy,
+    revisionRequestedAt: revisionRequestedAt !== "Timestamp unavailable" ? revisionRequestedAt : undefined,
+    revisionRequestedBy,
     dateCreated,
     attachments,
     milestoneTimestamps,

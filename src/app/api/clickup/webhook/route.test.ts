@@ -148,4 +148,47 @@ describe("ClickUp status webhook audit persistence", () => {
     expect(body.reason).toContain("authoritative status event timestamp");
     expect(setTaskCustomFieldValue).not.toHaveBeenCalled();
   });
+
+  it("records revision status activity even though it is not a normal milestone", async () => {
+    vi.mocked(readPortalSettingsFromSupabase).mockResolvedValue({
+      clickupFieldMapping: {
+        "RFP Process History": "history-field-id",
+        "RFP Last Status Event ID": "event-field-id",
+        "RFP Revision Requested At": "revision-at-field-id",
+        "RFP Revision Requested By": "revision-by-field-id",
+      },
+    } as never);
+    vi.mocked(getClickUpTask).mockResolvedValue({
+      id: "task-1",
+      list: { id: "list-1" },
+      custom_fields: [
+        { id: "history-field-id", name: "RFP Process History", type: "text", value: null },
+        { id: "event-field-id", name: "RFP Last Status Event ID", type: "short_text", value: null },
+        { id: "revision-at-field-id", name: "RFP Revision Requested At", type: "date", value: null },
+        { id: "revision-by-field-id", name: "RFP Revision Requested By", type: "short_text", value: null },
+      ],
+    });
+    vi.mocked(setTaskCustomFieldValue).mockResolvedValue(true);
+
+    const response = await POST(new Request("http://localhost/api/clickup/webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: "taskStatusUpdated",
+        task_id: "task-1",
+        history_items: [{
+          id: "revision-event-1",
+          date: String(eventDate),
+          before: { status: "FINANCE VALIDATION" },
+          after: { status: "REVISION REQUESTED" },
+          user: { username: "Finance User" },
+        }],
+      }),
+    }) as never);
+
+    expect(response.status).toBe(200);
+    expect(setTaskCustomFieldValue).toHaveBeenCalledWith("task-1", "revision-at-field-id", eventDate, "pk_server_token");
+    expect(setTaskCustomFieldValue).toHaveBeenCalledWith("task-1", "revision-by-field-id", "Finance User", "pk_server_token");
+    expect(setTaskCustomFieldValue).toHaveBeenCalledWith("task-1", "history-field-id", expect.stringContaining("REVISION REQUESTED"), "pk_server_token");
+  });
 });
