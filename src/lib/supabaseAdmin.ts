@@ -1,6 +1,10 @@
 import {
   DEFAULT_WORKFLOW_STATUSES,
+  DEFAULT_WORKFLOW_CONFIGURATIONS,
   normalizeWorkflowStatuses,
+  normalizeWorkflowConfigurations,
+  type WorkflowConfigurations,
+  type WorkflowFormKey,
   type WorkflowStatuses,
 } from "@/lib/adminSettings";
 import { normalizeFormDestinations, type FormDestinationKey, type FormDestination } from "@/lib/adminSettings";
@@ -60,7 +64,7 @@ export async function saveDropdownOptionsToSupabase(options: DropdownOptions): P
   if (!insert.ok) throw new Error(`Supabase dropdown save failed (${insert.status})`);
 }
 
-export async function readWorkflowStatusesFromSupabase(): Promise<WorkflowStatuses | null> {
+export async function readWorkflowStatusesFromSupabase(form?: WorkflowFormKey): Promise<WorkflowStatuses | null> {
   const { url, key, isConfigured } = getSupabaseConfig();
   if (!isConfigured) return null;
 
@@ -74,7 +78,10 @@ export async function readWorkflowStatusesFromSupabase(): Promise<WorkflowStatus
 
   const rows = await response.json() as Array<{ workflow_key?: string; clickup_status?: string }>;
   const values = rows.reduce<Record<string, string>>((result, row) => {
-    if (row.workflow_key && row.clickup_status) result[row.workflow_key] = row.clickup_status;
+    if (!row.workflow_key || !row.clickup_status) return result;
+    const prefix = form ? `${form}.` : "";
+    if (form && row.workflow_key.startsWith(prefix)) result[row.workflow_key.slice(prefix.length)] = row.clickup_status;
+    else if (!form && !row.workflow_key.includes(".")) result[row.workflow_key] = row.clickup_status;
     return result;
   }, {});
   return rows.length > 0 ? normalizeWorkflowStatuses(values) : DEFAULT_WORKFLOW_STATUSES;
@@ -98,6 +105,46 @@ export async function saveWorkflowStatusesToSupabase(statuses: WorkflowStatuses)
   if (!response.ok) {
     throw new Error(`Supabase workflow status save failed (${response.status}): ${await response.text()}`);
   }
+}
+
+export async function readWorkflowConfigurationsFromSupabase(): Promise<WorkflowConfigurations | null> {
+  const { url, key, isConfigured } = getSupabaseConfig();
+  if (!isConfigured) return null;
+  const response = await fetch(`${url}/rest/v1/${encodeURIComponent(WORKFLOW_TABLE)}?select=workflow_key,clickup_status`, { headers: supabaseHeaders(key), cache: "no-store" });
+  if (!response.ok) throw new Error(`Supabase workflow configuration read failed (${response.status}): ${await response.text()}`);
+  const rows = await response.json() as Array<{ workflow_key?: string; clickup_status?: string }>;
+  const grouped: Record<string, Record<string, string>> = {};
+  const legacy: Record<string, string> = {};
+  for (const row of rows) {
+    if (!row.workflow_key || !row.clickup_status) continue;
+    const separator = row.workflow_key.indexOf(".");
+    if (separator > 0) {
+      const form = row.workflow_key.slice(0, separator);
+      grouped[form] ||= {};
+      grouped[form][row.workflow_key.slice(separator + 1)] = row.clickup_status;
+    } else legacy[row.workflow_key] = row.clickup_status;
+  }
+  return normalizeWorkflowConfigurations({
+    rfp: grouped.rfp ? grouped.rfp : legacy,
+    rfb: grouped.rfb || DEFAULT_WORKFLOW_CONFIGURATIONS.rfb,
+    "travel-budget": grouped["travel-budget"] || DEFAULT_WORKFLOW_CONFIGURATIONS["travel-budget"],
+  });
+}
+
+export async function saveWorkflowConfigurationsToSupabase(configurations: WorkflowConfigurations): Promise<void> {
+  const { url, key, isConfigured } = getSupabaseConfig();
+  if (!isConfigured) throw new Error("Supabase is not configured on this deployment.");
+  const normalized = normalizeWorkflowConfigurations(configurations);
+  const rows = (Object.entries(normalized) as Array<[WorkflowFormKey, WorkflowStatuses]>).flatMap(([form, statuses]) =>
+    Object.entries(statuses).map(([workflowKey, clickup_status]) => ({ workflow_key: `${form}.${workflowKey}`, display_name: `${form} ${workflowKey}`, clickup_status }))
+  );
+  rows.push(...Object.entries(normalized.rfp).map(([workflow_key, clickup_status]) => ({ workflow_key, display_name: workflow_key, clickup_status })));
+  const response = await fetch(`${url}/rest/v1/${encodeURIComponent(WORKFLOW_TABLE)}`, {
+    method: "POST",
+    headers: supabaseHeaders(key, { Prefer: "resolution=merge-duplicates,return=minimal" }),
+    body: JSON.stringify(rows),
+  });
+  if (!response.ok) throw new Error(`Supabase workflow configuration save failed (${response.status}): ${await response.text()}`);
 }
 
 export async function readFormDestinationFromSupabase(

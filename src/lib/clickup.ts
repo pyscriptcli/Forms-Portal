@@ -268,6 +268,25 @@ export async function getListCustomFields(
   }
 }
 
+export async function getListStatuses(
+  listId: string,
+  token?: string,
+): Promise<string[]> {
+  const authToken = token || process.env.CLICKUP_API_TOKEN || "";
+  if (!authToken || authToken === "mock") return [];
+  try {
+    const res = await fetch(`${CLICKUP_API_BASE}/list/${listId}`, {
+      headers: { Authorization: authToken.startsWith("Bearer ") ? authToken : authToken },
+    });
+    if (!res.ok) return [];
+    const json = await res.json();
+    return Array.isArray(json.statuses) ? json.statuses.map((status: any) => String(status?.status || "")).filter(Boolean) : [];
+  } catch (err) {
+    console.error(`Error getting ClickUp statuses for list ${listId}:`, err);
+    return [];
+  }
+}
+
 /**
  * Sets a single custom field value on a ClickUp task.
  */

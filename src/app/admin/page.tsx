@@ -75,6 +75,8 @@ import {
   type FormDestinationKey,
   type FormDestinations,
   type WorkflowStatuses,
+  type WorkflowConfigurations,
+  type WorkflowFormKey,
 } from "@/lib/adminSettings";
 import {
   ROLE_DEFINITIONS,
@@ -120,6 +122,11 @@ export default function AdminPage() {
   });
   const [destinations, setDestinations] = useState<FormDestinations>(DEFAULT_FORM_DESTINATIONS);
   const [workflowStatuses, setWorkflowStatuses] = useState<WorkflowStatuses>(DEFAULT_WORKFLOW_STATUSES);
+  const [workflowConfigurations, setWorkflowConfigurations] = useState<WorkflowConfigurations>({ rfp: DEFAULT_WORKFLOW_STATUSES, rfb: { ...DEFAULT_WORKFLOW_STATUSES }, "travel-budget": { ...DEFAULT_WORKFLOW_STATUSES } });
+  const [workflowForm, setWorkflowForm] = useState<WorkflowFormKey>("rfp");
+  const [discoveredStatuses, setDiscoveredStatuses] = useState<string[]>([]);
+  const [discoveredFields, setDiscoveredFields] = useState<Array<{ id: string; name: string; type: string }>>([]);
+  const [isDiscoveringWorkflow, setIsDiscoveringWorkflow] = useState(false);
   const [departments, setDepartments] = useState<Array<{ department: string; tlName: string; tlEmail: string }>>([]);
   const [tlOptions, setTlOptions] = useState<Array<{ name: string; email: string }>>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -309,6 +316,7 @@ export default function AdminPage() {
     setSettings(flags);
     if (flags.destinations) setDestinations(flags.destinations);
     if (flags.workflowStatuses) setWorkflowStatuses(flags.workflowStatuses);
+    if (flags.workflowConfigurations) setWorkflowConfigurations(flags.workflowConfigurations);
     if (Array.isArray(flags.departments)) {
       setDepartments(flags.departments.map((item: any) => typeof item === "string" ? { department: item, tlName: "", tlEmail: "" } : item));
     }
@@ -432,7 +440,8 @@ export default function AdminPage() {
   async function handleSaveWorkflowStatuses() {
     setIsSaving(true);
     setSaveMsg("");
-    const updated = { ...settings, workflowStatuses };
+    const nextConfigurations = { ...workflowConfigurations, [workflowForm]: workflowConfigurations[workflowForm] };
+    const updated = { ...settings, workflowStatuses, workflowConfigurations: nextConfigurations };
     setSettings(updated);
     try {
       const res = await fetch("/api/admin/settings", {
@@ -441,15 +450,34 @@ export default function AdminPage() {
           "Content-Type": "application/json",
           "x-admin-token": ADMIN_TOKEN,
         },
-        body: JSON.stringify({ workflowStatuses }),
+        body: JSON.stringify({ workflowStatuses, workflowConfigurations: nextConfigurations }),
       });
       if (!res.ok) throw new Error("Save failed");
-      setSaveMsg("Workflow statuses saved.");
-    } catch {
-      setSaveMsg("Error saving — changes applied locally only.");
+      setWorkflowConfigurations(nextConfigurations);
+      setSaveMsg("Workflow mapping saved to Supabase.");
+    } catch (error: any) {
+      setSaveMsg(error?.message || "Error saving workflow mapping to Supabase.");
     } finally {
       setIsSaving(false);
       setTimeout(() => setSaveMsg(""), 3000);
+    }
+  }
+
+  async function discoverWorkflow(formType: WorkflowFormKey) {
+    setIsDiscoveringWorkflow(true);
+    setSaveMsg("");
+    try {
+      const response = await fetch(`/api/admin/workflow-mapping?formType=${encodeURIComponent(formType)}`, { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "Could not discover ClickUp workflow metadata.");
+      setDiscoveredStatuses(Array.isArray(data.statuses) ? data.statuses : []);
+      setDiscoveredFields(Array.isArray(data.fields) ? data.fields : []);
+      if (data.workflow) setWorkflowConfigurations((current) => ({ ...current, [formType]: data.workflow }));
+      setSaveMsg(`${formType === "travel-budget" ? "Travel Budget" : formType.toUpperCase()} discovered ${data.statuses?.length || 0} ClickUp statuses and ${data.fields?.length || 0} custom fields.`);
+    } catch (error: any) {
+      setSaveMsg(error?.message || "Could not discover ClickUp workflow metadata.");
+    } finally {
+      setIsDiscoveringWorkflow(false);
     }
   }
 
@@ -775,13 +803,13 @@ export default function AdminPage() {
           </section>
         </div>}
 
-        {activeTab === "workflow" && <div id="admin-tabpanel-workflow" role="tabpanel" aria-label="Workflow statuses">
+        {activeTab === "workflow" && <div id="admin-tabpanel-workflow" role="tabpanel" aria-label="Workflow mapping">
         <section>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-5">
             <div>
-              <h2 className="prime-heading text-3xl">Workflow statuses</h2>
+              <h2 className="prime-heading text-3xl">Workflow mapping</h2>
               <p className="text-sm text-prime-ink/80 mt-1">
-                Match these values exactly to the statuses configured in the destination ClickUp List.
+                Each form has its own ClickUp workflow. Discover the destination list, map its statuses, then save the mapping in Supabase.
               </p>
             </div>
             <button
@@ -791,7 +819,19 @@ export default function AdminPage() {
               className="prime-button flex items-center justify-center gap-2 shrink-0"
             >
               <Save className="w-4 h-4" />
-              {isSaving ? "Saving..." : "Save workflow statuses"}
+              {isSaving ? "Saving..." : "Save workflow mapping"}
+            </button>
+          </div>
+
+          <div role="tablist" aria-label="Workflow form types" className="flex flex-wrap gap-2 mb-5">
+            {(["rfp", "rfb", "travel-budget"] as WorkflowFormKey[]).map((formType) => (
+              <button key={formType} type="button" role="tab" aria-selected={workflowForm === formType} onClick={() => { setWorkflowForm(formType); void discoverWorkflow(formType); }} className={`border px-4 py-3 text-xs font-bold uppercase tracking-[0.14em] ${workflowForm === formType ? "border-prime-blue bg-prime-blue text-white" : "border-prime-rule text-prime-blue"}`}>
+                {formType === "travel-budget" ? "Travel Budget" : formType.toUpperCase()}
+              </button>
+            ))}
+            <button type="button" onClick={() => void discoverWorkflow(workflowForm)} disabled={isDiscoveringWorkflow} className="prime-button secondary ml-auto flex items-center gap-2">
+              <RefreshCw className={`w-4 h-4 ${isDiscoveringWorkflow ? "animate-spin" : ""}`} />
+              {isDiscoveringWorkflow ? "Discovering..." : "Discover ClickUp"}
             </button>
           </div>
 
@@ -815,13 +855,24 @@ export default function AdminPage() {
                 </span>
                 <input
                   aria-label={`${label} ClickUp status`}
-                  value={workflowStatuses[key]}
-                  onChange={(e) => setWorkflowStatuses((current) => ({ ...current, [key]: e.target.value }))}
+                  list={`clickup-statuses-${workflowForm}`}
+                  value={workflowConfigurations[workflowForm][key]}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setWorkflowConfigurations((current) => ({ ...current, [workflowForm]: { ...current[workflowForm], [key]: value } }));
+                    if (workflowForm === "rfp") setWorkflowStatuses((current) => ({ ...current, [key]: value }));
+                  }}
                   className="prime-field flex-1 font-mono text-sm"
                   required
                 />
               </label>
             ))}
+          </div>
+          <datalist id={`clickup-statuses-${workflowForm}`}>{discoveredStatuses.map((status) => <option key={status} value={status} />)}</datalist>
+          <div className="mt-5 border border-prime-rule p-4 bg-prime-paper/40">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-prime-blue">Discovered ClickUp fields</p>
+            <p className="text-xs text-prime-ink/70 mt-1">These are read from the selected destination list and are available for the form’s field mapping contract.</p>
+            <p className="text-sm mt-3">{discoveredFields.length ? discoveredFields.map((field) => field.name).join(" · ") : "Discover ClickUp to load custom fields."}</p>
           </div>
           {saveMsg && <p role="status" className="prime-notice mt-6">{saveMsg}</p>}
         </section>

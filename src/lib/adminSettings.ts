@@ -29,6 +29,9 @@ export type WorkflowStatuses = {
   revisionRequested: string;
 };
 
+export type WorkflowFormKey = "rfp" | "rfb" | "travel-budget";
+export type WorkflowConfigurations = Record<WorkflowFormKey, WorkflowStatuses>;
+
 export const DEFAULT_WORKFLOW_STATUSES: WorkflowStatuses = {
   requestorFormSubmission: "REQUESTOR FORM SUBMISSION",
   tlReviewAndApproval: "TL REVIEW AND APPROVAL",
@@ -40,6 +43,12 @@ export const DEFAULT_WORKFLOW_STATUSES: WorkflowStatuses = {
   paymentDocumentation: "PAYMENT DOCUMENTATION",
   recordsFiling: "RECORDS FILING",
   revisionRequested: "REVISION REQUESTED",
+};
+
+export const DEFAULT_WORKFLOW_CONFIGURATIONS: WorkflowConfigurations = {
+  rfp: DEFAULT_WORKFLOW_STATUSES,
+  rfb: { ...DEFAULT_WORKFLOW_STATUSES },
+  "travel-budget": { ...DEFAULT_WORKFLOW_STATUSES },
 };
 
 export const DEFAULT_FORM_DESTINATIONS: FormDestinations = {
@@ -94,6 +103,7 @@ export type AdminSettings = {
   demoModeEnabled: boolean;
   destinations?: FormDestinations;
   workflowStatuses?: WorkflowStatuses;
+  workflowConfigurations?: WorkflowConfigurations;
   clickupFieldMapping?: ClickUpFieldIdMapping;
   departments?: string[];
 };
@@ -110,6 +120,7 @@ export const DEFAULT_SETTINGS: AdminSettings = {
   demoModeEnabled: false,
   destinations: DEFAULT_FORM_DESTINATIONS,
   workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
+  workflowConfigurations: DEFAULT_WORKFLOW_CONFIGURATIONS,
   clickupFieldMapping: {},
   departments: DEFAULT_DEPARTMENTS,
 };
@@ -165,6 +176,15 @@ export function normalizeWorkflowStatuses(value: unknown): WorkflowStatuses {
         : fallback,
     ])
   ) as WorkflowStatuses;
+}
+
+export function normalizeWorkflowConfigurations(value: unknown): WorkflowConfigurations {
+  const raw = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  return {
+    rfp: normalizeWorkflowStatuses(raw.rfp ?? raw),
+    rfb: normalizeWorkflowStatuses(raw.rfb),
+    "travel-budget": normalizeWorkflowStatuses(raw["travel-budget"]),
+  };
 }
 
 export function normalizeFieldMapping(value: unknown): ClickUpFieldIdMapping {

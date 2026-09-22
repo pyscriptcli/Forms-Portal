@@ -4,13 +4,17 @@ import {
   normalizeFormDestinations,
   getDefaultFormDestinations,
   DEFAULT_WORKFLOW_STATUSES,
+  DEFAULT_WORKFLOW_CONFIGURATIONS,
   normalizeWorkflowStatuses,
+  normalizeWorkflowConfigurations,
   normalizeFieldMapping,
 } from "@/lib/adminSettings";
 import {
   isSupabaseAdminConfigured,
   readWorkflowStatusesFromSupabase,
+  readWorkflowConfigurationsFromSupabase,
   saveWorkflowStatusesToSupabase,
+  saveWorkflowConfigurationsToSupabase,
   readPortalSettingsFromSupabase,
   readFormDestinationsFromSupabase,
   savePortalSettingsToSupabase,
@@ -26,6 +30,7 @@ async function readFlags() {
     demoModeEnabled: false,
     destinations: getDefaultFormDestinations(),
     workflowStatuses: DEFAULT_WORKFLOW_STATUSES,
+    workflowConfigurations: DEFAULT_WORKFLOW_CONFIGURATIONS,
     clickupFieldMapping: {},
     departments: [] as Array<{ department: string; tlName: string; tlEmail: string }>,
     tlOptions: [] as Array<{ name: string; email: string }>,
@@ -39,13 +44,15 @@ export async function GET() {
 
   try {
     const flags = await readFlags();
-    const [workflowStatuses, portalSettings, destinations, dropdowns] = await Promise.all([
+    const [workflowStatuses, workflowConfigurations, portalSettings, destinations, dropdowns] = await Promise.all([
       readWorkflowStatusesFromSupabase(),
+      readWorkflowConfigurationsFromSupabase(),
       readPortalSettingsFromSupabase(),
       readFormDestinationsFromSupabase(),
       readDropdownOptionsFromSupabase(),
     ]);
     if (workflowStatuses) flags.workflowStatuses = workflowStatuses;
+    if (workflowConfigurations) flags.workflowConfigurations = workflowConfigurations;
     if (destinations) flags.destinations = destinations;
     Object.assign(flags, portalSettings);
     flags.departments = dropdowns?.department ?? [];
@@ -72,10 +79,14 @@ export async function POST(req: NextRequest) {
 
   const current = await readFlags();
   const hasWorkflowStatuses = Boolean(body.workflowStatuses && typeof body.workflowStatuses === "object");
+  const hasWorkflowConfigurations = Boolean(body.workflowConfigurations && typeof body.workflowConfigurations === "object");
   const hasDestinations = Boolean(body.destinations && typeof body.destinations === "object");
   const hasDropdowns = Array.isArray(body.departments) || Array.isArray(body.tlOptions);
   if (hasWorkflowStatuses && isSupabaseAdminConfigured()) {
     await saveWorkflowStatusesToSupabase(normalizeWorkflowStatuses(body.workflowStatuses));
+  }
+  if (hasWorkflowConfigurations && isSupabaseAdminConfigured()) {
+    await saveWorkflowConfigurationsToSupabase(normalizeWorkflowConfigurations(body.workflowConfigurations));
   }
   if (!isSupabaseAdminConfigured()) {
     return NextResponse.json({ error: "Supabase is required for shared Admin configuration." }, { status: 503 });
@@ -114,6 +125,9 @@ export async function POST(req: NextRequest) {
       ...(persistedDestinations ? { destinations: persistedDestinations } : {}),
       ...(body.workflowStatuses && typeof body.workflowStatuses === "object"
         ? { workflowStatuses: normalizeWorkflowStatuses(body.workflowStatuses) }
+        : {}),
+      ...(body.workflowConfigurations && typeof body.workflowConfigurations === "object"
+        ? { workflowConfigurations: normalizeWorkflowConfigurations(body.workflowConfigurations) }
         : {}),
       ...(body.clickupFieldMapping && typeof body.clickupFieldMapping === "object"
         ? { clickupFieldMapping: normalizeFieldMapping(body.clickupFieldMapping) }
