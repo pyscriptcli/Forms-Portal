@@ -582,6 +582,9 @@ export async function createClickUpTask(
     priority,
     notify_all: true,
   };
+  const entityTag = String(data.entityCode || "PRIME").trim().toUpperCase();
+  body.tags = [entityTag === "GW" ? "GW" : "PRIME"];
+  if (isUrgent) body.tags.push("Urgent");
 
   // ClickUp task assignees require user IDs. Resolve both the requestor and
   // selected TL by email so both receive status-change notifications.

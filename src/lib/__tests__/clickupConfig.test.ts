@@ -124,6 +124,8 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
         expect(payload.due_date).toBe(new Date("09/29/2026").getTime());
         expect(payload.due_date_time).toBe(false);
         expect(payload.assignees).toEqual([101, 202]);
+        expect(payload.tags).toEqual(["PRIME"]);
+        expect(payload.priority).toBe(3);
         return Response.json({ id: "task-1", url: "https://app.clickup.com/t/task-1", status: { status: payload.status } });
       }
       return Response.json({});
@@ -149,6 +151,41 @@ describe("ClickUp Configuration Multi-List Resolution", () => {
       "oauth-token",
       "list-123",
     )).resolves.toMatchObject({ id: "task-1" });
+  });
+
+  it("adds the GW and Urgent tags and ClickUp urgent priority", async () => {
+    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const href = String(url);
+      if (href.endsWith("/list/list-urgent/field")) return Response.json({ fields: [] });
+      if (href.endsWith("/team/team-123/member")) {
+        return Response.json({ members: [{ user: { id: "202", email: "tl@example.com" } }] });
+      }
+      if (href.endsWith("/list/list-urgent/task")) {
+        const payload = JSON.parse(String(init?.body));
+        expect(payload.tags).toEqual(["GW", "Urgent"]);
+        expect(payload.priority).toBe(1);
+        return Response.json({ id: "task-urgent", url: "https://app.clickup.com/t/task-urgent", status: { status: payload.status } });
+      }
+      return Response.json({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(createClickUpTask(
+      {
+        entityCode: "GW",
+        payee: "Vendor",
+        totalAmount: 100,
+        purpose: "Urgent supplies",
+        items: [],
+        urgency: "urgent",
+        tlEmail: "tl@example.com",
+        clickupWorkspaceId: "team-123",
+      },
+      "http://localhost:3000",
+      "rfp",
+      "oauth-token",
+      "list-urgent",
+    )).resolves.toMatchObject({ id: "task-urgent" });
   });
 
   it("advances approval and records approver metadata on the task", async () => {
