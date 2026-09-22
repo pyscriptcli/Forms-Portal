@@ -87,6 +87,10 @@ function ApprovalsContent() {
 
   const [actionSuccessMessage, setActionSuccessMessage] = useState("");
 
+  useEffect(() => {
+    if (user?.username) setApproverName(user.username);
+  }, [user?.username]);
+
   const fetchQueue = useCallback(async (forceRefresh = false) => {
     if (forceRefresh) {
       setIsUpdating(true);
@@ -291,6 +295,14 @@ function ApprovalsContent() {
       !a.name.toLowerCase().includes("preview") &&
       !a.name.toLowerCase().startsWith("rfp_")
   );
+  const primaryDocument = pdfAtt ?? formPreviewAtt;
+  const renderDocument = (attachment: { name: string; url: string }, label: string) => {
+    const isImage = /\.(jpeg|jpg|png|webp|gif)$/i.test(attachment.url) || /\.(jpeg|jpg|png|webp|gif)$/i.test(attachment.name);
+    const isPdf = /\.pdf($|\?)/i.test(attachment.url) || /\.pdf$/i.test(attachment.name);
+    if (isImage) return <img src={attachment.url} alt={label} className="max-w-full max-h-[400px] object-contain border border-prime-rule mx-auto" />;
+    if (isPdf) return <iframe src={`${attachment.url}#toolbar=1&view=FitH`} title={label} className="h-[400px] w-full border border-prime-rule bg-white" />;
+    return <div className="py-8 text-center"><Paperclip className="w-8 h-8 text-prime-ink mx-auto mb-2" /><p className="text-xs font-medium text-prime-ink">{attachment.name}</p></div>;
+  };
 
   return (
     <div className="prime-page">
@@ -551,40 +563,30 @@ function ApprovalsContent() {
                 {/* Tab Content */}
                 <div className="p-4 bg-prime-white max-h-[450px] overflow-y-auto flex items-center justify-center">
                   {activeDocTab === "form" ? (
-                    formPreviewAtt ? (
+                    primaryDocument ? (
                       <div className="text-center">
-                        <img
-                          src={formPreviewAtt.url}
-                          alt="Official RFP Preview"
-                          className="max-w-full max-h-[400px] object-contain border border-prime-rule shadow-none mx-auto"
-                        />
+                        {renderDocument(primaryDocument, "Official Signed RFP")}
                         <div className="mt-2">
-                          {pdfAtt && (
-                            <a
-                              href={pdfAtt.url}
+                          <a
+                              href={primaryDocument.url}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-xs font-medium text-prime-blue hover:underline inline-flex items-center gap-1"
                             >
-                              <span>Open full-resolution official PDF</span>
+                              <span>Open official RFP in new tab</span>
                               <ExternalLink className="w-3 h-3" />
                             </a>
-                          )}
                         </div>
                       </div>
                     ) : (
                       <div className="py-8 text-center text-xs text-prime-ink">
-                        Preview generating or available directly via attached PDF.
+                        No official RFP preview is available yet. Use the attachment links below.
                       </div>
                     )
                   ) : quoteAtt ? (
                     <div className="text-center w-full">
-                      {quoteAtt.url.match(/\.(jpeg|jpg|png|webp)/i) ? (
-                        <img
-                          src={quoteAtt.url}
-                          alt="Supplier Quotation"
-                          className="max-w-full max-h-[400px] object-contain border border-prime-rule shadow-none mx-auto"
-                        />
+                      {quoteAtt.url.match(/\.(jpeg|jpg|png|webp|pdf)/i) ? (
+                        renderDocument(quoteAtt, "Supplier quotation or invoice")
                       ) : (
                         <div className="py-8">
                           <Paperclip className="w-8 h-8 text-prime-ink mx-auto mb-2" />
@@ -607,6 +609,23 @@ function ApprovalsContent() {
                     </div>
                   )}
                 </div>
+                {activeRequest && activeRequest.attachments.length > 0 && (
+                  <div className="border-t border-prime-rule bg-prime-surface/20 px-4 py-3">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-prime-blue">All attached documents</p>
+                      <span className="text-[10px] text-prime-ink/60">{activeRequest.attachments.length} file{activeRequest.attachments.length === 1 ? "" : "s"}</span>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {activeRequest.attachments.map((attachment) => (
+                        <a key={attachment.id} href={attachment.url} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-2 border border-prime-rule bg-white px-3 py-2 text-xs text-prime-blue hover:border-prime-gold">
+                          <FileText className="h-3.5 w-3.5 shrink-0" />
+                          <span className="min-w-0 flex-1 truncate" title={attachment.name}>{attachment.name}</span>
+                          <ExternalLink className="h-3 w-3 shrink-0" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {approvalTab === "pending" ? <>{/* Approver endorsement */}
@@ -624,9 +643,10 @@ function ApprovalsContent() {
                     <input
                       type="text"
                       value={approverName}
-                      onChange={(e) => setApproverName(e.target.value)}
-                      placeholder="e.g. Jane Doe (Marketing Head)"
-                      className="w-full bg-prime-white border border-prime-rule text-xs px-2.5 h-8 focus:outline-none focus:border-prime-blue"
+                      readOnly
+                      aria-readonly="true"
+                      placeholder="Signed-in user profile name"
+                      className="w-full bg-prime-surface/40 border border-prime-rule text-xs px-2.5 h-8 text-prime-ink/80"
                     />
                   </div>
                   <div>
